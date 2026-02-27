@@ -1,0 +1,185 @@
+import 'dart:async';
+import 'dart:io';
+
+/// Google Maps linklerinden koordinat parse eden utility.
+/// Hiçbir ücretli API kullanmaz.
+class GoogleMapsParser {
+  /// Desteklenen Google Maps link formatlarından koordinat çıkarır.
+  /// Başarısız olursa null döner.
+  static Future<MapCoordinates?> parseLink(String link) async {
+    final trimmed = link.trim();
+    if (trimmed.isEmpty) return null;
+
+    // Kısa linkleri önce tam URL'e çevir
+    final url = await _resolveUrl(trimmed);
+    if (url == null) return null;
+
+    return _extractCoordinates(url);
+  }
+
+  /// URL'den koordinat çıkarmayı dener (birden fazla format destekler).
+  static MapCoordinates? _extractCoordinates(String url) {
+    // Format 1: /@lat,lng,zoom
+    // Örn: google.com/maps/place/.../@41.0082,28.9784,17z
+    final atPattern = RegExp(r'/@(-?\d+\.?\d*),(-?\d+\.?\d*)');
+    var match = atPattern.firstMatch(url);
+    if (match != null) {
+      return _tryParse(match.group(1)!, match.group(2)!);
+    }
+
+    // Format 2: ?q=lat,lng veya ?ll=lat,lng
+    final qPattern = RegExp(r'[?&](?:q|ll|query)=(-?\d+\.?\d*),(-?\d+\.?\d*)');
+    match = qPattern.firstMatch(url);
+    if (match != null) {
+      return _tryParse(match.group(1)!, match.group(2)!);
+    }
+
+    // Format 3: /maps/place/lat,lng
+    final placePattern = RegExp(r'/maps/place/(-?\d+\.?\d*),(-?\d+\.?\d*)');
+    match = placePattern.firstMatch(url);
+    if (match != null) {
+      return _tryParse(match.group(1)!, match.group(2)!);
+    }
+
+    // Format 4: !3d{lat}!4d{lng} (embed / short URL resolved format)
+    final embedPattern = RegExp(r'!3d(-?\d+\.?\d*)!4d(-?\d+\.?\d*)');
+    match = embedPattern.firstMatch(url);
+    if (match != null) {
+      return _tryParse(match.group(1)!, match.group(2)!);
+    }
+
+    // Format 5: data=...!8m2!3d{lat}!4d{lng}
+    final dataPattern = RegExp(r'!8m2!3d(-?\d+\.?\d*)!4d(-?\d+\.?\d*)');
+    match = dataPattern.firstMatch(url);
+    if (match != null) {
+      return _tryParse(match.group(1)!, match.group(2)!);
+    }
+
+    return null;
+  }
+
+  /// Kısa linkleri (goo.gl, maps.app.goo.gl) tam URL'e çevirir.
+  /// Normal linkler olduğu gibi döner.
+  static Future<String?> _resolveUrl(String url) async {
+    // Eğer zaten tam bir Google Maps URL'iyse direkt döndür
+    if (_isFullGoogleMapsUrl(url)) return url;
+
+    // Kısa link mi kontrol et
+    if (_isShortLink(url)) {
+      try {
+        final resolved = await _followRedirects(url);
+        return resolved;
+      } catch (_) {
+        return null;
+      }
+    }
+
+    // Bilinmeyen format
+    if (url.contains('google') || url.contains('goo.gl') || url.contains('maps')) {
+      return url;
+    }
+
+    return null;
+  }
+
+  static bool _isFullGoogleMapsUrl(String url) {
+    return url.contains('google.com/maps') ||
+        url.contains('google.com.tr/maps') ||
+        url.contains('maps.google.com');
+  }
+
+  static bool _isShortLink(String url) {
+    return url.contains('goo.gl/maps') ||
+        url.contains('maps.app.goo.gl') ||
+        url.contains('g.co/maps');
+  }
+
+  /// HTTP redirect'leri takip ederek tam URL'i alır.
+  static Future<String> _followRedirects(String url) async {
+    final uri = Uri.parse(url.startsWith('http') ? url : 'https://$url');
+    final client = HttpClient();
+    try {
+      client.connectionTimeout = const Duration(seconds: 10);
+      final request = await client.getUrl(uri);
+      request.followRedirects = false;
+      final response = await request.close();
+      await response.drain<void>();
+
+      if (response.statusCode >= 300 && response.statusCode < 400) {
+        final location = response.headers.value('location');
+        if (location != null) {
+          // Recursive redirect takip (max 5)
+          return _followRedirectsRecursive(location, 5, client);
+        }
+      }
+      // Redirect yoksa orijinal URL'i döndür
+      return url;
+    } finally {
+      client.close();
+    }
+  }
+
+  static Future<String> _followRedirectsRecursive(
+    String url,
+    int maxRedirects,
+    HttpClient client,
+  ) async {
+    if (maxRedirects <= 0) return url;
+
+    // Eğer artık tam bir Google Maps URL'iyse dur
+    if (_isFullGoogleMapsUrl(url)) return url;
+
+    try {
+      final uri = Uri.parse(url.startsWith('http') ? url : 'https://$url');
+      final request = await client.getUrl(uri);
+      request.followRedirects = false;
+      final response = await request.close();
+      await response.drain<void>();
+
+      if (response.statusCode >= 300 && response.statusCode < 400) {
+        final location = response.headers.value('location');
+        if (location != null) {
+          return _followRedirectsRecursive(location, maxRedirects - 1, client);
+        }
+      }
+    } catch (_) {
+      // Hata durumunda mevcut URL'i döndür
+    }
+    return url;
+  }
+
+  static MapCoordinates? _tryParse(String latStr, String lngStr) {
+    try {
+      final lat = double.parse(latStr);
+      final lng = double.parse(lngStr);
+
+      // Geçerli koordinat aralığı kontrolü
+      if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null;
+
+      return MapCoordinates(latitude: lat, longitude: lng);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Verilen string'in geçerli bir Google Maps linki olup olmadığını kontrol eder.
+  static bool isValidMapsLink(String link) {
+    final trimmed = link.trim().toLowerCase();
+    return trimmed.contains('google.com/maps') ||
+        trimmed.contains('google.com.tr/maps') ||
+        trimmed.contains('maps.google.com') ||
+        trimmed.contains('goo.gl/maps') ||
+        trimmed.contains('maps.app.goo.gl') ||
+        trimmed.contains('g.co/maps');
+  }
+}
+
+class MapCoordinates {
+  final double latitude;
+  final double longitude;
+
+  const MapCoordinates({required this.latitude, required this.longitude});
+
+  @override
+  String toString() => '($latitude, $longitude)';
+}

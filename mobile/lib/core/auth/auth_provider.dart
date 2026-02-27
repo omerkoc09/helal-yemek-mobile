@@ -1,0 +1,230 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
+
+import '../api/api_client.dart';
+import '../api/api_endpoints.dart';
+import '../models/user.dart';
+import 'token_storage.dart';
+
+// Token storage provider
+final tokenStorageProvider = Provider<TokenStorage>((ref) {
+  return TokenStorage();
+});
+
+// API client provider
+final apiClientProvider = Provider<ApiClient>((ref) {
+  final tokenStorage = ref.watch(tokenStorageProvider);
+  return ApiClient(tokenStorage: tokenStorage);
+});
+
+// Auth durumu
+enum AuthStatus { unknown, authenticated, unauthenticated }
+
+class AuthState {
+  final AuthStatus status;
+  final User? user;
+  final bool isLoading;
+  final String? error;
+
+  const AuthState({
+    this.status = AuthStatus.unknown,
+    this.user,
+    this.isLoading = false,
+    this.error,
+  });
+
+  AuthState copyWith({
+    AuthStatus? status,
+    User? user,
+    bool? isLoading,
+    String? error,
+  }) {
+    return AuthState(
+      status: status ?? this.status,
+      user: user ?? this.user,
+      isLoading: isLoading ?? this.isLoading,
+      error: error,
+    );
+  }
+
+  bool get isAuthenticated => status == AuthStatus.authenticated;
+  bool get isAdmin => user?.role == 'admin';
+  bool get isGuide => user?.role == 'guide';
+  bool get isTraveler => user?.role == 'traveler';
+}
+
+class AuthNotifier extends Notifier<AuthState> {
+  @override
+  AuthState build() => const AuthState();
+
+  ApiClient get _apiClient => ref.read(apiClientProvider);
+  TokenStorage get _tokenStorage => ref.read(tokenStorageProvider);
+
+  Future<void> checkAuthStatus() async {
+    final hasTokens = await _tokenStorage.hasTokens();
+    if (!hasTokens) {
+      state = state.copyWith(status: AuthStatus.unauthenticated);
+      return;
+    }
+
+    try {
+      final response = await _apiClient.get(ApiEndpoints.me);
+      final user = User.fromJson(response.data as Map<String, dynamic>);
+      state = state.copyWith(
+        status: AuthStatus.authenticated,
+        user: user,
+      );
+    } catch (_) {
+      await _tokenStorage.clearTokens();
+      state = state.copyWith(status: AuthStatus.unauthenticated);
+    }
+  }
+
+  Future<void> login({required String email, required String password}) async {
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      final response = await _apiClient.post(
+        ApiEndpoints.login,
+        data: {'email': email, 'password': password},
+      );
+      await _handleAuthResponse(response.data as Map<String, dynamic>);
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Giriş başarısız. Lütfen bilgilerinizi kontrol edin.',
+      );
+    }
+  }
+
+  Future<void> register({
+    required String name,
+    required String email,
+    required String password,
+  }) async {
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      final response = await _apiClient.post(
+        ApiEndpoints.register,
+        data: {'name': name, 'email': email, 'password': password},
+      );
+      await _handleAuthResponse(response.data as Map<String, dynamic>);
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Kayıt başarısız. Lütfen tekrar deneyin.',
+      );
+    }
+  }
+
+  Future<void> signInWithGoogle() async {
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      final googleSignIn = GoogleSignIn.instance;
+      final account = await googleSignIn.authenticate();
+      final idToken = account.authentication.idToken;
+      if (idToken == null) {
+        state = state.copyWith(
+          isLoading: false,
+          error: 'Google token alınamadı.',
+        );
+        return;
+      }
+      final response = await _apiClient.post(
+        ApiEndpoints.googleAuth,
+        data: {'id_token': idToken},
+      );
+      await _handleAuthResponse(response.data as Map<String, dynamic>);
+    } on GoogleSignInException catch (e) {
+      if (e.code == GoogleSignInExceptionCode.canceled) {
+        state = state.copyWith(isLoading: false);
+        return;
+      }
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Google ile giriş başarısız.',
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Google ile giriş başarısız.',
+      );
+    }
+  }
+
+  Future<void> signInWithApple() async {
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      final credential = await SignInWithApple.getAppleIDCredential(
+        scopes: [
+          AppleIDAuthorizationScopes.email,
+          AppleIDAuthorizationScopes.fullName,
+        ],
+      );
+      final identityToken = credential.identityToken;
+      if (identityToken == null) {
+        state = state.copyWith(
+          isLoading: false,
+          error: 'Apple token alınamadı.',
+        );
+        return;
+      }
+      final response = await _apiClient.post(
+        ApiEndpoints.appleAuth,
+        data: {'identity_token': identityToken},
+      );
+      await _handleAuthResponse(response.data as Map<String, dynamic>);
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Apple ile giriş başarısız.',
+      );
+    }
+  }
+
+  Future<void> logout() async {
+    await _tokenStorage.clearTokens();
+    state = const AuthState(status: AuthStatus.unauthenticated);
+  }
+
+  void updateUser(User user) {
+    state = state.copyWith(user: user);
+  }
+
+  Future<void> _handleAuthResponse(Map<String, dynamic> data) async {
+    await _tokenStorage.saveTokens(
+      accessToken: data['access_token'] as String,
+      refreshToken: data['refresh_token'] as String,
+    );
+
+    // Backend 'user' objesi dönerse kullan, dönmezse /me endpoint'inden çek
+    if (data.containsKey('user') && data['user'] != null) {
+      final user = User.fromJson(data['user'] as Map<String, dynamic>);
+      state = state.copyWith(
+        status: AuthStatus.authenticated,
+        user: user,
+        isLoading: false,
+      );
+    } else {
+      try {
+        final response = await _apiClient.get(ApiEndpoints.me);
+        final user = User.fromJson(response.data as Map<String, dynamic>);
+        state = state.copyWith(
+          status: AuthStatus.authenticated,
+          user: user,
+          isLoading: false,
+        );
+      } catch (_) {
+        // Token var ama kullanıcı bilgisi alınamadı, yine de authenticated say
+        state = state.copyWith(
+          status: AuthStatus.authenticated,
+          isLoading: false,
+        );
+      }
+    }
+  }
+}
+
+final authProvider = NotifierProvider<AuthNotifier, AuthState>(
+  AuthNotifier.new,
+);

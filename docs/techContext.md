@@ -1,0 +1,331 @@
+# Caiz mi? — Teknoloji Bağlamı
+
+## Teknoloji Yığını
+
+| Katman | Teknoloji | Versiyon | Açıklama |
+|---|---|---|---|
+| **Mobil Framework** | Flutter | 3.x | Cross-platform iOS + Android |
+| **State Management** | Riverpod | 2.x | Reactive state management |
+| **HTTP Client** | Dio | 5.x | HTTP requests ve interceptors |
+| **Routing** | GoRouter | 10.x | Declarative routing |
+| **Haritalar** | google_maps_flutter | 2.x | Harita entegrasyonu |
+| **Backend Framework** | Go + Fiber | 1.19+ / 2.x | High-performance web framework |
+| **Veritabanı** | PostgreSQL + PostGIS | 15+ / 3.x | İlişkisel DB + coğrafi extension |
+| **Authentication** | JWT + OAuth | - | Token-based auth |
+| **File Storage** | S3 Compatible | - | Fotoğraf depolama |
+| **Deployment** | Docker | - | Containerization |
+
+## Geliştirme Ortamı
+
+### Gerekli Araçlar
+- **Flutter SDK**: 3.13+
+- **Go**: 1.19+
+- **PostgreSQL**: 15+ with PostGIS extension
+- **Docker & Docker Compose**: Development environment
+- **Git**: Version control
+- **IDE**: VS Code / Android Studio / GoLand
+
+### Ortam Kurulumu
+```bash
+# Flutter dependencies
+flutter pub get
+
+# Go dependencies
+go mod tidy
+
+# Database setup
+docker-compose up -d postgres
+
+# Run migrations
+go run cmd/migrate/main.go
+
+# Start backend
+go run cmd/api/main.go
+
+# Start Flutter app
+flutter run
+```
+
+## Backend API Yapısı
+
+### Proje Dizin Yapısı
+```
+caiz-mi-backend/
+├── cmd/
+│   └── api/main.go                 # Application entry point
+├── internal/
+│   ├── config/config.go            # Environment configuration
+│   ├── database/
+│   │   ├── db.go                   # PostgreSQL connection
+│   │   └── migrations/             # SQL migration files
+│   ├── middleware/
+│   │   ├── auth.go                 # JWT validation
+│   │   ├── rbac.go                 # Role-based access control
+│   │   └── rate_limit.go           # Rate limiting
+│   ├── models/                     # Data models
+│   ├── handlers/                   # HTTP handlers
+│   ├── services/                   # Business logic
+│   └── repository/                 # Data access layer
+├── pkg/
+│   ├── jwt/jwt.go                  # JWT utilities
+│   └── validator/validator.go      # Request validation
+└── docker-compose.yml              # Development environment
+```
+
+## API Endpoint Listesi
+
+### Authentication Endpoints
+| Method | Path | Açıklama | Auth | Role |
+|---|---|---|---|---|
+| POST | `/api/v1/auth/register` | Email/şifre kayıt | - | Public |
+| POST | `/api/v1/auth/login` | Email/şifre giriş | - | Public |
+| POST | `/api/v1/auth/google` | Google OAuth | - | Public |
+| POST | `/api/v1/auth/apple` | Apple Sign-In | - | Public |
+| POST | `/api/v1/auth/refresh` | Token yenileme | ✅ | Any |
+| GET | `/api/v1/auth/me` | Kullanıcı profili | ✅ | Any |
+
+### Venue Endpoints
+| Method | Path | Açıklama | Auth | Role |
+|---|---|---|---|---|
+| GET | `/api/v1/venues` | Yakın/şehir mekanları | - | Public |
+| GET | `/api/v1/venues/:id` | Mekan detayı | - | Public |
+| POST | `/api/v1/venues` | Mekan ekleme | ✅ | Guide+ |
+| PUT | `/api/v1/venues/:id` | Mekan güncelleme | ✅ | Owner/Admin |
+| POST | `/api/v1/venues/:id/photos` | Fotoğraf yükleme | ✅ | Guide+ |
+| DELETE | `/api/v1/venues/:id/photos/:photoId` | Fotoğraf silme | ✅ | Owner/Admin |
+
+### Review & Social Endpoints
+| Method | Path | Açıklama | Auth | Role |
+|---|---|---|---|---|
+| GET | `/api/v1/venues/:id/reviews` | Mekan yorumları | - | Public |
+| POST | `/api/v1/venues/:id/reviews` | Yorum ekleme | ✅ | Any |
+| PUT | `/api/v1/venues/:id/reviews/:reviewId` | Yorum güncelleme | ✅ | Owner/Admin |
+| DELETE | `/api/v1/venues/:id/reviews/:reviewId` | Yorum silme | ✅ | Owner/Admin |
+| GET | `/api/v1/favorites` | Favori listesi | ✅ | Any |
+| POST | `/api/v1/favorites/:venueId` | Favoriye ekleme | ✅ | Any |
+| DELETE | `/api/v1/favorites/:venueId` | Favoriden çıkarma | ✅ | Any |
+
+### Guide Endpoints
+| Method | Path | Açıklama | Auth | Role |
+|---|---|---|---|---|
+| POST | `/api/v1/guide/apply` | Guide başvurusu | ✅ | Traveler |
+| GET | `/api/v1/guide/my-venues` | Kendi mekanları | ✅ | Guide+ |
+| POST | `/api/v1/venues/:id/corrections` | Düzeltme önerisi | ✅ | Guide+ |
+
+### Admin Endpoints
+| Method | Path | Açıklama | Auth | Role |
+|---|---|---|---|---|
+| GET | `/api/v1/admin/venues/pending` | Bekleyen mekanlar | ✅ | Admin |
+| PUT | `/api/v1/admin/venues/:id/approve` | Mekan onaylama | ✅ | Admin |
+| PUT | `/api/v1/admin/venues/:id/reject` | Mekan reddetme | ✅ | Admin |
+| GET | `/api/v1/admin/applications` | Guide başvuruları | ✅ | Admin |
+| PUT | `/api/v1/admin/applications/:id/approve` | Başvuru onaylama | ✅ | Admin |
+| PUT | `/api/v1/admin/applications/:id/reject` | Başvuru reddetme | ✅ | Admin |
+| GET | `/api/v1/admin/corrections` | Düzeltme önerileri | ✅ | Admin |
+| PUT | `/api/v1/admin/corrections/:id` | Düzeltme işleme | ✅ | Admin |
+| GET | `/api/v1/admin/audit-logs` | Audit log listesi | ✅ | Admin |
+| GET | `/api/v1/admin/users` | Kullanıcı listesi | ✅ | Admin |
+
+### Utility Endpoints
+| Method | Path | Açıklama | Auth | Role |
+|---|---|---|---|---|
+| GET | `/api/v1/criteria` | Helal kriter listesi | - | Public |
+| GET | `/health` | Health check | - | Public |
+
+## Flutter Uygulama Yapısı
+
+### Proje Dizin Yapısı
+```
+lib/
+├── main.dart                       # App entry point
+├── core/
+│   ├── api/                        # API client setup
+│   ├── auth/                       # Authentication logic
+│   ├── models/                     # Data models
+│   ├── router/                     # App routing
+│   ├── theme/                      # UI theme
+│   └── utils/                      # Utilities
+├── features/
+│   ├── auth/                       # Authentication screens
+│   ├── map/                        # Map and discovery
+│   ├── venue/                      # Venue details & management
+│   ├── search/                     # Search functionality
+│   ├── favorites/                  # Favorites management
+│   ├── guide/                      # Guide-specific features
+│   ├── admin/                      # Admin panel
+│   └── profile/                    # User profile
+└── shared/
+    └── widgets/                    # Reusable widgets
+```
+
+### Key Dependencies
+```yaml
+dependencies:
+  flutter: sdk: flutter
+  riverpod: ^2.4.0
+  flutter_riverpod: ^2.4.0
+  dio: ^5.3.0
+  go_router: ^10.0.0
+  google_maps_flutter: ^2.5.0
+  geolocator: ^9.0.0
+  image_picker: ^1.0.0
+  flutter_secure_storage: ^9.0.0
+  google_sign_in: ^6.1.0
+  sign_in_with_apple: ^5.0.0
+  cached_network_image: ^3.3.0
+  permission_handler: ^11.0.0
+```
+
+## Teknik Kararlar ve Gerekçeler
+
+### 1. Flutter vs Native
+**Karar**: Flutter seçildi
+**Gerekçe**: 
+- Cross-platform development hızı
+- Tek codebase ile iOS + Android
+- Google Maps entegrasyonu mevcut
+- Takım Flutter deneyimi var
+
+### 2. Go + Fiber vs Node.js/Python
+**Karar**: Go + Fiber seçildi
+**Gerekçe**:
+- Yüksek performans ve düşük memory kullanımı
+- Concurrent request handling
+- Strong typing ve compile-time error checking
+- PostGIS ile iyi entegrasyon
+
+### 3. PostgreSQL + PostGIS vs MongoDB
+**Karar**: PostgreSQL + PostGIS seçildi
+**Gerekçe**:
+- Coğrafi sorguların performansı
+- ACID compliance
+- Complex relational queries
+- Mature ecosystem
+
+### 4. JWT vs Session-based Auth
+**Karar**: JWT seçildi
+**Gerekçe**:
+- Stateless authentication
+- Mobile app uyumluluğu
+- Microservice architecture hazırlığı
+- OAuth provider entegrasyonu
+
+### 5. Riverpod vs Bloc/Provider
+**Karar**: Riverpod seçildi
+**Gerekçe**:
+- Type-safe state management
+- Compile-time dependency injection
+- Better testing support
+- Modern Flutter patterns
+
+## Deployment Stratejisi
+
+### Development Environment
+```yaml
+# docker-compose.yml
+version: '3.8'
+services:
+  postgres:
+    image: postgis/postgis:15-3.3
+    environment:
+      POSTGRES_DB: caizmi_dev
+      POSTGRES_USER: dev
+      POSTGRES_PASSWORD: dev123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  backend:
+    build: .
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+    environment:
+      DATABASE_URL: postgres://dev:dev123@postgres:5432/caizmi_dev
+```
+
+### Production Considerations
+- **Container Orchestration**: Kubernetes/Docker Swarm
+- **Database**: Managed PostgreSQL (AWS RDS, Google Cloud SQL)
+- **File Storage**: AWS S3, Google Cloud Storage
+- **CDN**: CloudFlare for static assets
+- **Monitoring**: Prometheus + Grafana
+- **Logging**: ELK Stack (Elasticsearch, Logstash, Kibana)
+
+## Güvenlik Yapılandırması
+
+### API Security
+```go
+// CORS configuration
+app.Use(cors.New(cors.Config{
+    AllowOrigins: []string{"https://app.caizmi.com"},
+    AllowMethods: []string{"GET", "POST", "PUT", "DELETE"},
+    AllowHeaders: []string{"Authorization", "Content-Type"},
+}))
+
+// Rate limiting
+app.Use(limiter.New(limiter.Config{
+    Max:        100,
+    Expiration: 1 * time.Minute,
+}))
+
+// Security headers
+app.Use(helmet.New())
+```
+
+### Environment Variables
+```bash
+# Backend (.env)
+DATABASE_URL=postgres://user:pass@localhost:5432/caizmi
+JWT_SECRET=your-super-secret-key
+JWT_EXPIRY=15m
+REFRESH_TOKEN_EXPIRY=720h
+GOOGLE_CLIENT_ID=your-google-client-id
+APPLE_TEAM_ID=your-apple-team-id
+S3_BUCKET=caizmi-photos
+S3_REGION=eu-west-1
+S3_ACCESS_KEY=your-access-key
+S3_SECRET_KEY=your-secret-key
+```
+
+## Performans Hedefleri
+
+### API Performance
+- **Response Time**: < 200ms (95th percentile)
+- **Throughput**: 1000+ requests/second
+- **Availability**: 99.9% uptime
+
+### Mobile App Performance
+- **App Launch**: < 3 seconds cold start
+- **Map Loading**: < 2 seconds initial load
+- **Image Loading**: Progressive loading with placeholders
+- **Offline Support**: Cached data for 24 hours
+
+### Database Performance
+- **Query Optimization**: All queries < 100ms
+- **Index Strategy**: Proper indexing for geo queries
+- **Connection Pooling**: Max 100 concurrent connections
+
+## Monitoring ve Logging
+
+### Application Metrics
+- **Request/Response Times**: API endpoint performance
+- **Error Rates**: 4xx/5xx response tracking
+- **User Activity**: Feature usage analytics
+- **System Resources**: CPU, memory, disk usage
+
+### Logging Strategy
+```go
+// Structured logging
+log.Info("Venue created",
+    zap.String("venue_id", venue.ID.String()),
+    zap.String("user_id", user.ID.String()),
+    zap.String("city", venue.City),
+)
+```
+
+---
+
+*Bu belge, projenin teknik implementasyon detaylarını ve teknoloji kararlarını tanımlar.*

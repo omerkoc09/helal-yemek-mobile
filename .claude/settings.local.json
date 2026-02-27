@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(go get:*)",
+      "Bash(cd:*)",
+      "Bash(go build:*)",
+      "Bash(go vet:*)",
+      "Bash(flutter --version:*)",
+      "Bash(brew install:*)",
+      "Bash(export PATH=\"$PATH:/opt/homebrew/Caskroom/flutter/3.41.2/flutter/bin\")",
+      "Bash(flutter create:*)",
+      "Bash(flutter analyze:*)",
+      "Bash(xcrun simctl list:*)",
+      "Bash(gem list:*)"
+    ]
+  }
+}

@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>My Favorites - Halal Venue Discovery</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#2d7b50",
+                        "background-light": "#f6f8f7",
+                        "background-dark": "#141e19",
+                        "primary-light": "#eaf2ee", // Derived lighter shade for backgrounds
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-gray-100 flex justify-center items-center min-h-screen">
+<div class="relative flex h-full max-h-[844px] w-full max-w-[390px] flex-col bg-background-light dark:bg-background-dark overflow-hidden shadow-2xl rounded-xl">
+<!-- Status Bar Placeholder (iOS style) -->
+<div class="w-full h-12 bg-background-light dark:bg-background-dark flex items-end justify-between px-6 pb-2 z-10">
+<div class="font-semibold text-sm text-slate-900 dark:text-slate-100">9:41</div>
+<div class="flex gap-2 text-slate-900 dark:text-slate-100">
+<span class="material-symbols-outlined text-[18px]">signal_cellular_alt</span>
+<span class="material-symbols-outlined text-[18px]">wifi</span>
+<span class="material-symbols-outlined text-[18px]">battery_full</span>
+</div>
+</div>
+<!-- Header -->
+<div class="flex items-center bg-background-light dark:bg-background-dark px-4 py-3 justify-between z-10">
+<h2 class="text-slate-900 dark:text-slate-100 text-2xl font-bold leading-tight tracking-tight flex-1">My Favorites</h2>
+<button class="text-primary hover:text-primary/80 text-base font-semibold leading-normal transition-colors">Edit</button>
+</div>
+<!-- Filter Tabs -->
+<div class="sticky top-0 z-20 bg-background-light dark:bg-background-dark pb-2">
+<div class="flex border-b border-gray-200 dark:border-gray-800 px-4 justify-between">
+<button class="flex flex-col items-center justify-center border-b-[3px] border-primary text-slate-900 dark:text-slate-100 pb-3 pt-2 flex-1 transition-all">
+<p class="text-sm font-bold leading-normal">All</p>
+</button>
+<button class="flex flex-col items-center justify-center border-b-[3px] border-transparent text-slate-500 dark:text-slate-400 hover:text-primary dark:hover:text-primary pb-3 pt-2 flex-1 transition-all">
+<p class="text-sm font-medium leading-normal">Restaurants</p>
+</button>
+<button class="flex flex-col items-center justify-center border-b-[3px] border-transparent text-slate-500 dark:text-slate-400 hover:text-primary dark:hover:text-primary pb-3 pt-2 flex-1 transition-all">
+<p class="text-sm font-medium leading-normal">Prayer Spaces</p>
+</button>
+</div>
+</div>
+<!-- Scrollable Content Area -->
+<div class="flex-1 overflow-y-auto hide-scrollbar px-4 pt-4 pb-24 space-y-4">
+<!-- Item 1: Restaurant -->
+<div class="group relative flex items-start gap-3 rounded-xl bg-white dark:bg-[#1e2a24] p-3 shadow-sm hover:shadow-md transition-shadow">
+<!-- Image -->
+<div class="h-24 w-24 shrink-0 overflow-hidden rounded-lg bg-gray-200">
+<div class="h-full w-full bg-cover bg-center" data-alt="Delicious kebab platter on a table" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDAw8BNi5dYIfzgciuD3pWreoHNGYGw4Aykw-bPG_Ep9lgbq2o3EiHmUNrt4OlRSDx3tirYeqtxjHThQVjtdB4JqNXENTZUfiVu1A3PVK9jQLDkiPtNXj-J1Nb67xGTgJlnKIx3AMgnEKSj2ed8oqqZDkro2ErAjqfiXKgSdvBC4jCoKGSXU-RS-vOmj65f4ceJAtLFoeZTyh68Sl7rjtn_TLOa5fxJM8BHJLy1SpEC02f5YBFVpAglHrQ9ZXAX8-VLgwaYP9XvP00');"></div>
+</div>
+<!-- Content -->
+<div class="flex flex-1 flex-col justify-between h-24 py-0.5">
+<div>
+<div class="flex justify-between items-start">
+<h3 class="text-slate-900 dark:text-slate-100 text-base font-bold leading-tight line-clamp-1">Sultan Kebab House</h3>
+<button class="text-primary hover:text-red-500 transition-colors">
+<span class="material-symbols-outlined font-variation-settings-fill" style="font-variation-settings: 'FILL' 1;">favorite</span>
+</button>
+</div>
+<p class="text-slate-500 dark:text-slate-400 text-xs mt-1">London, UK</p>
+</div>
+<div class="flex items-center justify-between mt-auto">
+<div class="flex items-center gap-1">
+<span class="bg-primary-light dark:bg-primary/20 text-primary text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide">Restaurant</span>
+</div>
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-amber-400 text-[18px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="text-slate-900 dark:text-slate-100 text-sm font-bold">4.8</span>
+<span class="text-slate-400 text-xs">(120)</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Item 2: Prayer Space -->
+<div class="group relative flex items-start gap-3 rounded-xl bg-white dark:bg-[#1e2a24] p-3 shadow-sm hover:shadow-md transition-shadow">
+<!-- Image -->
+<div class="h-24 w-24 shrink-0 overflow-hidden rounded-lg bg-gray-200">
+<div class="h-full w-full bg-cover bg-center" data-alt="Interior of a beautiful mosque with geometric patterns" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBGMbzTNCjJL5Jv51sRvTSnx8Fe6ndb8B2IHcp-EqecGPIyA8BOmjKRAouD-WC7iA-pcYVKWisnVor8wNqm6CpcHW43EIs87HMKDlVoUiVDFOp27AAZllUQ1RTj_DETQy9G5NwWIeEu14zRF8r1cph2W9uBVQ1qVrO124322DU-7jw3Ryo1um7pTyDJ33dsawyrogAYrjDDnKLUdenHkvT86Sh1I8MvpVpKD7L3VsN9_SbDJ5KdOpz12kYI8MJ4woAj7cY5OYpvEi4');"></div>
+</div>
+<!-- Content -->
+<div class="flex flex-1 flex-col justify-between h-24 py-0.5">
+<div>
+<div class="flex justify-between items-start">
+<h3 class="text-slate-900 dark:text-slate-100 text-base font-bold leading-tight line-clamp-1">Masjid Al-Noor</h3>
+<button class="text-primary hover:text-red-500 transition-colors">
+<span class="material-symbols-outlined font-variation-settings-fill" style="font-variation-settings: 'FILL' 1;">favorite</span>
+</button>
+</div>
+<p class="text-slate-500 dark:text-slate-400 text-xs mt-1">New York, NY</p>
+</div>
+<div class="flex items-center justify-between mt-auto">
+<div class="flex items-center gap-1">
+<span class="bg-primary-light dark:bg-primary/20 text-primary text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide">Prayer Space</span>
+</div>
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-amber-400 text-[18px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="text-slate-900 dark:text-slate-100 text-sm font-bold">5.0</span>
+<span class="text-slate-400 text-xs">(85)</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Item 3: Restaurant -->
+<div class="group relative flex items-start gap-3 rounded-xl bg-white dark:bg-[#1e2a24] p-3 shadow-sm hover:shadow-md transition-shadow">
+<!-- Image -->
+<div class="h-24 w-24 shrink-0 overflow-hidden rounded-lg bg-gray-200">
+<div class="h-full w-full bg-cover bg-center" data-alt="Middle eastern cuisine plate with hummus and falafel" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAo-DBoj_wwyvWmDrz0Mgtz-i8BlBgXLBAgOVbRt1kSuRIW-Fot16cD_isKyeNIwSw0COpvKuupKErTNlwSEmGyVlJ6b6gD2o-9ZigA5HqwOIIUvm8uGxqnvw9bsQCNLM60nhlxgnjt3nqA6HkqBoZTEuHM9guyNkve1bw4DVoWk9ydkfRL8UraJIIZaWSiGKJghgeU7KoIG1P2bBdfLPqHuG5F81dtd-ArBPh4D6Rh6Oeg8F1C8kohGulbedYlJEoTvFyLLgIVe_g');"></div>
+</div>
+<!-- Content -->
+<div class="flex flex-1 flex-col justify-between h-24 py-0.5">
+<div>
+<div class="flex justify-between items-start">
+<h3 class="text-slate-900 dark:text-slate-100 text-base font-bold leading-tight line-clamp-1">The Halal Guys</h3>
+<button class="text-primary hover:text-red-500 transition-colors">
+<span class="material-symbols-outlined font-variation-settings-fill" style="font-variation-settings: 'FILL' 1;">favorite</span>
+</button>
+</div>
+<p class="text-slate-500 dark:text-slate-400 text-xs mt-1">San Francisco, CA</p>
+</div>
+<div class="flex items-center justify-between mt-auto">
+<div class="flex items-center gap-1">
+<span class="bg-primary-light dark:bg-primary/20 text-primary text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide">Restaurant</span>
+</div>
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-amber-400 text-[18px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="text-slate-900 dark:text-slate-100 text-sm font-bold">4.5</span>
+<span class="text-slate-400 text-xs">(2.1k)</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Item 4: Prayer Space -->
+<div class="group relative flex items-start gap-3 rounded-xl bg-white dark:bg-[#1e2a24] p-3 shadow-sm hover:shadow-md transition-shadow">
+<!-- Image -->
+<div class="h-24 w-24 shrink-0 overflow-hidden rounded-lg bg-gray-200">
+<div class="h-full w-full bg-cover bg-center" data-alt="Modern islamic architecture building exterior" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuA5LZDV0lnFZ_hoBsiUuFVf-8ayaKp3ePAc2p5SxCdMSliHDR932NpC0oXUzNavuvHGh3nN7pURjAK1W0x06jlTJb0YGZFAPanlr9ETNGrh4fpLxRHcwucyyFLgPhw4vVNgvJcm0BsVQ06W4D8ut3O2ZT2vlywVTUI_bD-x8Bj1A2r8KlPVQ5L8n07lkxHIaFlfYEfVmP3nZGaBu84YvkaQKC6Tz-tc_cYi2CKDmjpJuIyZrbBsiF1-mBffZE8ggOmTN8LeM-14gZs');"></div>
+</div>
+<!-- Content -->
+<div class="flex flex-1 flex-col justify-between h-24 py-0.5">
+<div>
+<div class="flex justify-between items-start">
+<h3 class="text-slate-900 dark:text-slate-100 text-base font-bold leading-tight line-clamp-1">Islamic Cultural Center</h3>
+<button class="text-primary hover:text-red-500 transition-colors">
+<span class="material-symbols-outlined font-variation-settings-fill" style="font-variation-settings: 'FILL' 1;">favorite</span>
+</button>
+</div>
+<p class="text-slate-500 dark:text-slate-400 text-xs mt-1">Paris, France</p>
+</div>
+<div class="flex items-center justify-between mt-auto">
+<div class="flex items-center gap-1">
+<span class="bg-primary-light dark:bg-primary/20 text-primary text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide">Prayer Space</span>
+</div>
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-amber-400 text-[18px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="text-slate-900 dark:text-slate-100 text-sm font-bold">4.9</span>
+<span class="text-slate-400 text-xs">(340)</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Empty State Illustration (Hidden by default, showing structure for completeness) -->
+<!-- 
+            <div class="flex flex-col items-center justify-center pt-16 px-6 text-center">
+                <div class="w-24 h-24 bg-primary-light dark:bg-primary/10 rounded-full flex items-center justify-center mb-6">
+                    <span class="material-symbols-outlined text-primary text-5xl">bookmark_add</span>
+                </div>
+                <h3 class="text-slate-900 dark:text-slate-100 text-xl font-bold mb-2">No favorites yet</h3>
+                <p class="text-slate-500 dark:text-slate-400 text-sm mb-8 leading-relaxed">Save restaurants and prayer spaces you love to access them easily.</p>
+                <button class="w-full py-3 bg-primary hover:bg-primary/90 text-white rounded-lg font-bold transition-colors shadow-lg shadow-primary/30">Start Exploring</button>
+            </div> 
+            -->
+</div>
+<!-- Bottom Navigation Bar -->
+<div class="absolute bottom-0 w-full bg-white dark:bg-[#1e2a24] border-t border-gray-100 dark:border-gray-800 pb-6 pt-2 px-6 flex justify-between items-end z-30">
+<a class="flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-primary transition-colors group" href="#">
+<span class="material-symbols-outlined text-[28px] group-hover:scale-110 transition-transform">search</span>
+<span class="text-[10px] font-medium">Explore</span>
+</a>
+<a class="flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-primary transition-colors group" href="#">
+<span class="material-symbols-outlined text-[28px] group-hover:scale-110 transition-transform">map</span>
+<span class="text-[10px] font-medium">Map</span>
+</a>
+<a class="flex flex-col items-center justify-center gap-1 text-primary relative group" href="#">
+<div class="absolute -top-10 bg-primary/10 w-12 h-12 rounded-full blur-xl"></div>
+<span class="material-symbols-outlined text-[28px] font-variation-settings-fill group-hover:scale-110 transition-transform" style="font-variation-settings: 'FILL' 1;">favorite</span>
+<span class="text-[10px] font-bold">Saved</span>
+</a>
+<a class="flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-primary transition-colors group" href="#">
+<span class="material-symbols-outlined text-[28px] group-hover:scale-110 transition-transform">person</span>
+<span class="text-[10px] font-medium">Profile</span>
+</a>
+</div>
+</div>
+</body></html>

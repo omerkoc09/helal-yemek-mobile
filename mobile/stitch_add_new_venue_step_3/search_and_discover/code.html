@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Search &amp; Discover - Halal Venue App</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#2d7b50",
+                        "primary-dark": "#1a4d32",
+                        "primary-light": "#eef7f2",
+                        "background-light": "#f6f8f7",
+                        "background-dark": "#141e19",
+                        "card-light": "#ffffff",
+                        "card-dark": "#1c2621",
+                        "text-primary-light": "#131614",
+                        "text-primary-dark": "#f1f3f2",
+                        "text-secondary-light": "#6b8074",
+                        "text-secondary-dark": "#8a9e92",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+                    boxShadow: {
+                        'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
+                        'glow': '0 0 15px rgba(45, 123, 80, 0.3)',
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        /* Hide scrollbar for clean UI */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-text-primary-light dark:text-text-primary-dark antialiased transition-colors duration-200">
+<div class="relative flex h-full min-h-screen w-full flex-col overflow-hidden max-w-md mx-auto bg-white dark:bg-background-dark shadow-2xl">
+<!-- Status Bar Area (Placeholder) -->
+<div class="h-12 w-full bg-white dark:bg-background-dark"></div>
+<!-- Header & Search -->
+<div class="sticky top-0 z-20 bg-white/80 dark:bg-background-dark/80 backdrop-blur-md border-b border-gray-100 dark:border-gray-800 pb-4">
+<div class="flex items-center justify-between px-5 pb-4">
+<h1 class="text-2xl font-bold tracking-tight text-text-primary-light dark:text-text-primary-dark">Discover</h1>
+<button class="flex h-10 w-10 items-center justify-center rounded-full bg-background-light dark:bg-gray-800 text-text-primary-light dark:text-text-primary-dark transition hover:bg-gray-200 dark:hover:bg-gray-700">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+</div>
+<div class="px-5">
+<div class="relative flex w-full items-center">
+<span class="absolute left-4 text-text-secondary-light dark:text-text-secondary-dark material-symbols-outlined">search</span>
+<input class="h-12 w-full rounded-xl border-none bg-background-light dark:bg-gray-800 pl-12 pr-12 text-base font-medium placeholder:text-text-secondary-light focus:ring-2 focus:ring-primary/50 dark:text-white transition-all shadow-sm" placeholder="Search for cities or venues..." type="text" value="Halal"/>
+<button class="absolute right-3 flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-white shadow-lg shadow-primary/30 transition hover:bg-primary-dark">
+<span class="material-symbols-outlined" style="font-size: 20px;">tune</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Scrollable Content -->
+<div class="flex-1 overflow-y-auto no-scrollbar pb-24">
+<!-- Recent Searches Section -->
+<div class="mt-6">
+<div class="flex items-center justify-between px-5 mb-3">
+<h3 class="text-sm font-semibold text-text-secondary-light dark:text-text-secondary-dark uppercase tracking-wider">Recent Searches</h3>
+<button class="text-xs font-medium text-primary hover:text-primary-dark transition">Clear All</button>
+</div>
+<div class="flex w-full overflow-x-auto no-scrollbar px-5 pb-4 gap-3">
+<button class="flex shrink-0 items-center gap-2 rounded-full border border-gray-100 dark:border-gray-700 bg-white dark:bg-card-dark px-4 py-2 shadow-sm transition active:scale-95">
+<span class="material-symbols-outlined text-text-secondary-light text-[18px]">schedule</span>
+<span class="text-sm font-medium">Istanbul Kebab</span>
+</button>
+<button class="flex shrink-0 items-center gap-2 rounded-full border border-gray-100 dark:border-gray-700 bg-white dark:bg-card-dark px-4 py-2 shadow-sm transition active:scale-95">
+<span class="material-symbols-outlined text-text-secondary-light text-[18px]">schedule</span>
+<span class="text-sm font-medium">Central London</span>
+</button>
+<button class="flex shrink-0 items-center gap-2 rounded-full border border-gray-100 dark:border-gray-700 bg-white dark:bg-card-dark px-4 py-2 shadow-sm transition active:scale-95">
+<span class="material-symbols-outlined text-text-secondary-light text-[18px]">schedule</span>
+<span class="text-sm font-medium">Tokyo Sushi</span>
+</button>
+</div>
+</div>
+<!-- Categories / Quick Filters -->
+<div class="px-5 mb-6">
+<div class="flex gap-4 overflow-x-auto no-scrollbar py-1">
+<button class="flex flex-col items-center gap-1 group min-w-[70px]">
+<div class="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+<span class="material-symbols-outlined text-primary text-2xl">restaurant</span>
+</div>
+<span class="text-xs font-medium text-text-primary-light dark:text-gray-300">Food</span>
+</button>
+<button class="flex flex-col items-center gap-1 group min-w-[70px]">
+<div class="w-14 h-14 rounded-full bg-background-light dark:bg-gray-800 flex items-center justify-center group-hover:bg-gray-200 dark:group-hover:bg-gray-700 transition-colors">
+<span class="material-symbols-outlined text-text-secondary-light text-2xl">mosque</span>
+</div>
+<span class="text-xs font-medium text-text-secondary-light dark:text-gray-400">Prayer</span>
+</button>
+<button class="flex flex-col items-center gap-1 group min-w-[70px]">
+<div class="w-14 h-14 rounded-full bg-background-light dark:bg-gray-800 flex items-center justify-center group-hover:bg-gray-200 dark:group-hover:bg-gray-700 transition-colors">
+<span class="material-symbols-outlined text-text-secondary-light text-2xl">local_cafe</span>
+</div>
+<span class="text-xs font-medium text-text-secondary-light dark:text-gray-400">Cafe</span>
+</button>
+<button class="flex flex-col items-center gap-1 group min-w-[70px]">
+<div class="w-14 h-14 rounded-full bg-background-light dark:bg-gray-800 flex items-center justify-center group-hover:bg-gray-200 dark:group-hover:bg-gray-700 transition-colors">
+<span class="material-symbols-outlined text-text-secondary-light text-2xl">storefront</span>
+</div>
+<span class="text-xs font-medium text-text-secondary-light dark:text-gray-400">Market</span>
+</button>
+</div>
+</div>
+<!-- Search Results Header -->
+<div class="flex items-center justify-between px-5 mb-4">
+<h2 class="text-lg font-bold text-text-primary-light dark:text-text-primary-dark">Top Results</h2>
+<span class="text-xs font-medium text-text-secondary-light">12 found</span>
+</div>
+<!-- Results List -->
+<div class="flex flex-col gap-4 px-5">
+<!-- Card 1 -->
+<div class="group relative flex flex-col overflow-hidden rounded-xl bg-card-light dark:bg-card-dark shadow-soft hover:shadow-md transition-all duration-300 border border-transparent dark:border-gray-800">
+<div class="relative h-40 w-full overflow-hidden">
+<img alt="Gourmet dish plated elegantly in a restaurant setting" class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" data-alt="Gourmet dish plated elegantly in a restaurant setting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC6-TZj-hMrS0o4Sf9dWeDUMtFa45kPgzz6tRXa9NsmtVLd33n-mQz0BSYq7165Xcqp1MLpxWIfx9DJy9VEzlsqd8-3iIejAGBIDbQLSpEGFqmFU4ZXVUjKeFcTYEJHZqnvEjf9VYYSrS97QGNd-LNPfaGiwmd9FBIf1WC6twdUKzAmNCDGty4aOq15WH01E1XGyo63MFvr4tLPjsj-uSbXIaG5-50GL9ptsbYllOIjEXWBHKaAB5AXWLl9DvoVTTjzNLdSdh44saI"/>
+<div class="absolute right-3 top-3 rounded-full bg-white/90 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-primary shadow-sm backdrop-blur-sm">
+                            Certified Halal
+                        </div>
+<button class="absolute left-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-black/20 text-white backdrop-blur-md transition hover:bg-black/40">
+<span class="material-symbols-outlined text-[20px]">favorite</span>
+</button>
+</div>
+<div class="flex flex-col p-4">
+<div class="flex items-start justify-between">
+<div>
+<h3 class="text-lg font-bold text-text-primary-light dark:text-white leading-tight">Sultan's Dine</h3>
+<p class="text-sm text-text-secondary-light dark:text-gray-400 mt-1">Midtown • Turkish Cuisine</p>
+</div>
+<div class="flex flex-col items-end">
+<div class="flex items-center gap-1 rounded-lg bg-primary-light dark:bg-primary/20 px-2 py-1">
+<span class="material-symbols-outlined text-primary text-[14px] fill-current" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="text-xs font-bold text-primary dark:text-primary-light">4.8</span>
+</div>
+<span class="mt-1 text-xs font-medium text-text-secondary-light">0.2 mi</span>
+</div>
+</div>
+<div class="mt-3 flex items-center gap-3 border-t border-gray-50 dark:border-gray-700 pt-3">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-text-secondary-light text-[16px]">schedule</span>
+<span class="text-xs text-text-secondary-light">Open until 11 PM</span>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-text-secondary-light text-[16px]">attach_money</span>
+<span class="text-xs text-text-secondary-light">$$$</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="group relative flex flex-col overflow-hidden rounded-xl bg-card-light dark:bg-card-dark shadow-soft hover:shadow-md transition-all duration-300 border border-transparent dark:border-gray-800">
+<div class="relative h-40 w-full overflow-hidden">
+<img alt="Interior of a modern mosque with intricate carpet patterns" class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" data-alt="Interior of a modern mosque with intricate carpet patterns" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB442kcY2wtN6RpavZEbhFdTm34oFdvLQBD-TuVE-MrVadz5AAB1g18_jv3zkNwK8qLMWLerzE86t7WIezZ4Dh4_4dLSQ6YJg0hpq94whT4Qn9SriARiPl2afpIiiAsXaIB1UiRTH_8Vh1qorzTwJz3HJk4JjJ5uEuUEeNYFNCYFUw78ozKkDa-iEyZKhsOHtxGmsr5TtlBAONqmoR06LRfasftsd-BAtbonk6clHtkpPOOqJlS9368Io6LPG5xXJ36d2H8KLz9rXo"/>
+<div class="absolute right-3 top-3 rounded-full bg-blue-50/90 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-blue-600 shadow-sm backdrop-blur-sm">
+                            Prayer Space
+                        </div>
+<button class="absolute left-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-black/20 text-white backdrop-blur-md transition hover:bg-black/40">
+<span class="material-symbols-outlined text-[20px]">favorite</span>
+</button>
+</div>
+<div class="flex flex-col p-4">
+<div class="flex items-start justify-between">
+<div>
+<h3 class="text-lg font-bold text-text-primary-light dark:text-white leading-tight">Al-Nour Center</h3>
+<p class="text-sm text-text-secondary-light dark:text-gray-400 mt-1">Brooklyn • Community Center</p>
+</div>
+<div class="flex flex-col items-end">
+<div class="flex items-center gap-1 rounded-lg bg-gray-100 dark:bg-gray-700 px-2 py-1">
+<span class="material-symbols-outlined text-gray-500 text-[14px]">near_me</span>
+<span class="text-xs font-bold text-gray-600 dark:text-gray-300">1.1 mi</span>
+</div>
+</div>
+</div>
+<div class="mt-3 flex items-center gap-2 overflow-hidden">
+<span class="inline-flex items-center rounded-md bg-gray-50 dark:bg-gray-800 px-2 py-1 text-xs font-medium text-gray-600 dark:text-gray-300 ring-1 ring-inset ring-gray-500/10">Wudu Area</span>
+<span class="inline-flex items-center rounded-md bg-gray-50 dark:bg-gray-800 px-2 py-1 text-xs font-medium text-gray-600 dark:text-gray-300 ring-1 ring-inset ring-gray-500/10">Women's Section</span>
+</div>
+</div>
+</div>
+<!-- Card 3 -->
+<div class="group relative flex flex-col overflow-hidden rounded-xl bg-card-light dark:bg-card-dark shadow-soft hover:shadow-md transition-all duration-300 border border-transparent dark:border-gray-800">
+<div class="relative h-40 w-full overflow-hidden">
+<img alt="Healthy green salad bowl with grilled chicken" class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" data-alt="Healthy green salad bowl with grilled chicken" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAkGKEcPbIhs6zdY2kvKe9GT8ulQ4XYHDvefgj2QC2zJmecAFpGZBUBWtC1NUo3PLS_e1S350vJUmOXfvA33NDmuIm3yBIViX4S3CSwDrHBrH9r1ngvM4xPMrvXKpGD9g521bMeF6BFkrJ-H3BNDIkLnYIHUEl1epM4P82fYI4oxhJuDadvjLyug8-E7PV1n_xi88k8ee_aD4a1OX0dqcsC7CvUXuJN2fKJZow2GFgu8lQZ4Z2yoipNhVOiEq3yf0FPUWdK-lXi6eQ"/>
+<div class="absolute right-3 top-3 rounded-full bg-white/90 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-primary shadow-sm backdrop-blur-sm">
+                            Partially Halal
+                        </div>
+<button class="absolute left-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-black/20 text-white backdrop-blur-md transition hover:bg-black/40">
+<span class="material-symbols-outlined text-[20px]">favorite</span>
+</button>
+</div>
+<div class="flex flex-col p-4">
+<div class="flex items-start justify-between">
+<div>
+<h3 class="text-lg font-bold text-text-primary-light dark:text-white leading-tight">The Green Olive</h3>
+<p class="text-sm text-text-secondary-light dark:text-gray-400 mt-1">Jersey City • Mediterranean</p>
+</div>
+<div class="flex flex-col items-end">
+<div class="flex items-center gap-1 rounded-lg bg-primary-light dark:bg-primary/20 px-2 py-1">
+<span class="material-symbols-outlined text-primary text-[14px] fill-current" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="text-xs font-bold text-primary dark:text-primary-light">4.5</span>
+</div>
+<span class="mt-1 text-xs font-medium text-text-secondary-light">2.5 mi</span>
+</div>
+</div>
+<div class="mt-3 flex items-center gap-3 border-t border-gray-50 dark:border-gray-700 pt-3">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-emerald-600 text-[16px]">no_drinks</span>
+<span class="text-xs text-emerald-700 font-medium">Alcohol Free</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Spacer for Bottom Nav -->
+<div class="h-6"></div>
+</div>
+<!-- Bottom Navigation Bar -->
+<div class="absolute bottom-0 z-50 w-full border-t border-[#f1f3f2] dark:border-gray-800 bg-white dark:bg-card-dark px-4 pb-6 pt-2 shadow-lg">
+<div class="flex justify-between items-center">
+<a class="flex flex-1 flex-col items-center justify-end gap-1 text-text-secondary-light dark:text-gray-400 hover:text-primary transition" href="#">
+<span class="material-symbols-outlined text-[26px]">home</span>
+<p class="text-[10px] font-medium leading-normal tracking-[0.015em]">Home</p>
+</a>
+<a class="flex flex-1 flex-col items-center justify-end gap-1 text-primary dark:text-primary-light" href="#">
+<div class="relative">
+<span class="material-symbols-outlined text-[26px] fill-current" style="font-variation-settings: 'FILL' 1;">search</span>
+<div class="absolute -right-1 top-0 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white dark:ring-card-dark"></div>
+</div>
+<p class="text-[10px] font-medium leading-normal tracking-[0.015em]">Search</p>
+</a>
+<a class="flex flex-1 flex-col items-center justify-end gap-1 text-text-secondary-light dark:text-gray-400 hover:text-primary transition" href="#">
+<span class="material-symbols-outlined text-[26px]">favorite</span>
+<p class="text-[10px] font-medium leading-normal tracking-[0.015em]">Saved</p>
+</a>
+<a class="flex flex-1 flex-col items-center justify-end gap-1 text-text-secondary-light dark:text-gray-400 hover:text-primary transition" href="#">
+<span class="material-symbols-outlined text-[26px]">person</span>
+<p class="text-[10px] font-medium leading-normal tracking-[0.015em]">Profile</p>
+</a>
+</div>
+</div>
+</div>
+</body></html>

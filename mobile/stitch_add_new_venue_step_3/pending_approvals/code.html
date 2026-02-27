@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Pending Approvals - Halal Venue Admin</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#2d7b50",
+                        "secondary": "#F5A623",
+                        "background-light": "#f6f8f7",
+                        "background-dark": "#141e19",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: { "DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display antialiased">
+<div class="relative flex h-full min-h-screen w-full flex-col overflow-x-hidden max-w-md mx-auto bg-white shadow-2xl">
+<!-- Header Section -->
+<header class="sticky top-0 z-20 bg-white/95 backdrop-blur-sm border-b border-slate-100 px-4 py-4">
+<div class="flex items-center justify-between mb-2">
+<div>
+<h1 class="text-2xl font-bold tracking-tight text-slate-900">Pending Approvals</h1>
+<p class="text-sm text-slate-500">12 new venues awaiting review</p>
+</div>
+<button class="flex items-center justify-center w-10 h-10 rounded-full bg-slate-50 text-slate-600 hover:bg-slate-100 transition-colors relative">
+<span class="material-symbols-outlined">filter_list</span>
+<span class="absolute top-2 right-2 w-2 h-2 bg-secondary rounded-full"></span>
+</button>
+</div>
+<!-- Filter Chips -->
+<div class="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+<button class="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-white rounded-full text-xs font-medium whitespace-nowrap shadow-sm shadow-primary/20">
+<span class="material-symbols-outlined text-[16px]">check</span>
+                    All
+                </button>
+<button class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 text-slate-600 rounded-full text-xs font-medium whitespace-nowrap hover:bg-slate-200 transition-colors">
+<span class="material-symbols-outlined text-[16px]">restaurant</span>
+                    Restaurants
+                </button>
+<button class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 text-slate-600 rounded-full text-xs font-medium whitespace-nowrap hover:bg-slate-200 transition-colors">
+<span class="material-symbols-outlined text-[16px]">mosque</span>
+                    Prayer Spaces
+                </button>
+</div>
+</header>
+<!-- Main Content List -->
+<main class="flex-1 p-4 space-y-4 pb-24">
+<!-- Card 1: Restaurant -->
+<article class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+<div class="flex p-3 gap-3">
+<div class="w-20 h-20 shrink-0 rounded-lg bg-slate-100 relative overflow-hidden">
+<img alt="Interior of a modern kebab restaurant with warm lighting" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDJzAFL7JhZWrlEbkpzoxaac2a4NQtyiNraOUQe9p91sb2GmkTEyLhnI-nImpamZstz6YZ9SaEmmyF0oSr3_50SzUGtC5nLIfYmQjToxXrQE4vwHGFaTUdVyCwg_p5Vuj5IyutjNRd7BBsd_rCsOwqfBOmrnxovBa2mV_yPgioX9PkNi5BI33IhieOZTU618nDTuat_Wxn6vghzDiTw6lrXpJkGrT6K5d1WfgwsyQv0FrrIkJlsRa6YGF0fWoJ-vqMlNx0wKFZmwr0"/>
+</div>
+<div class="flex-1 min-w-0 flex flex-col justify-center">
+<div class="flex items-start justify-between gap-2">
+<h3 class="font-semibold text-slate-900 truncate pr-4">Sultan's Kebab House</h3>
+<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-secondary/10 text-secondary border border-secondary/20 whitespace-nowrap">
+                                Pending
+                            </span>
+</div>
+<div class="flex items-center gap-1 mt-1 text-xs text-slate-500">
+<span class="material-symbols-outlined text-[14px]">person</span>
+<span class="truncate">@AhmedTravels</span>
+<span class="w-1 h-1 bg-slate-300 rounded-full mx-1"></span>
+<span>2h ago</span>
+</div>
+<div class="flex items-center gap-1 mt-1 text-xs text-slate-400">
+<span class="material-symbols-outlined text-[14px]">location_on</span>
+<span class="truncate">Downtown Dubai, UAE</span>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-2 border-t border-slate-100 divide-x divide-slate-100">
+<button class="flex items-center justify-center gap-2 py-3 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors">
+<span class="material-symbols-outlined text-[18px]">visibility</span>
+                        Review
+                    </button>
+<button class="flex items-center justify-center gap-2 py-3 text-sm font-medium text-primary hover:bg-primary/5 transition-colors">
+<span class="material-symbols-outlined text-[18px]">check_circle</span>
+                        Quick Approve
+                    </button>
+</div>
+</article>
+<!-- Card 2: Prayer Space -->
+<article class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+<div class="flex p-3 gap-3">
+<div class="w-20 h-20 shrink-0 rounded-lg bg-slate-100 relative overflow-hidden">
+<img alt="Ornate door of a quiet prayer room" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC1EGb97W9ZkSw2k031P2N0QFW_d8YanWqdUzezCKV7Y3g3Y7yoAkTzKMGZQBFkiNPVtbocfWYMnCKwmMCws7ZA6vLtlyJFXTa0fTxLJGY8EowSilYQ7K-MRKxW3hwyYXEU9-p97ea6XjXtMXxRzZLlvHQavr-oAwEfQ4d8QuitcMJVDX_VF-8xX8giedGIvJV26swh54vUf39puuhDbS-16Ra52Yfos27_eVyLMqgPmyjDOkvWl6J0ILrKVzIVXRNP9EUYc7zCeqY"/>
+</div>
+<div class="flex-1 min-w-0 flex flex-col justify-center">
+<div class="flex items-start justify-between gap-2">
+<h3 class="font-semibold text-slate-900 truncate pr-4">Terminal 3 Prayer Room</h3>
+<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-secondary/10 text-secondary border border-secondary/20 whitespace-nowrap">
+                                Pending
+                            </span>
+</div>
+<div class="flex items-center gap-1 mt-1 text-xs text-slate-500">
+<span class="material-symbols-outlined text-[14px]">person</span>
+<span class="truncate">@SarahJ</span>
+<span class="w-1 h-1 bg-slate-300 rounded-full mx-1"></span>
+<span>1d ago</span>
+</div>
+<div class="flex items-center gap-1 mt-1 text-xs text-slate-400">
+<span class="material-symbols-outlined text-[14px]">location_on</span>
+<span class="truncate">Heathrow Airport, London</span>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-2 border-t border-slate-100 divide-x divide-slate-100">
+<button class="flex items-center justify-center gap-2 py-3 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors">
+<span class="material-symbols-outlined text-[18px]">visibility</span>
+                        Review
+                    </button>
+<button class="flex items-center justify-center gap-2 py-3 text-sm font-medium text-primary hover:bg-primary/5 transition-colors">
+<span class="material-symbols-outlined text-[18px]">check_circle</span>
+                        Quick Approve
+                    </button>
+</div>
+</article>
+<!-- Card 3: Restaurant (Warning) -->
+<article class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+<div class="flex p-3 gap-3">
+<div class="w-20 h-20 shrink-0 rounded-lg bg-slate-100 relative overflow-hidden group">
+<img alt="Burger and fries on a wooden table" class="w-full h-full object-cover opacity-80" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCj6HqTSRb94mxS1k3CorUH2GNwGsLaEULaR72DwWQtuPNtx0PX9Kt89Xo5jO3DowbAMpRm57DiACOW12BlsK_3k9Dc0yFhLpWu65qoEJWdhoIUf-iwIl0E_aKjxON_YhUSRRXEhxk5ZJZ-p10Vru2WCyV1b0oEsNjdFQu5lQfkTjlb0g-I6a2Gch9mRAWOMK90KGG2geypquPvUtHmaV5W-iWuu72Wcn8jm6mXo6wN0IsBd1ToU6vYMnxLdSaYsvMJcAPt2UqdvBw"/>
+<div class="absolute inset-0 bg-black/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-white drop-shadow-md">image</span>
+</div>
+</div>
+<div class="flex-1 min-w-0 flex flex-col justify-center">
+<div class="flex items-start justify-between gap-2">
+<h3 class="font-semibold text-slate-900 truncate pr-4">Burger King (Halal?)</h3>
+<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-red-50 text-red-600 border border-red-100 whitespace-nowrap">
+                                Flagged
+                            </span>
+</div>
+<div class="flex items-center gap-1 mt-1 text-xs text-slate-500">
+<span class="material-symbols-outlined text-[14px]">person</span>
+<span class="truncate">@NewUser123</span>
+<span class="w-1 h-1 bg-slate-300 rounded-full mx-1"></span>
+<span>3d ago</span>
+</div>
+<div class="flex items-center gap-1 mt-1 text-xs text-red-500">
+<span class="material-symbols-outlined text-[14px]">warning</span>
+<span class="truncate">User reported non-halal menu</span>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-2 border-t border-slate-100 divide-x divide-slate-100">
+<button class="flex items-center justify-center gap-2 py-3 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors">
+<span class="material-symbols-outlined text-[18px]">visibility</span>
+                        Investigate
+                    </button>
+<button class="flex items-center justify-center gap-2 py-3 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors">
+<span class="material-symbols-outlined text-[18px]">block</span>
+                        Reject
+                    </button>
+</div>
+</article>
+<!-- Card 4: Restaurant -->
+<article class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+<div class="flex p-3 gap-3">
+<div class="w-20 h-20 shrink-0 rounded-lg bg-slate-100 relative overflow-hidden">
+<img alt="Detailed shot of sushi rolls on a plate" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAJwtue0cNSd4B5mzwtur8gDJhtsUvloXQ9NkviGEf4IRdmLEMKjVSx9QKmY-Gd0bCRv4WgNeR-_QkBcf8mPAbbs0Mj6PZXW9VgcJ2iKWJpIhpd5Y50iJ6hNJ1hNQoc5J_470U036GxlYmcsPUAUyI61caSbfU7Y1sxXxZw4kErtlWXXRK-KWu-fRfyecfPmBvoVa3CHiD1Z9p_VU77ZEV-4L1aSkiJkZKFnAq5CqHjblmI9njnWiPeGF22_m_FRkh4xRs2nzivi7k"/>
+</div>
+<div class="flex-1 min-w-0 flex flex-col justify-center">
+<div class="flex items-start justify-between gap-2">
+<h3 class="font-semibold text-slate-900 truncate pr-4">Oishii Sushi Bar</h3>
+<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-secondary/10 text-secondary border border-secondary/20 whitespace-nowrap">
+                                Pending
+                            </span>
+</div>
+<div class="flex items-center gap-1 mt-1 text-xs text-slate-500">
+<span class="material-symbols-outlined text-[14px]">person</span>
+<span class="truncate">@HalalEats_UK</span>
+<span class="w-1 h-1 bg-slate-300 rounded-full mx-1"></span>
+<span>4h ago</span>
+</div>
+<div class="flex items-center gap-1 mt-1 text-xs text-slate-400">
+<span class="material-symbols-outlined text-[14px]">location_on</span>
+<span class="truncate">Manchester, UK</span>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-2 border-t border-slate-100 divide-x divide-slate-100">
+<button class="flex items-center justify-center gap-2 py-3 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors">
+<span class="material-symbols-outlined text-[18px]">visibility</span>
+                        Review
+                    </button>
+<button class="flex items-center justify-center gap-2 py-3 text-sm font-medium text-primary hover:bg-primary/5 transition-colors">
+<span class="material-symbols-outlined text-[18px]">check_circle</span>
+                        Quick Approve
+                    </button>
+</div>
+</article>
+</main>
+<!-- Bottom Navigation Bar -->
+<nav class="fixed bottom-0 w-full max-w-md border-t border-slate-100 bg-white px-6 pb-6 pt-3 z-30">
+<div class="flex items-center justify-between">
+<a class="flex flex-1 flex-col items-center justify-end gap-1 text-slate-400 hover:text-slate-600 transition-colors" href="#">
+<span class="material-symbols-outlined text-[24px]">dashboard</span>
+<span class="text-[10px] font-medium">Dashboard</span>
+</a>
+<a class="flex flex-1 flex-col items-center justify-end gap-1 text-primary relative" href="#">
+<div class="absolute -top-1 right-[25%] h-2 w-2 rounded-full bg-secondary ring-2 ring-white"></div>
+<span class="material-symbols-outlined text-[24px] font-variation-settings-fill">assignment</span>
+<span class="text-[10px] font-medium">Pending</span>
+</a>
+<a class="flex flex-1 flex-col items-center justify-end gap-1 text-slate-400 hover:text-slate-600 transition-colors" href="#">
+<span class="material-symbols-outlined text-[24px]">group</span>
+<span class="text-[10px] font-medium">Users</span>
+</a>
+<a class="flex flex-1 flex-col items-center justify-end gap-1 text-slate-400 hover:text-slate-600 transition-colors" href="#">
+<span class="material-symbols-outlined text-[24px]">settings</span>
+<span class="text-[10px] font-medium">Settings</span>
+</a>
+</div>
+</nav>
+</div>
+</body></html>

@@ -1,0 +1,22 @@
+# CLAUDE CODE - STRATEJİK ÇALIŞMA KURALLARI
+
+## 1. TEMEL FELSEFE
+- **Önce Planla, Sonra Kodla:** Herhangi bir kod değişikliği yapmadan önce mutlaka teknik bir yaklaşım (technical approach) taslağı sun.
+- **Mikro-Görev Odaklılık:** İşleri her zaman en küçük yapı taşına (tek bir fonksiyon, tek bir endpoint, tek bir view) böl.
+- **Dokümantasyon Koddur:** Proje dokümantasyonunu (.md dosyaları) kod kadar ciddiye al ve güncel tut.
+
+## 2. İŞ AKIŞI (WORKFLOW)
+2. **Bölümleme (Chunking):** Görevi ardışık ve bağımsız adımlara bölerek bir "Uygulama Planı" sun.
+3. **Onay:** Plan onaylanmadan kod yazmaya başlama.
+4. **Uygulama:** Her adımda sadece o adıma odaklan. Gereksiz dosyaları context'e dahil etme.
+5. **Doğrulama:** İş bitince, yapılanın "Mega Doküman" ve "Mimari Kurallar" ile örtüştüğünü teyit et.
+
+## 3. BAĞLAM (CONTEXT) YÖNETİMİ
+- **Token Tasarrufu:** Sadece görevin %100 ilgili olduğu dosyaları oku/yaz. Tüm projeyi okumaya çalışma.
+- **Kısıtlar:** `.claudeignore` dosyasındaki dosya ve klasörleri asla dikkate alma.
+- **Modülerlik:** Eğer bir modül içinde çalışıyorsan, sadece o modülün yerel kurallarına (varsa modül içi README) sadık kal.
+
+
+## 4. DENETİM (AUDIT) MODU
+- Bir geliştirme tamamlandığında kendine şu soruyu sor: "Bu yazdığım kod, projenin genel mimari standartlarına uyuyor mu yoksa sadece 'çalışıyor' mu?"
+- Eğer kod "AI slop" (yüzeysel/tekrarlı kod) içeriyorsa, refactor etmeden sunma.

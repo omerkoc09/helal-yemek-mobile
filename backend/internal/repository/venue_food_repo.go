@@ -1,0 +1,137 @@
+package repository
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/omerkoc/caiz-mi/internal/models"
+)
+
+// GetAllFoodCategoriesWithItems — tüm yemek kategorilerini çeşitleriyle birlikte döndürür.
+func (r *VenueRepo) GetAllFoodCategoriesWithItems(ctx context.Context) ([]models.FoodCategory, error) {
+	catRows, err := r.db.Query(ctx,
+		`SELECT id, key, label_tr, label_en FROM food_categories ORDER BY id`)
+	if err != nil {
+		return nil, fmt.Errorf("yemek kategorileri sorgusu başarısız: %w", err)
+	}
+	defer catRows.Close()
+
+	var categories []models.FoodCategory
+	for catRows.Next() {
+		c := models.FoodCategory{}
+		if err := catRows.Scan(&c.ID, &c.Key, &c.LabelTR, &c.LabelEN); err != nil {
+			return nil, err
+		}
+		c.Items = []models.FoodItem{}
+		categories = append(categories, c)
+	}
+	if err := catRows.Err(); err != nil {
+		return nil, err
+	}
+
+	// Tüm item'ları tek sorguda çek
+	itemRows, err := r.db.Query(ctx,
+		`SELECT id, category_id, key, label_tr, label_en, is_custom FROM food_items ORDER BY category_id, id`)
+	if err != nil {
+		return nil, fmt.Errorf("yemek çeşitleri sorgusu başarısız: %w", err)
+	}
+	defer itemRows.Close()
+
+	// category_id → index map
+	catIndex := make(map[int]int)
+	for i, c := range categories {
+		catIndex[c.ID] = i
+	}
+
+	for itemRows.Next() {
+		item := models.FoodItem{}
+		if err := itemRows.Scan(&item.ID, &item.CategoryID, &item.Key, &item.LabelTR, &item.LabelEN, &item.IsCustom); err != nil {
+			return nil, err
+		}
+		if idx, ok := catIndex[item.CategoryID]; ok {
+			categories[idx].Items = append(categories[idx].Items, item)
+		}
+	}
+
+	if categories == nil {
+		categories = []models.FoodCategory{}
+	}
+	return categories, itemRows.Err()
+}
+
+// SetVenueFoodItems — mekanın yemek çeşitlerini kaydeder (delete+insert).
+func (r *VenueRepo) SetVenueFoodItems(ctx context.Context, venueID string, foodItemIDs []int) error {
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx) //nolint
+
+	if _, err := tx.Exec(ctx, `DELETE FROM venue_food_items WHERE venue_id = $1`, venueID); err != nil {
+		return fmt.Errorf("yemek çeşitleri silinemedi: %w", err)
+	}
+
+	for _, fid := range foodItemIDs {
+		if _, err := tx.Exec(ctx,
+			`INSERT INTO venue_food_items (venue_id, food_item_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+			venueID, fid,
+		); err != nil {
+			return fmt.Errorf("yemek çeşidi eklenemedi (id=%d): %w", fid, err)
+		}
+	}
+	return tx.Commit(ctx)
+}
+
+// SetAllFoodHalal — mekanın all_food_halal flag'ini günceller.
+func (r *VenueRepo) SetAllFoodHalal(ctx context.Context, venueID string, allHalal bool) error {
+	_, err := r.db.Exec(ctx,
+		`UPDATE venues SET all_food_halal = $1, updated_at = NOW() WHERE id = $2 AND deleted_at IS NULL`,
+		allHalal, venueID,
+	)
+	return err
+}
+
+// GetFoodItemsByVenueID — mekanın seçili yemek çeşitlerini döndürür.
+func (r *VenueRepo) GetFoodItemsByVenueID(ctx context.Context, venueID string) ([]models.FoodItem, error) {
+	rows, err := r.db.Query(ctx,
+		`SELECT fi.id, fi.category_id, fi.key, fi.label_tr, fi.label_en, fi.is_custom
+		 FROM food_items fi
+		 JOIN venue_food_items vfi ON vfi.food_item_id = fi.id
+		 WHERE vfi.venue_id = $1
+		 ORDER BY fi.category_id, fi.id`,
+		venueID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var list []models.FoodItem
+	for rows.Next() {
+		item := models.FoodItem{}
+		if err := rows.Scan(&item.ID, &item.CategoryID, &item.Key, &item.LabelTR, &item.LabelEN, &item.IsCustom); err != nil {
+			return nil, err
+		}
+		list = append(list, item)
+	}
+	if list == nil {
+		list = []models.FoodItem{}
+	}
+	return list, rows.Err()
+}
+
+// CreateCustomFoodItem — kullanıcının eklediği özel yemek çeşidini kaydeder.
+func (r *VenueRepo) CreateCustomFoodItem(ctx context.Context, categoryID int, key, labelTR string) (*models.FoodItem, error) {
+	item := &models.FoodItem{}
+	err := r.db.QueryRow(ctx,
+		`INSERT INTO food_items (category_id, key, label_tr, label_en, is_custom)
+		 VALUES ($1, $2, $3, $3, true)
+		 ON CONFLICT (category_id, key) DO UPDATE SET key = food_items.key
+		 RETURNING id, category_id, key, label_tr, label_en, is_custom`,
+		categoryID, key, labelTR,
+	).Scan(&item.ID, &item.CategoryID, &item.Key, &item.LabelTR, &item.LabelEN, &item.IsCustom)
+	if err != nil {
+		return nil, fmt.Errorf("özel yemek çeşidi eklenemedi: %w", err)
+	}
+	return item, nil
+}

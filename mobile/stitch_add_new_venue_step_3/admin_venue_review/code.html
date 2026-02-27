@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Admin Venue Review</title>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Config -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#2d7b50",
+                        "primary-light": "#dcfce7", // Light green for backgrounds
+                        "primary-dark": "#14532d",
+                        "background-light": "#f6f8f7",
+                        "background-dark": "#141e19",
+                        "surface-light": "#ffffff",
+                        "surface-dark": "#1c2b24",
+                        "danger": "#ef4444",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom scrollbar hiding for horizontal scroll areas */
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 antialiased overflow-hidden h-screen flex flex-col relative">
+<!-- Top App Bar -->
+<header class="shrink-0 bg-surface-light dark:bg-surface-dark border-b border-slate-200 dark:border-slate-800 px-4 py-3 flex items-center justify-between z-20">
+<button class="flex items-center justify-center text-slate-900 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full p-2 transition-colors">
+<span class="material-symbols-outlined">arrow_back_ios_new</span>
+</button>
+<h1 class="text-base font-semibold text-center flex-1 truncate px-2">Review Submission #1234</h1>
+<div class="w-10"></div> <!-- Spacer for centering -->
+</header>
+<!-- Scrollable Content Area -->
+<main class="flex-1 overflow-y-auto pb-32">
+<div class="max-w-md mx-auto w-full">
+<!-- Status Banner -->
+<div class="bg-amber-100 dark:bg-amber-900/30 px-4 py-2 flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-amber-600 dark:text-amber-500 text-sm">pending</span>
+<span class="text-xs font-medium text-amber-800 dark:text-amber-200 uppercase tracking-wide">Pending Review</span>
+</div>
+<span class="text-xs text-amber-700 dark:text-amber-300">Submitted 2 days ago</span>
+</div>
+<!-- Image Carousel -->
+<div class="px-4 py-4 space-y-2">
+<h3 class="text-sm font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Evidence Photos</h3>
+<div class="flex gap-3 overflow-x-auto scrollbar-hide snap-x py-1">
+<!-- Image 1 -->
+<div class="flex-none snap-center w-64 flex flex-col gap-2">
+<div class="w-full aspect-[4/3] bg-slate-200 dark:bg-slate-800 rounded-xl overflow-hidden relative group shadow-sm">
+<div class="absolute inset-0 bg-cover bg-center" data-alt="Interior view of a modern restaurant with warm lighting and wooden tables" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBqJWVB0GNTBZrpJaWA_SNiYbZXfVp5_O1gFte4EwKkQutdevnBYzTdUtwmaXLLy8-QLBIv_o2FkhUC7bFWjoIscgpFS3xD6bTOWimupi8POaWe-tMnwTfxE94mfKesSjaTUPqZMFO-mS4-J8GR2tgIqg61n5OZpZdK5gSXL4kFh9pRoDTF8e6Nh6pdZFbvulkuioQaW2zn6KYHAFxI5UcbnP0hxKMC02XhwBWMgDL6gpiL8MwMqVCBDYbPFZlh7I0mdPX3vjYxkyw");'></div>
+<div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors"></div>
+</div>
+<span class="text-xs font-medium text-slate-500 dark:text-slate-400 text-center">Interior</span>
+</div>
+<!-- Image 2 -->
+<div class="flex-none snap-center w-64 flex flex-col gap-2">
+<div class="w-full aspect-[4/3] bg-slate-200 dark:bg-slate-800 rounded-xl overflow-hidden relative group shadow-sm">
+<div class="absolute inset-0 bg-cover bg-center" data-alt="Close up of a Halal certification document framed on a wall" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDgNj20RG3SuiMWYNelMmh_pXsyDKHYcvEaE78UgOk8z3umKgM49-GjZ8vC9SknJfl5xjZQgR89erx3yO_Sz6EgBase7My4Y_RBbb8-vH_9HIxdnRSz5lUjnaNZ0HQ0J53ixb9nR2Qg3rUAEM2R5G7JkiRexnlIbzrFFhf_gRZxeTxYnTtlc-g--rL67oH57rAJLOYszdZ_rFjoBz7pkwC4XndvxoxQqgb5VLfCQqgRZL-fxDM63ltSLqgi8qxB_EirLZzs81VIh00");'></div>
+</div>
+<span class="text-xs font-medium text-slate-500 dark:text-slate-400 text-center">Halal Certificate</span>
+</div>
+<!-- Image 3 -->
+<div class="flex-none snap-center w-64 flex flex-col gap-2">
+<div class="w-full aspect-[4/3] bg-slate-200 dark:bg-slate-800 rounded-xl overflow-hidden relative group shadow-sm">
+<div class="absolute inset-0 bg-cover bg-center" data-alt="Restaurant menu showing various grilled meat dishes" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCpMliyZ0C0i_lsOuxqhcXmSFgEuNTR4-DnRNfpjroI64sHXg69_KSCI8_XxQuLxV4CJTXSP4MF9Hpoq2dj5x0iUIrcXwAvBHfeqDcE65KPXdzSbXy7ICnz2uTVlYip_yPoh-EcTN8Afnf4GaZHxPk_rc438cyXf2oil-ZD-sNNXVs9S-tAwRUWiND7B5J9vRGCT_50_j5a6YECc9paXpfOUrnOIX7MXvkblX1fVs-mjmjl8U0zGPxhO6n-3RPnvpiPKV5fYixw_qo");'></div>
+</div>
+<span class="text-xs font-medium text-slate-500 dark:text-slate-400 text-center">Menu</span>
+</div>
+</div>
+</div>
+<!-- Main Info Card -->
+<div class="px-4 pb-2">
+<div class="bg-surface-light dark:bg-surface-dark rounded-xl p-5 shadow-sm border border-slate-100 dark:border-slate-800">
+<div class="flex justify-between items-start mb-2">
+<div>
+<h2 class="text-xl font-bold text-slate-900 dark:text-white leading-tight">Sultan's Kebab House</h2>
+<p class="text-sm text-primary font-medium mt-1">Turkish Cuisine</p>
+</div>
+<div class="bg-primary/10 dark:bg-primary/20 p-2 rounded-lg text-primary">
+<span class="material-symbols-outlined text-[20px]">restaurant</span>
+</div>
+</div>
+<div class="flex items-center gap-2 mb-4">
+<div class="h-6 w-6 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden relative">
+<img alt="User avatar" class="object-cover w-full h-full" data-alt="Portrait of a smiling user" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAm97nBkHaL7Q7FV3wQjiv7lIrzDZLvR3TLljAu04dAQqGer3kah9y2aoJVKG9Nwv4hxqGaN85N5ZV5Z07Aq1ORkvNj7kBSMsmcxdn_p64X6jiHwzGOS8vJqAoNq4wctq0n666xOqHgEtJSOYC-lfCIa_Ash-5pWsaRfuLCeSNHEgj_Adv-Csy3uk2kY5ABxXh_PHLHtKDjbfr4kO0HySgey8lCivWL80rjuOCgZW1jTbwkZlNV6ZyNaVxaRJ06ghJfcrXW-obbb9Q"/>
+</div>
+<p class="text-xs text-slate-500 dark:text-slate-400">Submitted by <span class="font-medium text-slate-700 dark:text-slate-300">@User123</span> on Oct 24, 2023</p>
+</div>
+<p class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                        Authentic Turkish cuisine located near the city center. Family-friendly atmosphere with a dedicated prayer room on the second floor.
+                    </p>
+<!-- Tags -->
+<div class="mt-4 flex flex-wrap gap-2">
+<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium bg-green-50 text-green-700 border border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800">
+<span class="material-symbols-outlined text-[14px]">verified</span>
+                            Halal Certified
+                        </span>
+<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium bg-slate-50 text-slate-600 border border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700">
+<span class="material-symbols-outlined text-[14px]">block</span>
+                            No Alcohol
+                        </span>
+<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium bg-slate-50 text-slate-600 border border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700">
+<span class="material-symbols-outlined text-[14px]">mosque</span>
+                            Prayer Space
+                        </span>
+<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium bg-slate-50 text-slate-600 border border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700">
+<span class="material-symbols-outlined text-[14px]">family_restroom</span>
+                            Family Section
+                        </span>
+</div>
+</div>
+</div>
+<!-- Verification Details -->
+<div class="px-4 py-2">
+<div class="bg-surface-light dark:bg-surface-dark rounded-xl p-5 shadow-sm border border-slate-100 dark:border-slate-800">
+<h3 class="text-sm font-semibold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[18px]">policy</span>
+                        Certification Details
+                    </h3>
+<div class="grid grid-cols-2 gap-4">
+<div>
+<p class="text-xs text-slate-500 dark:text-slate-400 mb-1">Authority</p>
+<p class="text-sm font-medium text-slate-800 dark:text-slate-200">Halal Food Authority (HFA)</p>
+</div>
+<div>
+<p class="text-xs text-slate-500 dark:text-slate-400 mb-1">Expires</p>
+<p class="text-sm font-medium text-slate-800 dark:text-slate-200">Dec 31, 2024</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Location Map -->
+<div class="px-4 py-2">
+<div class="bg-surface-light dark:bg-surface-dark rounded-xl overflow-hidden shadow-sm border border-slate-100 dark:border-slate-800">
+<div class="relative h-32 bg-slate-200 w-full group">
+<!-- Static Map Placeholder -->
+<div class="absolute inset-0 bg-cover bg-center opacity-80" data-alt="Map view showing city streets and location pin" data-location="London" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuA4dtT-8ZwhB2UO5OfQN3oCnvcE_EywZ5JnGUwDy_jwEyul3v6s3uBfFTSNpEOhXHf0F5mUKz42d7tAgZlcEnVz7ohfIyOSHCvyfa15s2q5y9Jc45866YjGK6Yn1GmFoykfd9Ft_7cEoOAsAzBj_lBn-tpndy7ESPrmXGNEFpwaFNmUUidK3fcKGQENzqOzcNH-Q6VjUlwjzFkqkOyL2oyjVSrQTVf1wKieAcRdj9KDdOnsx4gJsgV9RhjAO_lRm8wCjv3YO4C6Ylk");'></div>
+<div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
+<!-- Pin -->
+<div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center">
+<span class="material-symbols-outlined text-primary text-4xl drop-shadow-md fill-current">location_on</span>
+</div>
+<a class="absolute bottom-2 right-2 bg-white/90 dark:bg-black/80 backdrop-blur-sm px-2 py-1 rounded text-xs font-medium text-slate-900 dark:text-white shadow-sm flex items-center gap-1" href="#">
+                            Open in Maps
+                            <span class="material-symbols-outlined text-[12px]">open_in_new</span>
+</a>
+</div>
+<div class="p-4 flex items-start gap-3">
+<div class="bg-slate-100 dark:bg-slate-800 p-2 rounded-lg shrink-0">
+<span class="material-symbols-outlined text-slate-500 dark:text-slate-400 text-xl">near_me</span>
+</div>
+<div>
+<p class="text-sm font-medium text-slate-900 dark:text-white">123 Main St, London, UK</p>
+<p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">0.8 miles from city center</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Padding for bottom bar -->
+<div class="h-8"></div>
+</div>
+</main>
+<!-- Sticky Footer Action Bar -->
+<div class="shrink-0 bg-surface-light dark:bg-surface-dark border-t border-slate-200 dark:border-slate-800 px-4 py-4 z-30 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] safe-area-bottom">
+<div class="max-w-md mx-auto w-full space-y-3">
+<!-- Optional Note Input -->
+<div class="relative">
+<input class="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-lg py-3 px-4 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:ring-2 focus:ring-primary focus:bg-white dark:focus:bg-slate-900 transition-all" placeholder="Add note for user (optional)..." type="text"/>
+</div>
+<!-- Action Buttons -->
+<div class="flex gap-3">
+<button class="flex-1 bg-white dark:bg-slate-800 border border-danger/30 text-danger hover:bg-red-50 dark:hover:bg-red-900/20 active:bg-red-100 dark:active:bg-red-900/30 h-12 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-colors">
+<span class="material-symbols-outlined text-[20px]">close</span>
+                    Reject
+                </button>
+<button class="flex-1 bg-primary text-white hover:bg-primary-dark active:bg-primary-dark/90 h-12 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 shadow-md shadow-primary/20 transition-colors">
+<span class="material-symbols-outlined text-[20px]">check</span>
+                    Approve
+                </button>
+</div>
+</div>
+</div>
+<!-- Safe area padding fix for iOS -->
+<style>
+        .safe-area-bottom {
+            padding-bottom: max(1rem, env(safe-area-inset-bottom));
+        }
+    </style>
+</body></html>

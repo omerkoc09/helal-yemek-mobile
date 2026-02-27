@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Add New Venue Step 3</title>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#2d7b50",
+                        "background-light": "#f6f8f7",
+                        "background-dark": "#141e19",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom scrollbar hiding for cleaner mobile look */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display antialiased text-slate-900 dark:text-slate-100 h-screen flex flex-col overflow-hidden">
+<!-- Top Navigation & Header -->
+<div class="flex-none bg-white dark:bg-background-dark shadow-sm z-10">
+<div class="flex items-center p-4 justify-between">
+<button class="text-slate-900 dark:text-white flex size-12 shrink-0 items-center justify-center hover:bg-slate-100 dark:hover:bg-white/10 rounded-full transition-colors">
+<span class="material-symbols-outlined text-[24px]">arrow_back</span>
+</button>
+<h2 class="text-slate-900 dark:text-white text-lg font-bold leading-tight tracking-[-0.015em] flex-1 text-center">Add New Venue</h2>
+<button class="text-slate-900 dark:text-white flex size-12 shrink-0 items-center justify-center hover:bg-slate-100 dark:hover:bg-white/10 rounded-full transition-colors">
+<span class="material-symbols-outlined text-[24px]">close</span>
+</button>
+</div>
+<!-- Progress Indicator -->
+<div class="flex w-full flex-col items-center justify-center pb-4 px-4">
+<div class="flex w-full max-w-[200px] flex-row items-center justify-between gap-2">
+<!-- Step 1: Completed -->
+<div class="h-2 flex-1 rounded-full bg-primary/40"></div>
+<!-- Step 2: Completed -->
+<div class="h-2 flex-1 rounded-full bg-primary/40"></div>
+<!-- Step 3: Active -->
+<div class="h-2 flex-1 rounded-full bg-primary"></div>
+<!-- Step 4: Inactive -->
+<div class="h-2 flex-1 rounded-full bg-slate-200 dark:bg-white/20"></div>
+<!-- Step 5: Inactive -->
+<div class="h-2 flex-1 rounded-full bg-slate-200 dark:bg-white/20"></div>
+</div>
+<p class="text-xs font-medium text-slate-500 dark:text-slate-400 mt-2">Step 3 of 5</p>
+</div>
+</div>
+<!-- Main Content Area - Scrollable -->
+<div class="flex-1 overflow-y-auto no-scrollbar p-4 md:p-6 pb-32">
+<div class="max-w-md mx-auto w-full">
+<h1 class="text-slate-900 dark:text-white tracking-tight text-[28px] font-bold leading-tight pb-2 pt-2">Select Halal Criteria</h1>
+<p class="text-slate-600 dark:text-slate-300 text-base font-normal leading-relaxed pb-6">Help travelers know what to expect. Select all that apply to this venue.</p>
+<div class="flex flex-col gap-6">
+<!-- Primary Criteria Section -->
+<div>
+<h3 class="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">Core Standards</h3>
+<div class="flex flex-wrap gap-3">
+<!-- Selected Item Example -->
+<button class="group flex items-center justify-center gap-x-2 rounded-full border border-primary bg-primary px-4 py-3 transition-all active:scale-95 shadow-sm">
+<span class="material-symbols-outlined text-white text-[20px]">check</span>
+<span class="text-white text-sm font-semibold leading-normal">Halal Certified</span>
+</button>
+<!-- Unselected Item Example -->
+<button class="group flex items-center justify-center gap-x-2 rounded-full border border-slate-200 dark:border-white/20 bg-white dark:bg-white/5 px-4 py-3 transition-all active:scale-95 hover:border-primary/50 hover:bg-slate-50 dark:hover:bg-white/10">
+<span class="material-symbols-outlined text-slate-400 dark:text-slate-500 text-[20px] group-hover:text-primary">wine_bar</span>
+<span class="text-slate-900 dark:text-white text-sm font-medium leading-normal">No Alcohol Served</span>
+</button>
+<!-- Selected Item Example -->
+<button class="group flex items-center justify-center gap-x-2 rounded-full border border-primary bg-primary px-4 py-3 transition-all active:scale-95 shadow-sm">
+<span class="material-symbols-outlined text-white text-[20px]">check</span>
+<span class="text-white text-sm font-semibold leading-normal">Muslim Owned</span>
+</button>
+</div>
+</div>
+<!-- Facilities Section -->
+<div>
+<h3 class="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">Facilities &amp; Menu</h3>
+<div class="flex flex-wrap gap-3">
+<button class="group flex items-center justify-center gap-x-2 rounded-full border border-slate-200 dark:border-white/20 bg-white dark:bg-white/5 px-4 py-3 transition-all active:scale-95 hover:border-primary/50 hover:bg-slate-50 dark:hover:bg-white/10">
+<span class="material-symbols-outlined text-slate-400 dark:text-slate-500 text-[20px] group-hover:text-primary">mosque</span>
+<span class="text-slate-900 dark:text-white text-sm font-medium leading-normal">Prayer Room Available</span>
+</button>
+<button class="group flex items-center justify-center gap-x-2 rounded-full border border-slate-200 dark:border-white/20 bg-white dark:bg-white/5 px-4 py-3 transition-all active:scale-95 hover:border-primary/50 hover:bg-slate-50 dark:hover:bg-white/10">
+<span class="material-symbols-outlined text-slate-400 dark:text-slate-500 text-[20px] group-hover:text-primary">restaurant_menu</span>
+<span class="text-slate-900 dark:text-white text-sm font-medium leading-normal">Partial Halal Menu</span>
+</button>
+<button class="group flex items-center justify-center gap-x-2 rounded-full border border-slate-200 dark:border-white/20 bg-white dark:bg-white/5 px-4 py-3 transition-all active:scale-95 hover:border-primary/50 hover:bg-slate-50 dark:hover:bg-white/10">
+<span class="material-symbols-outlined text-slate-400 dark:text-slate-500 text-[20px] group-hover:text-primary">eco</span>
+<span class="text-slate-900 dark:text-white text-sm font-medium leading-normal">Vegetarian Friendly</span>
+</button>
+<button class="group flex items-center justify-center gap-x-2 rounded-full border border-slate-200 dark:border-white/20 bg-white dark:bg-white/5 px-4 py-3 transition-all active:scale-95 hover:border-primary/50 hover:bg-slate-50 dark:hover:bg-white/10">
+<span class="material-symbols-outlined text-slate-400 dark:text-slate-500 text-[20px] group-hover:text-primary">set_meal</span>
+<span class="text-slate-900 dark:text-white text-sm font-medium leading-normal">Seafood Only</span>
+</button>
+</div>
+</div>
+<!-- Custom Input Section -->
+<div class="pt-2">
+<label class="block text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">Other Features</label>
+<div class="relative">
+<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-slate-400 text-[20px]">add</span>
+</div>
+<input class="block w-full pl-10 pr-3 py-3 border border-slate-200 dark:border-white/20 rounded-lg leading-5 bg-white dark:bg-white/5 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary sm:text-sm transition-colors" placeholder="Type to add custom tag (e.g. Wudu Area)" type="text"/>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Fixed Bottom Action Bar -->
+<div class="flex-none bg-white dark:bg-background-dark border-t border-slate-100 dark:border-white/10 p-4 pb-8 md:pb-6 z-10">
+<div class="max-w-md mx-auto w-full flex gap-3">
+<button class="flex-1 h-12 flex items-center justify-center rounded-lg bg-slate-100 dark:bg-white/10 text-slate-900 dark:text-white font-bold text-base hover:bg-slate-200 dark:hover:bg-white/20 transition-colors">
+                Back
+            </button>
+<button class="flex-[2] h-12 flex items-center justify-center rounded-lg bg-primary text-white font-bold text-base shadow-md shadow-primary/20 hover:bg-primary/90 transition-colors">
+                Next Step
+            </button>
+</div>
+</div>
+</body></html>

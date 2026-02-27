@@ -1,0 +1,243 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../core/theme/app_theme.dart';
+import '../../../shared/widgets/error_retry_widget.dart';
+import '../../../shared/widgets/loading_indicator.dart';
+import '../../venue/providers/venue_detail_provider.dart';
+import '../../venue/widgets/halal_criteria_chip.dart';
+import '../../venue/widgets/venue_photo_gallery.dart';
+import '../../venue/widgets/working_hours_widget.dart';
+import '../widgets/venue_review_actions.dart';
+
+class VenueReviewScreen extends ConsumerWidget {
+  final String venueId;
+
+  const VenueReviewScreen({super.key, required this.venueId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final venueAsync = ref.watch(venueDetailProvider(venueId));
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Mekan İnceleme'),
+      ),
+      body: venueAsync.when(
+        loading: () => const LoadingIndicator(),
+        error: (_, _) => ErrorRetryWidget(
+          message: 'Mekan detayı yüklenemedi.',
+          onRetry: () => ref.invalidate(venueDetailProvider(venueId)),
+        ),
+        data: (venue) {
+          return Column(
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Fotoğraflar
+                      if (venue.photos.isNotEmpty)
+                        SizedBox(
+                          height: 220,
+                          child: VenuePhotoGallery(photos: venue.photos),
+                        ),
+
+                      Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Ad
+                            Text(
+                              venue.name,
+                              style: const TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+
+                            // Adres
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Icon(Icons.location_on_outlined,
+                                    size: 20, color: AppTheme.textSecondary),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    '${venue.address}\n${venue.city}, ${venue.country}',
+                                    style: const TextStyle(
+                                        fontSize: 14, height: 1.4),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+
+                            // Helal Kriterleri
+                            if (venue.criteria.isNotEmpty) ...[
+                              const Text(
+                                'Helal Kriterleri',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              HalalCriteriaChips(criteria: venue.criteria),
+                              const SizedBox(height: 16),
+                            ],
+
+                            // Caiz Yemekler
+                            if (venue.allFoodHalal ||
+                                venue.foodItems.isNotEmpty) ...[
+                              const Text(
+                                'Caiz Yemekler',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              if (venue.allFoodHalal)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.primary
+                                        .withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(
+                                      color: AppTheme.primary
+                                          .withValues(alpha: 0.3),
+                                    ),
+                                  ),
+                                  child: const Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.restaurant_menu,
+                                          size: 16, color: AppTheme.primary),
+                                      SizedBox(width: 6),
+                                      Text(
+                                        'Tüm Yemekler Caiz',
+                                        style: TextStyle(
+                                          color: AppTheme.primary,
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              else
+                                Wrap(
+                                  spacing: 6,
+                                  runSpacing: 6,
+                                  children: venue.foodItems
+                                      .map(
+                                        (item) => Chip(
+                                          label: Text(
+                                            item.labelTr,
+                                            style:
+                                                const TextStyle(fontSize: 12),
+                                          ),
+                                          materialTapTargetSize:
+                                              MaterialTapTargetSize
+                                                  .shrinkWrap,
+                                          visualDensity:
+                                              VisualDensity.compact,
+                                          backgroundColor: AppTheme.primary
+                                              .withValues(alpha: 0.08),
+                                          side: BorderSide(
+                                            color: AppTheme.primary
+                                                .withValues(alpha: 0.2),
+                                          ),
+                                        ),
+                                      )
+                                      .toList(),
+                                ),
+                              const SizedBox(height: 16),
+                            ],
+
+                            // Çalışma saatleri
+                            if (venue.workingHours != null &&
+                                venue.workingHours!.isNotEmpty) ...[
+                              WorkingHoursWidget(
+                                  workingHours: venue.workingHours!),
+                              const SizedBox(height: 16),
+                            ],
+
+                            // Notlar
+                            if (venue.notes != null &&
+                                venue.notes!.isNotEmpty) ...[
+                              const Text(
+                                'Guide Notu',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.background,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  venue.notes!,
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    height: 1.5,
+                                    color: AppTheme.textSecondary,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                            ],
+
+                            // Konum bilgisi
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: AppTheme.textSecondary
+                                    .withValues(alpha: 0.06),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.gps_fixed,
+                                      size: 18, color: AppTheme.textSecondary),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    '${venue.latitude.toStringAsFixed(5)}, ${venue.longitude.toStringAsFixed(5)}',
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      color: AppTheme.textSecondary,
+                                      fontFamily: 'monospace',
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              // Durum bazlı butonlar
+              VenueReviewActions(venueId: venueId, venue: venue),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}

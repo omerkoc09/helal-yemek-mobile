@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Main Map Home</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#2d7b50",
+                        "primary-foreground": "#ffffff",
+                        "secondary": "#f3ba2f", 
+                        "background-light": "#f6f8f7",
+                        "background-dark": "#141e19",
+                        "surface-light": "#ffffff",
+                        "surface-dark": "#1c2b24",
+                        "text-main": "#131614",
+                        "text-muted": "#6b8074",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"],
+                        "body": ["Inter", "sans-serif"],
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem",
+                        "2xl": "2rem",
+                        "full": "9999px"
+                    },
+                    boxShadow: {
+                        'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.1)',
+                        'floating': '0 8px 30px -4px rgba(0, 0, 0, 0.15)',
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        /* Hide scrollbar for Chrome, Safari and Opera */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        /* Hide scrollbar for IE, Edge and Firefox */
+        .no-scrollbar {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+        }
+        
+        .pin-bounce {
+            animation: bounce 2s infinite;
+        }
+        
+        @keyframes bounce {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-5px);
+            }
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-text-main antialiased h-screen w-full overflow-hidden flex flex-col relative">
+<!-- Map Background Layer -->
+<div class="absolute inset-0 z-0 bg-cover bg-center" data-alt="Interactive city map with streets and parks" data-location="London" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuA4dtT-8ZwhB2UO5OfQN3oCnvcE_EywZ5JnGUwDy_jwEyul3v6s3uBfFTSNpEOhXHf0F5mUKz42d7tAgZlcEnVz7ohfIyOSHCvyfa15s2q5y9Jc45866YjGK6Yn1GmFoykfd9Ft_7cEoOAsAzBj_lBn-tpndy7ESPrmXGNEFpwaFNmUUidK3fcKGQENzqOzcNH-Q6VjUlwjzFkqkOyL2oyjVSrQTVf1wKieAcRdj9KDdOnsx4gJsgV9RhjAO_lRm8wCjv3YO4C6Ylk');">
+<!-- Map Overlay Gradient for top readability -->
+<div class="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-white/80 to-transparent pointer-events-none"></div>
+<!-- Approved Venue Pin (Green) -->
+<div class="absolute top-[40%] left-[35%] flex flex-col items-center group cursor-pointer transform hover:scale-110 transition-transform duration-200">
+<div class="relative">
+<div class="w-10 h-10 bg-primary rounded-full flex items-center justify-center shadow-lg border-2 border-white z-10">
+<span class="material-symbols-outlined text-white text-[20px]">restaurant</span>
+</div>
+<div class="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[8px] border-t-primary"></div>
+</div>
+<!-- Tooltip -->
+<div class="absolute bottom-full mb-2 bg-white px-3 py-1.5 rounded-lg shadow-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+<p class="text-xs font-bold text-gray-800">Saffron Kitchen</p>
+<p class="text-[10px] text-green-600 font-medium">Halal Certified</p>
+</div>
+</div>
+<!-- Approved Venue Pin (Green) - Mosque -->
+<div class="absolute top-[30%] left-[65%] flex flex-col items-center group cursor-pointer transform hover:scale-110 transition-transform duration-200">
+<div class="relative">
+<div class="w-10 h-10 bg-primary rounded-full flex items-center justify-center shadow-lg border-2 border-white z-10">
+<span class="material-symbols-outlined text-white text-[20px]">mosque</span>
+</div>
+<div class="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[8px] border-t-primary"></div>
+</div>
+</div>
+<!-- Pending Venue Pin (Yellow) -->
+<div class="absolute top-[55%] left-[50%] flex flex-col items-center group cursor-pointer transform hover:scale-110 transition-transform duration-200 pin-bounce">
+<div class="relative">
+<div class="w-10 h-10 bg-secondary rounded-full flex items-center justify-center shadow-lg border-2 border-white z-10">
+<span class="material-symbols-outlined text-white text-[20px]">schedule</span>
+</div>
+<div class="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[8px] border-t-secondary"></div>
+</div>
+<div class="absolute bottom-full mb-2 bg-white px-3 py-1.5 rounded-lg shadow-md whitespace-nowrap">
+<p class="text-xs font-bold text-gray-800">New Kebab Spot</p>
+<p class="text-[10px] text-yellow-600 font-medium">Verification Pending</p>
+</div>
+</div>
+<!-- Current Location -->
+<div class="absolute top-[65%] left-[20%]">
+<div class="w-4 h-4 bg-blue-500 rounded-full border-2 border-white shadow-sm ring-4 ring-blue-500/30"></div>
+</div>
+</div>
+<!-- UI Overlay Layer -->
+<div class="relative z-10 flex flex-col h-full pointer-events-none">
+<!-- Top Search Bar Area -->
+<div class="pt-14 px-4 pb-2 pointer-events-auto">
+<div class="bg-white/95 backdrop-blur-sm shadow-soft rounded-xl flex items-center p-1 gap-2 border border-gray-100">
+<div class="pl-3 text-text-muted flex items-center">
+<span class="material-symbols-outlined text-[24px]">search</span>
+</div>
+<input class="flex-1 bg-transparent border-none text-text-main placeholder:text-text-muted/70 focus:ring-0 text-sm font-medium h-10" placeholder="Find halal food or prayer spaces..." type="text"/>
+<button class="p-2 hover:bg-gray-50 rounded-lg text-primary transition-colors border-l border-gray-100">
+<span class="material-symbols-outlined text-[24px]">tune</span>
+</button>
+</div>
+<!-- Quick Filter Chips -->
+<div class="flex gap-2 mt-3 overflow-x-auto no-scrollbar pb-2">
+<button class="bg-primary text-white px-4 py-1.5 rounded-full text-xs font-semibold shadow-sm whitespace-nowrap flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">restaurant</span>
+                    All Food
+                </button>
+<button class="bg-white/90 backdrop-blur text-text-main px-4 py-1.5 rounded-full text-xs font-medium shadow-sm whitespace-nowrap border border-gray-100 flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">mosque</span>
+                    Mosques
+                </button>
+<button class="bg-white/90 backdrop-blur text-text-main px-4 py-1.5 rounded-full text-xs font-medium shadow-sm whitespace-nowrap border border-gray-100 flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">verified</span>
+                    Certified Only
+                </button>
+<button class="bg-white/90 backdrop-blur text-text-main px-4 py-1.5 rounded-full text-xs font-medium shadow-sm whitespace-nowrap border border-gray-100">
+                    Open Now
+                </button>
+</div>
+</div>
+<!-- Spacer to push content to bottom -->
+<div class="flex-1"></div>
+<!-- Bottom Controls Area -->
+<div class="flex flex-col items-end px-4 pb-4 pointer-events-auto gap-3">
+<!-- Map Controls -->
+<div class="flex flex-col gap-2">
+<button class="w-10 h-10 bg-white rounded-lg shadow-soft flex items-center justify-center text-text-main hover:bg-gray-50 active:scale-95 transition-all">
+<span class="material-symbols-outlined text-[20px]">my_location</span>
+</button>
+<button class="w-10 h-10 bg-white rounded-lg shadow-soft flex items-center justify-center text-text-main hover:bg-gray-50 active:scale-95 transition-all">
+<span class="material-symbols-outlined text-[20px]">layers</span>
+</button>
+</div>
+<!-- Add Venue FAB -->
+<button class="w-14 h-14 bg-primary rounded-full shadow-floating flex items-center justify-center text-white hover:bg-green-700 active:scale-95 transition-all mb-2 group">
+<span class="material-symbols-outlined text-[28px] group-hover:rotate-90 transition-transform duration-300">add</span>
+</button>
+</div>
+<!-- Bottom Navigation Bar -->
+<div class="bg-white border-t border-gray-100 pb-6 pt-2 px-2 pointer-events-auto shadow-[0_-4px_20px_-4px_rgba(0,0,0,0.05)]">
+<div class="flex justify-around items-end">
+<a class="flex flex-col items-center gap-1 p-2 w-16 group" href="#">
+<div class="text-primary flex items-center justify-center transition-colors">
+<span class="material-symbols-outlined text-[24px] fill-current">map</span>
+</div>
+<span class="text-[10px] font-bold text-primary tracking-wide">Map</span>
+</a>
+<a class="flex flex-col items-center gap-1 p-2 w-16 group" href="#">
+<div class="text-text-muted group-hover:text-primary flex items-center justify-center transition-colors">
+<span class="material-symbols-outlined text-[24px]">search</span>
+</div>
+<span class="text-[10px] font-medium text-text-muted group-hover:text-primary transition-colors">Search</span>
+</a>
+<a class="flex flex-col items-center gap-1 p-2 w-16 group" href="#">
+<div class="text-text-muted group-hover:text-primary flex items-center justify-center transition-colors">
+<span class="material-symbols-outlined text-[24px]">favorite</span>
+</div>
+<span class="text-[10px] font-medium text-text-muted group-hover:text-primary transition-colors">Saved</span>
+</a>
+<a class="flex flex-col items-center gap-1 p-2 w-16 group" href="#">
+<div class="text-text-muted group-hover:text-primary flex items-center justify-center transition-colors">
+<span class="material-symbols-outlined text-[24px]">person</span>
+</div>
+<span class="text-[10px] font-medium text-text-muted group-hover:text-primary transition-colors">Profile</span>
+</a>
+</div>
+</div>
+</div>
+</body></html>
