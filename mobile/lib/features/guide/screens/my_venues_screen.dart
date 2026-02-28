@@ -30,6 +30,16 @@ class _MyVenuesScreenState extends ConsumerState<MyVenuesScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/');
+            }
+          },
+        ),
         title: const Text('Mekanlarım'),
         actions: [
           IconButton(
@@ -208,17 +218,16 @@ class _MyVenueCard extends StatelessWidget {
                       ),
                     ),
                   const Spacer(),
-                  if (venue.isApproved)
-                    TextButton.icon(
-                      onPressed: () =>
-                          context.push('/venue/${venue.id}/correction'),
-                      icon: const Icon(Icons.edit_outlined, size: 16),
-                      label: const Text('Düzeltme Öner'),
-                      style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        textStyle: const TextStyle(fontSize: 13),
-                      ),
+                  TextButton.icon(
+                    onPressed: () =>
+                        context.push('/venue/${venue.id}/edit'),
+                    icon: const Icon(Icons.edit_outlined, size: 16),
+                    label: const Text('Düzenle'),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      textStyle: const TextStyle(fontSize: 13),
                     ),
+                  ),
                 ],
               ),
             ],

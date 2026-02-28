@@ -397,70 +397,225 @@ final myVenuesProvider = NotifierProvider<MyVenuesNotifier, MyVenuesState>(
   MyVenuesNotifier.new,
 );
 
-// ─── Correction State ───
+// ─── Edit Venue State ───
 
-class CorrectionState {
+class EditVenueState {
   final bool isLoading;
+  final bool isLoadingVenue;
   final String? error;
   final bool isSuccess;
 
-  const CorrectionState({
+  final String venueId;
+  final String name;
+  final String address;
+  final String city;
+  final String? notes;
+  final double? latitude;
+  final double? longitude;
+  final List<int> selectedCriteriaIds;
+  final List<int> selectedFoodItemIds;
+  final bool allFoodHalal;
+
+  // Google Maps link parse
+  final String mapsLink;
+  final bool isParsingLink;
+
+  const EditVenueState({
     this.isLoading = false,
+    this.isLoadingVenue = false,
     this.error,
     this.isSuccess = false,
+    this.venueId = '',
+    this.name = '',
+    this.address = '',
+    this.city = '',
+    this.notes,
+    this.latitude,
+    this.longitude,
+    this.selectedCriteriaIds = const [],
+    this.selectedFoodItemIds = const [],
+    this.allFoodHalal = false,
+    this.mapsLink = '',
+    this.isParsingLink = false,
   });
 
-  CorrectionState copyWith({
+  EditVenueState copyWith({
     bool? isLoading,
+    bool? isLoadingVenue,
     String? error,
     bool? isSuccess,
+    String? venueId,
+    String? name,
+    String? address,
+    String? city,
+    String? notes,
+    double? latitude,
+    double? longitude,
+    List<int>? selectedCriteriaIds,
+    List<int>? selectedFoodItemIds,
+    bool? allFoodHalal,
+    String? mapsLink,
+    bool? isParsingLink,
   }) {
-    return CorrectionState(
+    return EditVenueState(
       isLoading: isLoading ?? this.isLoading,
+      isLoadingVenue: isLoadingVenue ?? this.isLoadingVenue,
       error: error,
       isSuccess: isSuccess ?? this.isSuccess,
+      venueId: venueId ?? this.venueId,
+      name: name ?? this.name,
+      address: address ?? this.address,
+      city: city ?? this.city,
+      notes: notes ?? this.notes,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
+      selectedCriteriaIds: selectedCriteriaIds ?? this.selectedCriteriaIds,
+      selectedFoodItemIds: selectedFoodItemIds ?? this.selectedFoodItemIds,
+      allFoodHalal: allFoodHalal ?? this.allFoodHalal,
+      mapsLink: mapsLink ?? this.mapsLink,
+      isParsingLink: isParsingLink ?? this.isParsingLink,
     );
   }
 }
 
-class CorrectionNotifier extends Notifier<CorrectionState> {
+class EditVenueNotifier extends Notifier<EditVenueState> {
   @override
-  CorrectionState build() => const CorrectionState();
+  EditVenueState build() => const EditVenueState();
 
-  Future<void> submitCorrection({
-    required String venueId,
-    required String fieldName,
-    String? oldValue,
-    required String newValue,
-    String? note,
-  }) async {
+  Future<void> loadVenue(String venueId) async {
+    state = state.copyWith(isLoadingVenue: true, error: null, venueId: venueId);
+    try {
+      final apiClient = ref.read(apiClientProvider);
+      final response = await apiClient.get(ApiEndpoints.venueDetail(venueId));
+
+      final data = response.data is Map<String, dynamic>
+          ? response.data as Map<String, dynamic>
+          : (response.data['data'] as Map<String, dynamic>);
+      final venue = Venue.fromJson(data);
+
+      state = state.copyWith(
+        isLoadingVenue: false,
+        venueId: venue.id,
+        name: venue.name,
+        address: venue.address,
+        city: venue.city,
+        notes: venue.notes,
+        latitude: venue.latitude,
+        longitude: venue.longitude,
+        selectedCriteriaIds: venue.criteria.map((c) => c.id).toList(),
+        selectedFoodItemIds: venue.foodItems.map((f) => f.id).toList(),
+        allFoodHalal: venue.allFoodHalal,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoadingVenue: false,
+        error: 'Mekan bilgileri yüklenemedi.',
+      );
+    }
+  }
+
+  void setName(String name) => state = state.copyWith(name: name);
+  void setAddress(String address) => state = state.copyWith(address: address);
+  void setCity(String city) => state = state.copyWith(city: city);
+  void setNotes(String? notes) => state = state.copyWith(notes: notes);
+
+  void setCoordinates({required double latitude, required double longitude}) {
+    state = state.copyWith(latitude: latitude, longitude: longitude);
+  }
+
+  Future<bool> parseMapsLink(String link) async {
+    state = state.copyWith(mapsLink: link, isParsingLink: true, error: null);
+
+    if (link.trim().isEmpty) {
+      state = state.copyWith(isParsingLink: false);
+      return false;
+    }
+
+    if (!GoogleMapsParser.isValidMapsLink(link)) {
+      state = state.copyWith(
+        isParsingLink: false,
+        error: 'Geçerli bir Google Maps linki girin.',
+      );
+      return false;
+    }
+
+    final coords = await GoogleMapsParser.parseLink(link);
+    if (coords != null) {
+      state = state.copyWith(
+        latitude: coords.latitude,
+        longitude: coords.longitude,
+        isParsingLink: false,
+      );
+      return true;
+    } else {
+      state = state.copyWith(
+        isParsingLink: false,
+        error: 'Linkten koordinat çıkarılamadı.',
+      );
+      return false;
+    }
+  }
+
+  void toggleCriteria(int criteriaId) {
+    final ids = List<int>.from(state.selectedCriteriaIds);
+    if (ids.contains(criteriaId)) {
+      ids.remove(criteriaId);
+    } else {
+      ids.add(criteriaId);
+    }
+    state = state.copyWith(selectedCriteriaIds: ids);
+  }
+
+  void toggleFoodItem(int itemId) {
+    final ids = List<int>.from(state.selectedFoodItemIds);
+    if (ids.contains(itemId)) {
+      ids.remove(itemId);
+    } else {
+      ids.add(itemId);
+    }
+    state = state.copyWith(selectedFoodItemIds: ids, allFoodHalal: false);
+  }
+
+  void toggleAllFoodHalal() {
+    state = state.copyWith(
+      allFoodHalal: !state.allFoodHalal,
+      selectedFoodItemIds: !state.allFoodHalal ? [] : state.selectedFoodItemIds,
+    );
+  }
+
+  Future<void> submit() async {
     state = state.copyWith(isLoading: true, error: null, isSuccess: false);
     try {
       final apiClient = ref.read(apiClientProvider);
-      await apiClient.post(
-        ApiEndpoints.venueCorrections(venueId),
+      await apiClient.put(
+        ApiEndpoints.venueDetail(state.venueId),
         data: {
-          'field_name': fieldName,
-          'old_value': oldValue,
-          'new_value': newValue,
-          'note': note?.trim(),
+          'name': state.name.trim(),
+          'address': state.address.trim(),
+          'city': state.city.trim(),
+          'latitude': state.latitude,
+          'longitude': state.longitude,
+          'notes': state.notes?.trim(),
+          'criteria_ids': state.selectedCriteriaIds,
+          'food_item_ids': state.selectedFoodItemIds,
+          'all_food_halal': state.allFoodHalal,
         },
       );
       state = state.copyWith(isLoading: false, isSuccess: true);
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
-        error: 'Düzeltme önerisi gönderilemedi. Lütfen tekrar deneyin.',
+        error: 'Mekan güncellenemedi. Lütfen tekrar deneyin.',
       );
     }
   }
 
-  void reset() => state = const CorrectionState();
+  void reset() => state = const EditVenueState();
 }
 
-final correctionProvider =
-    NotifierProvider<CorrectionNotifier, CorrectionState>(
-  CorrectionNotifier.new,
+final editVenueProvider =
+    NotifierProvider<EditVenueNotifier, EditVenueState>(
+  EditVenueNotifier.new,
 );
 
 // ─── Halal Criteria Provider ───
