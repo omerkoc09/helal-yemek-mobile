@@ -64,14 +64,6 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                     color: Colors.blue,
                     onTap: () => context.push(AppRoutes.adminApplications),
                   ),
-                  const SizedBox(height: 12),
-                  _StatCard(
-                    icon: Icons.edit_note_outlined,
-                    label: 'Düzeltme Önerileri',
-                    count: stats.pendingCorrections,
-                    color: Colors.purple,
-                    onTap: () => context.push(AppRoutes.adminCorrections),
-                  ),
                   const SizedBox(height: 24),
 
                   // Hızlı erişim

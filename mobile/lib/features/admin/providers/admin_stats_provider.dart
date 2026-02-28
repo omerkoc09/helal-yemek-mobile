@@ -6,14 +6,12 @@ import '../../../core/auth/auth_provider.dart';
 class AdminStats {
   final int pendingVenues;
   final int pendingApplications;
-  final int pendingCorrections;
   final bool isLoading;
   final String? error;
 
   const AdminStats({
     this.pendingVenues = 0,
     this.pendingApplications = 0,
-    this.pendingCorrections = 0,
     this.isLoading = false,
     this.error,
   });
@@ -21,14 +19,12 @@ class AdminStats {
   AdminStats copyWith({
     int? pendingVenues,
     int? pendingApplications,
-    int? pendingCorrections,
     bool? isLoading,
     String? error,
   }) {
     return AdminStats(
       pendingVenues: pendingVenues ?? this.pendingVenues,
       pendingApplications: pendingApplications ?? this.pendingApplications,
-      pendingCorrections: pendingCorrections ?? this.pendingCorrections,
       isLoading: isLoading ?? this.isLoading,
       error: error,
     );
@@ -47,13 +43,11 @@ class AdminStatsNotifier extends Notifier<AdminStats> {
       final results = await Future.wait([
         apiClient.get(ApiEndpoints.adminPendingVenues),
         apiClient.get(ApiEndpoints.adminApplications),
-        apiClient.get(ApiEndpoints.adminCorrections),
       ]);
 
       state = state.copyWith(
         pendingVenues: _extractCount(results[0].data),
         pendingApplications: _extractCount(results[1].data),
-        pendingCorrections: _extractCount(results[2].data),
         isLoading: false,
       );
     } catch (e) {

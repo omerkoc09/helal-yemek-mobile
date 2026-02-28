@@ -14,12 +14,11 @@ import '../../features/venue/screens/venue_detail_screen.dart';
 import '../../features/venue/screens/city_venues_screen.dart';
 import '../../features/guide/screens/add_venue_screen.dart';
 import '../../features/guide/screens/my_venues_screen.dart';
-import '../../features/guide/screens/correction_screen.dart';
+import '../../features/guide/screens/edit_venue_screen.dart';
 import '../../features/admin/screens/admin_dashboard_screen.dart';
 import '../../features/admin/screens/pending_venues_screen.dart';
 import '../../features/admin/screens/venue_review_screen.dart';
 import '../../features/admin/screens/guide_applications_screen.dart';
-import '../../features/admin/screens/corrections_screen.dart';
 import '../../features/admin/screens/all_venues_screen.dart';
 import '../../features/admin/screens/audit_log_screen.dart';
 import '../../features/admin/screens/users_screen.dart';
@@ -40,13 +39,12 @@ class AppRoutes {
   static const String editProfile = '/edit-profile';
   static const String addVenue = '/add-venue';
   static const String myVenues = '/my-venues';
-  static const String correction = '/venue/:id/correction';
+  static const String editVenue = '/venue/:id/edit';
   static const String adminDashboard = '/admin';
   static const String adminPendingVenues = '/admin/pending-venues';
   static const String adminVenueReview = '/admin/venue/:id';
   static const String adminApplications = '/admin/applications';
   static const String adminAllVenues = '/admin/all-venues';
-  static const String adminCorrections = '/admin/corrections';
   static const String adminAuditLog = '/admin/audit-log';
   static const String adminUsers = '/admin/users';
 }
@@ -88,7 +86,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       // Guide rotaları koruması
       final guideRoutes = [AppRoutes.addVenue, AppRoutes.myVenues];
       final isGuideRoute = guideRoutes.contains(state.matchedLocation) ||
-          state.matchedLocation.endsWith('/correction');
+          state.matchedLocation.endsWith('/edit');
       if (isGuideRoute && !authState.isGuide && !authState.isAdmin) {
         return AppRoutes.map;
       }
@@ -167,10 +165,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const MyVenuesScreen(),
       ),
       GoRoute(
-        path: AppRoutes.correction,
+        path: AppRoutes.editVenue,
         builder: (context, state) {
           final id = state.pathParameters['id']!;
-          return CorrectionScreen(venueId: id);
+          return EditVenueScreen(venueId: id);
         },
       ),
 
@@ -197,10 +195,6 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.adminApplications,
         builder: (context, state) => const GuideApplicationsScreen(),
-      ),
-      GoRoute(
-        path: AppRoutes.adminCorrections,
-        builder: (context, state) => const CorrectionsScreen(),
       ),
       GoRoute(
         path: AppRoutes.adminAuditLog,
