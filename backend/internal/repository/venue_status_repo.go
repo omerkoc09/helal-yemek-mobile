@@ -15,7 +15,6 @@ func (r *VenueRepo) Approve(ctx context.Context, id, adminID string) error {
 		 SET status = 'approved',
 		     approved_by = $1,
 		     verified_at = NOW(),
-		     confirmation_count = GREATEST(confirmation_count, 1),
 		     updated_at = NOW()
 		 WHERE id = $2 AND status IN ('pending', 'rejected') AND deleted_at IS NULL`,
 		adminID, id,
@@ -70,8 +69,25 @@ func (r *VenueRepo) Reject(ctx context.Context, id, adminID string, note *string
 	return nil
 }
 
+// ResetToPending — onaylı mekanın statüsünü pending'e düşürür (guide düzenlemesi sonrası).
+func (r *VenueRepo) ResetToPending(ctx context.Context, id string) error {
+	result, err := r.db.Exec(ctx,
+		`UPDATE venues
+		 SET status = 'pending',
+		     updated_at = NOW()
+		 WHERE id = $1 AND status = 'approved' AND deleted_at IS NULL`,
+		id,
+	)
+	if err != nil {
+		return fmt.Errorf("mekan statü sıfırlama başarısız: %w", err)
+	}
+	if result.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
 // ConfirmVenue — başka bir Guide onaylı mekana doğrulama verir.
-// confirmation_count artar, >=2 olduğunda is_double_verified=true olur.
 // Aynı guide kendi eklediği mekanı veya zaten doğruladığı mekanı tekrar doğrulayamaz.
 func (r *VenueRepo) ConfirmVenue(ctx context.Context, venueID, guideID string) error {
 	// Mekanı bul ve kontrol et
@@ -118,12 +134,10 @@ func (r *VenueRepo) ConfirmVenue(ctx context.Context, venueID, guideID string) e
 		return fmt.Errorf("doğrulama kaydı eklenemedi: %w", err)
 	}
 
-	// confirmation_count artır ve is_double_verified güncelle
+	// Doğrulama tarihini güncelle
 	if _, err := tx.Exec(ctx,
 		`UPDATE venues
-		 SET confirmation_count = confirmation_count + 1,
-		     is_double_verified = CASE WHEN confirmation_count + 1 >= 2 THEN true ELSE false END,
-		     verified_at = NOW(),
+		 SET verified_at = NOW(),
 		     updated_at = NOW()
 		 WHERE id = $1`,
 		venueID,

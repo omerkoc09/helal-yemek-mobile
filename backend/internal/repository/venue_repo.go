@@ -2,7 +2,6 @@ package repository
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -24,11 +23,11 @@ func NewVenueRepo(db *pgxpool.Pool) *VenueRepo {
 func (r *VenueRepo) FindByID(ctx context.Context, id string) (*models.Venue, error) {
 	query := `
 		SELECT
-			v.id, v.name, v.address, v.city, v.country,
+			v.id, v.name, v.address, v.city,
 			ST_Y(v.location::geometry) AS latitude,
 			ST_X(v.location::geometry) AS longitude,
-			v.working_hours, v.notes, v.status,
-			v.added_by, v.verified_at, v.confirmation_count, v.is_double_verified,
+			v.notes, v.status,
+			v.added_by, v.verified_at,
 			v.created_at, v.updated_at,
 			v.rejection_note, v.approved_by,
 			v.all_food_halal,
@@ -40,13 +39,12 @@ func (r *VenueRepo) FindByID(ctx context.Context, id string) (*models.Venue, err
 		GROUP BY v.id`
 
 	v := &models.Venue{}
-	var whJSON []byte
 
 	err := r.db.QueryRow(ctx, query, id).Scan(
-		&v.ID, &v.Name, &v.Address, &v.City, &v.Country,
+		&v.ID, &v.Name, &v.Address, &v.City,
 		&v.Latitude, &v.Longitude,
-		&whJSON, &v.Notes, &v.Status,
-		&v.AddedBy, &v.VerifiedAt, &v.ConfirmationCount, &v.IsDoubleVerified,
+		&v.Notes, &v.Status,
+		&v.AddedBy, &v.VerifiedAt,
 		&v.CreatedAt, &v.UpdatedAt,
 		&v.RejectionNote, &v.ApprovedBy,
 		&v.AllFoodHalal,
@@ -57,9 +55,6 @@ func (r *VenueRepo) FindByID(ctx context.Context, id string) (*models.Venue, err
 			return nil, ErrNotFound
 		}
 		return nil, fmt.Errorf("mekan detayı sorgusu başarısız: %w", err)
-	}
-	if whJSON != nil {
-		_ = json.Unmarshal(whJSON, &v.WorkingHours)
 	}
 
 	// Kriterleri yükle
@@ -88,26 +83,23 @@ func (r *VenueRepo) FindByID(ctx context.Context, id string) (*models.Venue, err
 
 // Create — yeni mekan ekler, ID ve timestamp'leri geri doldurur.
 func (r *VenueRepo) Create(ctx context.Context, v *models.Venue) error {
-	whJSON, _ := json.Marshal(v.WorkingHours)
-
 	query := `
-		INSERT INTO venues (name, address, city, country, location, working_hours, notes, added_by, all_food_halal)
-		VALUES ($1, $2, $3, $4, ST_MakePoint($6, $5)::geography, $7, $8, $9, $10)
-		RETURNING id, status, confirmation_count, is_double_verified, created_at, updated_at`
+		INSERT INTO venues (name, address, city, location, notes, added_by, all_food_halal)
+		VALUES ($1, $2, $3, ST_MakePoint($5, $4)::geography, $6, $7, $8)
+		RETURNING id, status, created_at, updated_at`
 	// ST_MakePoint(lng, lat) — PostGIS koordinat sırası: X=lng, Y=lat
 
 	return r.db.QueryRow(ctx, query,
-		v.Name, v.Address, v.City, v.Country,
+		v.Name, v.Address, v.City,
 		v.Latitude, v.Longitude,
-		whJSON, v.Notes, v.AddedBy, v.AllFoodHalal,
-	).Scan(&v.ID, &v.Status, &v.ConfirmationCount, &v.IsDoubleVerified, &v.CreatedAt, &v.UpdatedAt)
+		v.Notes, v.AddedBy, v.AllFoodHalal,
+	).Scan(&v.ID, &v.Status, &v.CreatedAt, &v.UpdatedAt)
 }
 
 // UpdateVenue — mekanın temel alanlarını günceller. nil olan alanlar değiştirilmez.
 func (r *VenueRepo) UpdateVenue(ctx context.Context, id string,
-	name, address, city, country *string,
+	name, address, city *string,
 	lat, lng *float64,
-	wh *models.WorkingHours,
 	notes *string,
 ) error {
 	query := `
@@ -115,21 +107,14 @@ func (r *VenueRepo) UpdateVenue(ctx context.Context, id string,
 			name           = COALESCE($2, name),
 			address        = COALESCE($3, address),
 			city           = COALESCE($4, city),
-			country        = COALESCE($5, country),
-			location       = CASE WHEN $6::float8 IS NOT NULL AND $7::float8 IS NOT NULL
-			                      THEN ST_MakePoint($7, $6)::geography
+			location       = CASE WHEN $5::float8 IS NOT NULL AND $6::float8 IS NOT NULL
+			                      THEN ST_MakePoint($6, $5)::geography
 			                      ELSE location END,
-			working_hours  = CASE WHEN $8::jsonb IS NOT NULL THEN $8 ELSE working_hours END,
-			notes          = COALESCE($9, notes),
+			notes          = COALESCE($7, notes),
 			updated_at     = NOW()
 		WHERE id = $1 AND deleted_at IS NULL`
 
-	var whJSON []byte
-	if wh != nil {
-		whJSON, _ = json.Marshal(wh)
-	}
-
-	result, err := r.db.Exec(ctx, query, id, name, address, city, country, lat, lng, whJSON, notes)
+	result, err := r.db.Exec(ctx, query, id, name, address, city, lat, lng, notes)
 	if err != nil {
 		return fmt.Errorf("mekan güncellemesi başarısız: %w", err)
 	}

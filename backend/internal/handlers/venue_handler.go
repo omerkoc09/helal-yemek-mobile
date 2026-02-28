@@ -21,9 +21,20 @@ func NewVenueHandler(venueRepo *repository.VenueRepo, storageService *services.S
 }
 
 // List godoc
+// GET /api/v1/venues?q=keyword
 // GET /api/v1/venues?lat=41.0&lng=29.0&radius=5000
 // GET /api/v1/venues?city=Istanbul
 func (h *VenueHandler) List(c *fiber.Ctx) error {
+	q := c.Query("q")
+
+	if q != "" {
+		venues, err := h.venueRepo.SearchByText(c.Context(), q)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "arama başarısız"})
+		}
+		return c.JSON(fiber.Map{"data": venues, "count": len(venues)})
+	}
+
 	city := c.Query("city")
 
 	if city != "" {
@@ -72,25 +83,23 @@ func (h *VenueHandler) Create(c *fiber.Ctx) error {
 	userID := c.Locals("userID").(string)
 
 	var req struct {
-		Name         string               `json:"name"`
-		Address      string               `json:"address"`
-		City         string               `json:"city"`
-		Country      string               `json:"country"`
-		Latitude     float64              `json:"latitude"`
-		Longitude    float64              `json:"longitude"`
-		WorkingHours *models.WorkingHours `json:"working_hours"`
-		Notes        *string              `json:"notes"`
-		CriteriaIDs  []int                `json:"criteria_ids"`
-		FoodItemIDs  []int                `json:"food_item_ids"`
-		AllFoodHalal bool                 `json:"all_food_halal"`
+		Name         string  `json:"name"`
+		Address      string  `json:"address"`
+		City         string  `json:"city"`
+		Latitude     float64 `json:"latitude"`
+		Longitude    float64 `json:"longitude"`
+		Notes        *string `json:"notes"`
+		CriteriaIDs  []int   `json:"criteria_ids"`
+		FoodItemIDs  []int   `json:"food_item_ids"`
+		AllFoodHalal bool    `json:"all_food_halal"`
 	}
 	if err := c.BodyParser(&req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "geçersiz istek gövdesi"})
 	}
 
-	if req.Name == "" || req.Address == "" || req.City == "" || req.Country == "" {
+	if req.Name == "" || req.Address == "" || req.City == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "ad, adres, şehir ve ülke zorunludur",
+			"error": "ad, adres ve şehir zorunludur",
 		})
 	}
 	if req.Latitude == 0 || req.Longitude == 0 {
@@ -103,10 +112,8 @@ func (h *VenueHandler) Create(c *fiber.Ctx) error {
 		Name:         req.Name,
 		Address:      req.Address,
 		City:         req.City,
-		Country:      req.Country,
 		Latitude:     req.Latitude,
 		Longitude:    req.Longitude,
-		WorkingHours: req.WorkingHours,
 		Notes:        req.Notes,
 		AddedBy:      userID,
 		AllFoodHalal: req.AllFoodHalal,
@@ -253,24 +260,22 @@ func (h *VenueHandler) Update(c *fiber.Ctx) error {
 	}
 
 	var req struct {
-		Name         *string              `json:"name"`
-		Address      *string              `json:"address"`
-		City         *string              `json:"city"`
-		Country      *string              `json:"country"`
-		Latitude     *float64             `json:"latitude"`
-		Longitude    *float64             `json:"longitude"`
-		WorkingHours *models.WorkingHours `json:"working_hours"`
-		Notes        *string              `json:"notes"`
-		CriteriaIDs  *[]int               `json:"criteria_ids"`
-		FoodItemIDs  *[]int               `json:"food_item_ids"`
-		AllFoodHalal *bool                `json:"all_food_halal"`
+		Name         *string  `json:"name"`
+		Address      *string  `json:"address"`
+		City         *string  `json:"city"`
+		Latitude     *float64 `json:"latitude"`
+		Longitude    *float64 `json:"longitude"`
+		Notes        *string  `json:"notes"`
+		CriteriaIDs  *[]int   `json:"criteria_ids"`
+		FoodItemIDs  *[]int   `json:"food_item_ids"`
+		AllFoodHalal *bool    `json:"all_food_halal"`
 	}
 	if err := c.BodyParser(&req); err != nil {
 		return fiber.ErrBadRequest
 	}
 
-	if err := h.venueRepo.UpdateVenue(c.Context(), venueID, req.Name, req.Address, req.City, req.Country,
-		req.Latitude, req.Longitude, req.WorkingHours, req.Notes); err != nil {
+	if err := h.venueRepo.UpdateVenue(c.Context(), venueID, req.Name, req.Address, req.City,
+		req.Latitude, req.Longitude, req.Notes); err != nil {
 		return fiber.ErrInternalServerError
 	}
 
@@ -290,6 +295,11 @@ func (h *VenueHandler) Update(c *fiber.Ctx) error {
 		if err := h.venueRepo.SetAllFoodHalal(c.Context(), venueID, *req.AllFoodHalal); err != nil {
 			return fiber.ErrInternalServerError
 		}
+	}
+
+	// Guide düzenlemesi sonrası onaylı mekanı tekrar onaya gönder
+	if role != "admin" && venue.Status == models.VenueStatusApproved {
+		_ = h.venueRepo.ResetToPending(c.Context(), venueID)
 	}
 
 	updated, err := h.venueRepo.FindByID(c.Context(), venueID)

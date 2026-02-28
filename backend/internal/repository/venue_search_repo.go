@@ -2,7 +2,6 @@ package repository
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/jackc/pgx/v5"
@@ -15,18 +14,18 @@ import (
 func (r *VenueRepo) FindNearby(ctx context.Context, lat, lng, radiusMeters float64) ([]models.Venue, error) {
 	query := `
 		SELECT
-			v.id, v.name, v.address, v.city, v.country,
+			v.id, v.name, v.address, v.city,
 			ST_Y(v.location::geometry) AS latitude,
 			ST_X(v.location::geometry) AS longitude,
-			v.working_hours, v.notes, v.status,
-			v.added_by, v.verified_at, v.confirmation_count, v.is_double_verified,
+			v.notes, v.status,
+			v.added_by, v.verified_at,
 			v.created_at, v.updated_at,
 			ST_Distance(v.location, ST_MakePoint($2, $1)::geography) AS distance
 		FROM venues v
-		WHERE v.status = 'approved'
+		WHERE v.status IN ('approved', 'pending')
 		  AND v.deleted_at IS NULL
 		  AND ST_DWithin(v.location, ST_MakePoint($2, $1)::geography, $3)
-		ORDER BY distance
+		ORDER BY CASE WHEN v.status = 'approved' THEN 0 ELSE 1 END, distance
 		LIMIT 100`
 
 	rows, err := r.db.Query(ctx, query, lat, lng, radiusMeters)
@@ -38,21 +37,51 @@ func (r *VenueRepo) FindNearby(ctx context.Context, lat, lng, radiusMeters float
 	return scanVenueRows(rows, true)
 }
 
+// SearchByText — mekan adı, şehir veya adres içinde serbest metin araması yapar.
+func (r *VenueRepo) SearchByText(ctx context.Context, query string) ([]models.Venue, error) {
+	q := `
+		SELECT
+			v.id, v.name, v.address, v.city,
+			ST_Y(v.location::geometry) AS latitude,
+			ST_X(v.location::geometry) AS longitude,
+			v.notes, v.status,
+			v.added_by, v.verified_at,
+			v.created_at, v.updated_at
+		FROM venues v
+		WHERE v.status IN ('approved', 'pending')
+		  AND v.deleted_at IS NULL
+		  AND (
+		    v.name ILIKE '%' || $1 || '%'
+		    OR v.city ILIKE '%' || $1 || '%'
+		    OR v.address ILIKE '%' || $1 || '%'
+		  )
+		ORDER BY CASE WHEN v.status = 'approved' THEN 0 ELSE 1 END, v.name
+		LIMIT 50`
+
+	rows, err := r.db.Query(ctx, q, query)
+	if err != nil {
+		return nil, fmt.Errorf("metin arama sorgusu başarısız: %w", err)
+	}
+	defer rows.Close()
+
+	return scanVenueRows(rows, false)
+}
+
 // FindByCity — şehir adına göre onaylı mekanları döndürür.
 func (r *VenueRepo) FindByCity(ctx context.Context, city string) ([]models.Venue, error) {
 	query := `
 		SELECT
-			v.id, v.name, v.address, v.city, v.country,
+			v.id, v.name, v.address, v.city,
 			ST_Y(v.location::geometry) AS latitude,
 			ST_X(v.location::geometry) AS longitude,
-			v.working_hours, v.notes, v.status,
-			v.added_by, v.verified_at, v.confirmation_count, v.is_double_verified,
+			v.notes, v.status,
+			v.added_by, v.verified_at,
 			v.created_at, v.updated_at
 		FROM venues v
-		WHERE v.status = 'approved'
+		WHERE v.status IN ('approved', 'pending')
 		  AND v.deleted_at IS NULL
 		  AND LOWER(v.city) = LOWER($1)
-		ORDER BY v.name`
+		ORDER BY CASE WHEN v.status = 'approved' THEN 0 ELSE 1 END, v.name`
 
 	rows, err := r.db.Query(ctx, query, city)
 	if err != nil {
@@ -66,11 +95,11 @@ func (r *VenueRepo) FindByCity(ctx context.Context, city string) ([]models.Venue
 // FindByAddedBy — guide'ın eklediği tüm mekanları döndürür (tüm durumlar dahil).
 func (r *VenueRepo) FindByAddedBy(ctx context.Context, userID string) ([]models.Venue, error) {
 	rows, err := r.db.Query(ctx,
-		`SELECT v.id, v.name, v.address, v.city, v.country,
+		`SELECT v.id, v.name, v.address, v.city,
 		        ST_Y(v.location::geometry) AS latitude,
 		        ST_X(v.location::geometry) AS longitude,
-		        v.working_hours, v.notes, v.status,
-		        v.added_by, v.verified_at, v.confirmation_count, v.is_double_verified,
+		        v.notes, v.status,
+		        v.added_by, v.verified_at,
 		        v.created_at, v.updated_at
 		 FROM venues v
 		 WHERE v.added_by = $1
@@ -88,11 +117,11 @@ func (r *VenueRepo) FindByAddedBy(ctx context.Context, userID string) ([]models.
 // FindAll — admin için tüm mekanları döndürür (tüm durumlar dahil).
 func (r *VenueRepo) FindAll(ctx context.Context) ([]models.Venue, error) {
 	rows, err := r.db.Query(ctx,
-		`SELECT v.id, v.name, v.address, v.city, v.country,
+		`SELECT v.id, v.name, v.address, v.city,
 		        ST_Y(v.location::geometry) AS latitude,
 		        ST_X(v.location::geometry) AS longitude,
-		        v.working_hours, v.notes, v.status,
-		        v.added_by, v.verified_at, v.confirmation_count, v.is_double_verified,
+		        v.notes, v.status,
+		        v.added_by, v.verified_at,
 		        v.created_at, v.updated_at
 		 FROM venues v
 		 WHERE v.deleted_at IS NULL
@@ -108,11 +137,11 @@ func (r *VenueRepo) FindAll(ctx context.Context) ([]models.Venue, error) {
 // FindPending — admin incelemesi için bekleyen mekanları döndürür.
 func (r *VenueRepo) FindPending(ctx context.Context) ([]models.Venue, error) {
 	rows, err := r.db.Query(ctx,
-		`SELECT v.id, v.name, v.address, v.city, v.country,
+		`SELECT v.id, v.name, v.address, v.city,
 		        ST_Y(v.location::geometry) AS latitude,
 		        ST_X(v.location::geometry) AS longitude,
-		        v.working_hours, v.notes, v.status,
-		        v.added_by, v.verified_at, v.confirmation_count, v.is_double_verified,
+		        v.notes, v.status,
+		        v.added_by, v.verified_at,
 		        v.created_at, v.updated_at
 		 FROM venues v
 		 WHERE v.status = 'pending'
@@ -132,32 +161,28 @@ func scanVenueRows(rows pgx.Rows, withDistance bool) ([]models.Venue, error) {
 	var venues []models.Venue
 	for rows.Next() {
 		v := models.Venue{}
-		var whJSON []byte
 
 		var err error
 		if withDistance {
 			err = rows.Scan(
-				&v.ID, &v.Name, &v.Address, &v.City, &v.Country,
+				&v.ID, &v.Name, &v.Address, &v.City,
 				&v.Latitude, &v.Longitude,
-				&whJSON, &v.Notes, &v.Status,
-				&v.AddedBy, &v.VerifiedAt, &v.ConfirmationCount, &v.IsDoubleVerified,
+				&v.Notes, &v.Status,
+				&v.AddedBy, &v.VerifiedAt,
 				&v.CreatedAt, &v.UpdatedAt,
 				&v.Distance,
 			)
 		} else {
 			err = rows.Scan(
-				&v.ID, &v.Name, &v.Address, &v.City, &v.Country,
+				&v.ID, &v.Name, &v.Address, &v.City,
 				&v.Latitude, &v.Longitude,
-				&whJSON, &v.Notes, &v.Status,
-				&v.AddedBy, &v.VerifiedAt, &v.ConfirmationCount, &v.IsDoubleVerified,
+				&v.Notes, &v.Status,
+				&v.AddedBy, &v.VerifiedAt,
 				&v.CreatedAt, &v.UpdatedAt,
 			)
 		}
 		if err != nil {
 			return nil, err
-		}
-		if whJSON != nil {
-			_ = json.Unmarshal(whJSON, &v.WorkingHours)
 		}
 		v.Criteria = []models.HalalCriteria{}
 		v.Photos = []models.VenuePhoto{}

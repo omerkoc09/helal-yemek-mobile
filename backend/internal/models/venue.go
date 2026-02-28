@@ -10,16 +10,6 @@ const (
 	VenueStatusRejected VenueStatus = "rejected"
 )
 
-type WorkingHours struct {
-	Mon string `json:"mon,omitempty"`
-	Tue string `json:"tue,omitempty"`
-	Wed string `json:"wed,omitempty"`
-	Thu string `json:"thu,omitempty"`
-	Fri string `json:"fri,omitempty"`
-	Sat string `json:"sat,omitempty"`
-	Sun string `json:"sun,omitempty"`
-}
-
 type HalalCriteria struct {
 	ID      int    `json:"id"`
 	Key     string `json:"key"`
@@ -58,18 +48,14 @@ type Venue struct {
 	Name              string         `json:"name"`
 	Address           string         `json:"address"`
 	City              string         `json:"city"`
-	Country           string         `json:"country"`
 	Latitude          float64        `json:"latitude"`
 	Longitude         float64        `json:"longitude"`
-	WorkingHours      *WorkingHours  `json:"working_hours"`
 	Notes             *string        `json:"notes"`
 	Status            VenueStatus    `json:"status"`
 	RejectionNote     *string        `json:"rejection_note,omitempty"`
 	AddedBy           string         `json:"added_by"`
 	ApprovedBy        *string        `json:"approved_by,omitempty"`
 	VerifiedAt        *time.Time     `json:"verified_at,omitempty"`
-	ConfirmationCount int            `json:"confirmation_count"`
-	IsDoubleVerified  bool           `json:"is_double_verified"`
 	Distance          *float64       `json:"distance,omitempty"` // metre cinsinden, yakın mekan sorgusunda dolar
 	AllFoodHalal      bool            `json:"all_food_halal"`
 	Criteria          []HalalCriteria `json:"criteria"`

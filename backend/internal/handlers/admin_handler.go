@@ -77,7 +77,6 @@ func (h *AdminHandler) UpdateVenue(c *fiber.Ctx) error {
 		Name    *string `json:"name"`
 		Address *string `json:"address"`
 		City    *string `json:"city"`
-		Country *string `json:"country"`
 		Status  *string `json:"status"`
 		Notes   *string `json:"notes"`
 	}
@@ -86,8 +85,8 @@ func (h *AdminHandler) UpdateVenue(c *fiber.Ctx) error {
 		return fiber.ErrBadRequest
 	}
 
-	if err := h.venueRepo.UpdateVenue(c.Context(), venueID, req.Name, req.Address, req.City, req.Country,
-		nil, nil, nil, req.Notes); err != nil {
+	if err := h.venueRepo.UpdateVenue(c.Context(), venueID, req.Name, req.Address, req.City,
+		nil, nil, req.Notes); err != nil {
 		log.Printf("[ADMIN] UpdateVenue repo error for id=%s: %v", venueID, err)
 		if errors.Is(err, repository.ErrNotFound) {
 			return fiber.ErrNotFound
