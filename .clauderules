@@ -1,0 +1,93 @@
+# CLAUDE CODE - STRATEJİK ÇALIŞMA KURALLARI
+
+## 1. TEMEL FELSEFE
+- **Önce Planla, Sonra Kodla:** Herhangi bir kod değişikliği yapmadan önce mutlaka teknik bir yaklaşım (technical approach) taslağı sun.
+- **Mikro-Görev Odaklılık:** İşleri her zaman en küçük yapı taşına (tek bir fonksiyon, tek bir endpoint, tek bir view) böl.
+- **Dokümantasyon Koddur:** Proje dokümantasyonunu (.md dosyaları) kod kadar ciddiye al ve güncel tut.
+
+## 2. İŞ AKIŞI (WORKFLOW)
+2. **Bölümleme (Chunking):** Görevi ardışık ve bağımsız adımlara bölerek bir "Uygulama Planı" sun.
+3. **Onay:** Plan onaylanmadan kod yazmaya başlama.
+4. **Uygulama:** Her adımda sadece o adıma odaklan. Gereksiz dosyaları context'e dahil etme.
+5. **Doğrulama:** İş bitince, yapılanın "Mega Doküman" ve "Mimari Kurallar" ile örtüştüğünü teyit et.
+
+## 3. BAĞLAM (CONTEXT) YÖNETİMİ
+- **Token Tasarrufu:** Sadece görevin %100 ilgili olduğu dosyaları oku/yaz. Tüm projeyi okumaya çalışma.
+- **Kısıtlar:** `.claudeignore` dosyasındaki dosya ve klasörleri asla dikkate alma.
+- **Modülerlik:** Eğer bir modül içinde çalışıyorsan, sadece o modülün yerel kurallarına (varsa modül içi README) sadık kal.
+
+
+## 4. DENETİM (AUDIT) MODU
+- Bir geliştirme tamamlandığında kendine şu soruyu sor: "Bu yazdığım kod, projenin genel mimari standartlarına uyuyor mu yoksa sadece 'çalışıyor' mu?"
+- Eğer kod "AI slop" (yüzeysel/tekrarlı kod) içeriyorsa, refactor etmeden sunma.
+
+
+# AI ROUTER - KÖK DİZİN YÖNLENDİRME KURALLARI
+
+Bu dosya, yapay zekanın **hangi görevde hangi dokümana bakması gerektiğini** tanımlar. Amaç, her görevde sadece ilgili birkaç dosyayı okutarak bağlamı dar ve odaklı tutmaktır.
+
+## 1. GENEL İLKELER
+- **Sadece ilgili dokümana bak:** Bir görev geldiğinde önce görevin tipini belirle, sonra aşağıdaki tablodan doğru doküman(lar)ı seç.
+- **Tüm dokümanları asla aynı anda okuma:** Tek bir adımda maksimum 1–2 ana .md dosyasına odaklan.
+- **Öncelik sırası:** Önce spesifik doküman (ör. `systemPatterns.md`), sonra gerekiyorsa `projectBrief.md` ve `productContext.md`.
+
+## 2. DOKÜMAN YÖNLENDİRME TABLOSU
+
+- **Veritabanı, veri modeli ve PostGIS/coğrafi sorgular**
+  - `docs/systemPatterns.md` oku.
+  - Konular: DB şeması, migration mantığı, PostGIS kullanımı, sorgu pattern’leri, mimari katmanlar, servis/repository ilişkileri.
+
+- **API endpoint listesi, paket yapıları ve teknoloji yığını**
+  - `docs/techContext.md` oku.
+  - Konular: Backend `cmd/internal/pkg` yapısı, endpoint listesi, kullanılan framework ve kütüphaneler, deployment ve ops detayları.
+
+- **Roller (Traveler, Guide, Admin), MVP hedefleri ve ürün kararları**
+  - `docs/productContext.md` oku.
+  - Konular: Kullanıcı personları, roller arası yetkiler, iş kuralları, MVP kapsamı, feature öncelikleri.
+
+- **Projenin vizyonu, amaçları ve üst seviye kapsamı**
+  - `docs/projectBrief.md` oku.
+  - Konular: Proje vizyonu, ana hedefler, başarı metrikleri, kısıtlar, zaman çizelgesi.
+
+- **Aktif sprint, güncel odak alanları ve yapılacak işler**
+  - `docs/activeContext.md` (varsa) oku.
+  - Konular: Şu an çalışılan feature’lar, bloklayıcılar, kısa vadeli kararlar.
+
+- **Geçmiş ilerleme, tamamlanmış işler ve öğrenimler**
+  - `docs/progress.md` oku.
+  - Konular: Tamamlanan milestone’lar, önceki sprint notları, önemli kararlar ve geriye dönük değerlendirmeler.
+
+## 3. GÖREV TİPİNE GÖRE ROTA ÖRNEKLERİ
+
+- **“Yeni bir API endpoint tasarla / mevcut endpoint’i değiştir”**
+  - Önce `docs/techContext.md` → endpoint listesi ve paket yapısını kontrol et.
+  - Gerekirse `docs/systemPatterns.md` → veri modeli ve DB etkilerini incele.
+
+- **“Veritabanı şemasına yeni alan ekle / PostGIS sorgusu yaz”**
+  - Sadece `docs/systemPatterns.md` dosyasına odaklan.
+
+- **“Roller, yetkiler veya iş akışları (Traveler/Guide/Admin) ile ilgili karar al”**
+  - Önce `docs/productContext.md` oku.
+  - Gerekirse üst seviye hedefler için `docs/projectBrief.md`’e bak.
+
+- **“Bu feature gerçekten MVP kapsamında mı, öncelik ne olmalı?”**
+  - `docs/productContext.md` + `docs/projectBrief.md` ikilisine bak.
+
+- **“Şu an ekip neye odaklanıyor, bu değişiklik çakışır mı?”**
+  - `docs/activeContext.md` (varsa) ve `docs/progress.md` oku.
+
+## 4. KAPSAM SINIRLAMA TALİMATLARI
+
+- **Kod okurken:**
+  - Önce sadece ilgili modülün (ör. `backend/internal/handlers/`, `backend/internal/repository/`, `mobile/lib/features/...`) içini tara.
+  - Gereksiz klasörleri `.claudeignore`’a güvenerek tamamen yok say.
+
+- **Doküman okurken:**
+  - Görev API/backend ise: `systemPatterns.md` + `techContext.md` dışına nadiren çık.
+  - Görev ürün/UX/roller ise: `productContext.md` + `projectBrief.md` dışına nadiren çık.
+
+- **Asla yapma:**
+  - Aynı anda tüm `docs/*.md` dosyalarını okuma.
+  - Görev tanımı netken alakasız modülleri context’e dahil etme.
+
+Bu kurallara uyarak her görevde yalnızca en alakalı 1–2 doküman ve sınırlı sayıda kod dosyası ile çalış.

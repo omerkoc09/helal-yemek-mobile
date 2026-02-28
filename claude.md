@@ -1,0 +1,1 @@
+Bu projenin temel mimari kuralları ve yönlendirmeleri için her zaman bu dosyayı oku ve uygula: @.clauderules

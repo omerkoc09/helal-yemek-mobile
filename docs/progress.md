@@ -1,12 +1,31 @@
 # Caiz mi? — Proje İlerleme Durumu
 
-> Son güncelleme: 2026-02-27
-
-## Genel Durum: MVP Çekirdeği Tamamlandı
-
-Backend API, veritabanı şeması ve Flutter mobil uygulama temel özellikleriyle birlikte çalışır durumda. Aşağıda detaylı durum tablosu ve kalan işler yer almaktadır.
-
+> Son güncelleme: 2026-02-28
+Mevcut Durum Notu: Proje genel hatlarıyla Faz 5'e (Test & Yayın) geçmiş gibi görünse de, Faz 1-4 arasındaki bazı özelliklerde (MVP çekirdeği) mimari değişiklikler, UX revizyonları ve bug fix'ler yapılmaktadır. Bir modülü düzenlerken, eski kodun kusursuz olduğunu varsayma; refactoring (kod iyileştirme) ve mantık değişiklikleri yapmak serbesttir ve gereklidir.
 ---
+
+## Revize Edilecek Özellikler:
+1. yemek ekleme kısmında  except kısmı olsun
+çünkü şu hariç her şey caiz gibi bir ifade olmalı (mesela kaşar içermeyen her şey caiz gibi) Oraya sakıncalı ürünler diye bir başlık konur rehber sırayla ürünleri girer. Mesela default olarak bir kutucuk konur kullanıcı içine kaşar yazar. sonra artı ikonu gibi bir şey koyarız yeni bir kutucuk açılır. kullanıcı içine sucuk yazar. Böylece sakıncalı ürünler listemiz belirlenir: kaşar, sucuk. Bu da  kullanıcılara uygun bir formatta mekan detay sayfasında sunulur.
+
+
+3. Rehberlik başvurusuna kısıtlama getirilecek. Sadece rehber referans kodu olanlar başvurabilecek. Tabi bunun için rehberlere bir unique referans kodu vermemiz gerekiyor öncelikle.
+
+4. rehberin mekanın bilgilerini belli süre geçtikten sonra (3 ay, 6 ay) güncellemesi için bildirim atılır. Güncellemezse mekan uygulamada askıya alınır.
+
+5. helallik kriterleri
+zenginleştirmeli daha çok seçenek olsun.
+gezgin ve rehber bu kriterlerin ne ifade ettiğini daha iyi anlaması için info koyulabilir.
+-kişisel araştırma: mekanı kendi imkanlarımla araştırdım, helal ve tayyip olduğuna kanaat getirdim.
+-mekan sahibini tanıyorum: helal ürünler kullandığını mekan sahibinden teyit ettim.
+-helal sertifikası var: GİMDES helal sertifikasına sahip olduğundan eminim.
+
+6. admin panelinde
+onay bekleyen mekanların koordinatları yerine rehberin sisteme eklediği  mekanın google maps linki olsun. Tıklandığında google mapse yönlendirsin Böylece admin onun doğruluğunu kontrol edebilir. 
+
+## Öncelikli Olarak Yapılması Gerekenler
+1. ayrı bir tane tab olsun ne yesem? adında ->yemek kategorileri çıksın karşısına  seçebileceği ( çorba, döner, tatlı gibi) mevcut konuma göre var olan uygun mekanlar listelensin. (yakından uzağa göre en alakalı)
+
 
 ## Tamamlanan İşler
 
@@ -93,7 +112,7 @@ Backend API, veritabanı şeması ve Flutter mobil uygulama temel özellikleriyl
 
 ---
 
-## Yapılması Gerekenler
+## Daha sonra Yapılması Gerekenler
 
 ### 1. Test & Kalite (Yüksek Öncelik)
 - [ ] Backend unit testleri (sadece auth_handler_test.go mevcut, diğer handler/service/repo testleri eksik)
@@ -170,30 +189,11 @@ Backend API, veritabanı şeması ve Flutter mobil uygulama temel özellikleriyl
 
 | Faz | Açıklama | Durum |
 |-----|----------|-------|
-| Faz 1: Altyapı | Backend, DB, Auth, API | ✅ Tamamlandı |
-| Faz 2: Mobil Uygulama | Flutter, Harita, UI | ✅ Tamamlandı |
-| Faz 3: Sosyal Özellikler | Yorum, Favori, Guide | ✅ Tamamlandı |
-| Faz 4: Admin Paneli | Dashboard, Onay, Audit | ✅ Tamamlandı |
+| Faz 1: Altyapı | Backend, DB, Auth, API | ✅ Tamamlandı fakat düzenleme gerek |
+| Faz 2: Mobil Uygulama | Flutter, Harita, UI | ✅ Tamamlandı fakat düzenleme gerek|
+| Faz 3: Sosyal Özellikler | Yorum, Favori, Guide | ✅ Tamamlandı fakat düzenleme gerek |
+| Faz 4: Admin Paneli | Dashboard, Onay, Audit | ✅ Tamamlandı fakat düzenleme gerek|
 | Faz 5: Test & Yayın | Test, Store yayını | 🔶 Devam Ediyor |
 
----
-
-## Yapılacaklar Öncelik Sırası
-
-```
-Yüksek ──────────────────────────────────────────── Düşük
-  │                                                    │
-  ├── 1. Test & Kalite                                 │
-  ├── 2. S3 Fotoğraf Depolama                         │
-  ├── 3. Production Deployment                         │
-  ├── 4. App Store/Play Yayın                          │
-  ├── 5. Güvenlik İyileştirmeleri                      │
-  ├── 6. UX İyileştirmeleri                            │
-  ├── 7. Performans Optimizasyonu                      │
-  ├── 8. Eksik İş Mantığı                             │
-  └── 9. v2.0 Özellikleri ────────────────────────────┘
-```
-
----
 
 *Her bir madde için detaylı implementasyon planları ayrı MD dosyalarında hazırlanacaktır.*

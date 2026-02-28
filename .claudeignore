@@ -1,0 +1,152 @@
+# Version Control
+.git/
+.gitignore
+
+# OS Generated Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*~
+
+# IDE and Editor Files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.metadata
+.classpath
+.settings/
+
+# Claude Settings (keep local settings private)
+.claude/
+
+# Build Artifacts and Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Go Build Artifacts
+vendor/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+go.work
+go.work.sum
+
+# Flutter/Dart Build Artifacts and Dependencies
+mobile/build/
+mobile/.dart_tool/
+mobile/.flutter-plugins
+mobile/.flutter-plugins-dependencies
+mobile/.packages
+mobile/.pub-cache/
+mobile/.pub/
+mobile/ios/Pods/
+mobile/ios/.symlinks/
+mobile/android/.gradle/
+mobile/android/app/build/
+mobile/android/gradle/
+mobile/macos/Pods/
+mobile/windows/flutter/
+mobile/linux/flutter/
+mobile/web/
+
+# Flutter Platform Directories (usually not needed for context)
+mobile/ios/
+mobile/android/
+mobile/macos/
+mobile/windows/
+mobile/linux/
+mobile/web/
+
+# Generated Dart Files
+**/*.g.dart
+**/*.freezed.dart
+**/*.mocks.dart
+
+# Database Files
+*.db
+*.sqlite
+*.sqlite3
+
+# Log Files
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Temporary Files
+*.tmp
+*.temp
+.cache/
+.temp/
+
+# Environment Files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Coverage Reports
+coverage/
+*.lcov
+.nyc_output/
+
+# Documentation Build Artifacts
+site/
+_site/
+
+# Backup Files
+*.bak
+*.backup
+*.old
+
+# Large Media Files (usually not needed for code context)
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.ico
+*.svg
+*.mp4
+*.avi
+*.mov
+*.wmv
+*.flv
+*.webm
+*.pdf
+*.zip
+*.tar
+*.tar.gz
+*.rar
+
+# Lock Files (dependencies are managed, don't need lock file context)
+package-lock.json
+yarn.lock
+mobile/pubspec.lock
+mobile/ios/Podfile.lock
+
+# Test Coverage and Reports
+test-results/
+coverage/
+*.coverage
+.nyc_output/
+
+# Stitch Files (appear to be UI mockups/prototypes)
+mobile/stitch_*/
+
+# Project Reports (Turkish documentation, likely not needed for code context)
+PROJE_RAPORU.md
