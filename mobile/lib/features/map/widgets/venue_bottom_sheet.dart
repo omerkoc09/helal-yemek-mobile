@@ -6,6 +6,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/map_launcher.dart';
 import '../../../shared/widgets/star_rating_widget.dart';
 import '../../venue/widgets/halal_criteria_chip.dart';
+import '../../venue/widgets/venue_status_badge.dart';
 
 void showVenueBottomSheet(BuildContext context, Venue venue) {
   showModalBottomSheet(
@@ -106,6 +107,10 @@ class _VenueBottomSheetContent extends StatelessWidget {
               ),
             ],
           ),
+          const SizedBox(height: 10),
+
+          // Statü badge
+          VenueStatusBadge(status: venue.status),
           const SizedBox(height: 12),
 
           // Helal kriterleri

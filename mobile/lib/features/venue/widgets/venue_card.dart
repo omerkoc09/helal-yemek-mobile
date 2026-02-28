@@ -58,7 +58,7 @@ class VenueCard extends StatelessWidget {
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        if (venue.isDoubleVerified)
+                        if (venue.isApproved)
                           const Icon(Icons.verified,
                               size: 18, color: AppTheme.primary),
                       ],

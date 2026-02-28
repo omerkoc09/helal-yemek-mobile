@@ -10,11 +10,10 @@ import '../../../shared/widgets/star_rating_widget.dart';
 import '../../favorites/providers/favorites_provider.dart';
 import '../providers/venue_detail_provider.dart';
 import '../widgets/add_review_sheet.dart';
-import '../widgets/double_verified_badge.dart';
 import '../widgets/halal_criteria_chip.dart';
+import '../widgets/venue_status_badge.dart';
 import '../widgets/review_card.dart';
 import '../widgets/venue_photo_gallery.dart';
-import '../widgets/working_hours_widget.dart';
 
 class VenueDetailScreen extends ConsumerWidget {
   final String venueId;
@@ -85,18 +84,16 @@ class VenueDetailScreen extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Durum badge'leri
-                      Row(
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
                         children: [
-                          if (venue.isDoubleVerified) ...[
-                            const DoubleVerifiedBadge(),
-                            const SizedBox(width: 8),
-                          ],
+                          VenueStatusBadge(status: venue.status),
                           if (venue.verifiedAt != null)
                             _VerifiedAtBadge(date: venue.verifiedAt!),
                         ],
                       ),
-                      if (venue.isDoubleVerified || venue.verifiedAt != null)
-                        const SizedBox(height: 16),
+                      const SizedBox(height: 16),
 
                       // Puan
                       if (venue.avgRating != null)
@@ -127,7 +124,7 @@ class VenueDetailScreen extends ConsumerWidget {
                       _InfoRow(
                         icon: Icons.location_on_outlined,
                         text:
-                            '${venue.address}, ${venue.city}, ${venue.country}',
+                            '${venue.address}, ${venue.city}',
                       ),
                       const SizedBox(height: 16),
 
@@ -210,13 +207,6 @@ class VenueDetailScreen extends ConsumerWidget {
                                 )
                                 .toList(),
                           ),
-                        const SizedBox(height: 16),
-                      ],
-
-                      // Çalışma saatleri
-                      if (venue.workingHours != null &&
-                          venue.workingHours!.isNotEmpty) ...[
-                        WorkingHoursWidget(workingHours: venue.workingHours!),
                         const SizedBox(height: 16),
                       ],
 

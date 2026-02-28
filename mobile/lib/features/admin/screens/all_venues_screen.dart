@@ -54,7 +54,7 @@ class _AllVenuesScreenState extends ConsumerState<AllVenuesScreen> {
                               leading: _statusIcon(venue.status),
                               title: Text(venue.name),
                               subtitle: Text(
-                                '${venue.city}, ${venue.country} — ${_statusLabel(venue.status)}',
+                                '${venue.city} — ${_statusLabel(venue.status)}',
                               ),
                               trailing: PopupMenuButton<String>(
                                 onSelected: (action) =>
@@ -144,7 +144,6 @@ class _AllVenuesScreenState extends ConsumerState<AllVenuesScreen> {
     final nameCtrl = TextEditingController(text: venue.name);
     final addressCtrl = TextEditingController(text: venue.address);
     final cityCtrl = TextEditingController(text: venue.city);
-    final countryCtrl = TextEditingController(text: venue.country);
     String selectedStatus = venue.status;
 
     showDialog(
@@ -169,11 +168,6 @@ class _AllVenuesScreenState extends ConsumerState<AllVenuesScreen> {
                 TextField(
                   controller: cityCtrl,
                   decoration: const InputDecoration(labelText: 'Şehir'),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: countryCtrl,
-                  decoration: const InputDecoration(labelText: 'Ülke'),
                 ),
                 const SizedBox(height: 8),
                 DropdownButtonFormField<String>(
@@ -210,9 +204,6 @@ class _AllVenuesScreenState extends ConsumerState<AllVenuesScreen> {
                   data['address'] = addressCtrl.text;
                 }
                 if (cityCtrl.text != venue.city) data['city'] = cityCtrl.text;
-                if (countryCtrl.text != venue.country) {
-                  data['country'] = countryCtrl.text;
-                }
                 if (selectedStatus != venue.status) {
                   data['status'] = selectedStatus;
                 }

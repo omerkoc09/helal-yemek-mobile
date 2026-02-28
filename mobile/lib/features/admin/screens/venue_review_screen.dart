@@ -7,7 +7,6 @@ import '../../../shared/widgets/loading_indicator.dart';
 import '../../venue/providers/venue_detail_provider.dart';
 import '../../venue/widgets/halal_criteria_chip.dart';
 import '../../venue/widgets/venue_photo_gallery.dart';
-import '../../venue/widgets/working_hours_widget.dart';
 import '../widgets/venue_review_actions.dart';
 
 class VenueReviewScreen extends ConsumerWidget {
@@ -68,7 +67,7 @@ class VenueReviewScreen extends ConsumerWidget {
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: Text(
-                                    '${venue.address}\n${venue.city}, ${venue.country}',
+                                    '${venue.address}\n${venue.city}',
                                     style: const TextStyle(
                                         fontSize: 14, height: 1.4),
                                   ),
@@ -159,14 +158,6 @@ class VenueReviewScreen extends ConsumerWidget {
                                       )
                                       .toList(),
                                 ),
-                              const SizedBox(height: 16),
-                            ],
-
-                            // Çalışma saatleri
-                            if (venue.workingHours != null &&
-                                venue.workingHours!.isNotEmpty) ...[
-                              WorkingHoursWidget(
-                                  workingHours: venue.workingHours!),
                               const SizedBox(height: 16),
                             ],
 

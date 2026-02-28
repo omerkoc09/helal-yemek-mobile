@@ -11,12 +11,8 @@ _Venue _$VenueFromJson(Map<String, dynamic> json) => _Venue(
   name: json['name'] as String,
   address: json['address'] as String,
   city: json['city'] as String,
-  country: json['country'] as String,
   latitude: (json['latitude'] as num).toDouble(),
   longitude: (json['longitude'] as num).toDouble(),
-  workingHours: (json['working_hours'] as Map<String, dynamic>?)?.map(
-    (k, e) => MapEntry(k, e as String),
-  ),
   notes: json['notes'] as String?,
   status: json['status'] as String? ?? 'pending',
   rejectionNote: json['rejection_note'] as String?,
@@ -25,8 +21,6 @@ _Venue _$VenueFromJson(Map<String, dynamic> json) => _Venue(
   verifiedAt: json['verified_at'] == null
       ? null
       : DateTime.parse(json['verified_at'] as String),
-  confirmationCount: (json['confirmation_count'] as num?)?.toInt() ?? 0,
-  isDoubleVerified: json['is_double_verified'] as bool? ?? false,
   allFoodHalal: json['all_food_halal'] as bool? ?? false,
   criteria:
       (json['criteria'] as List<dynamic>?)
@@ -59,18 +53,14 @@ Map<String, dynamic> _$VenueToJson(_Venue instance) => <String, dynamic>{
   'name': instance.name,
   'address': instance.address,
   'city': instance.city,
-  'country': instance.country,
   'latitude': instance.latitude,
   'longitude': instance.longitude,
-  'working_hours': instance.workingHours,
   'notes': instance.notes,
   'status': instance.status,
   'rejection_note': instance.rejectionNote,
   'added_by': instance.addedBy,
   'approved_by': instance.approvedBy,
   'verified_at': instance.verifiedAt?.toIso8601String(),
-  'confirmation_count': instance.confirmationCount,
-  'is_double_verified': instance.isDoubleVerified,
   'all_food_halal': instance.allFoodHalal,
   'criteria': instance.criteria,
   'photos': instance.photos,
