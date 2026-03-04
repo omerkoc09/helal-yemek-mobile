@@ -56,40 +56,12 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           ),
 
           // İçerik
-          Expanded(
-            child: searchState.query.isEmpty
-                ? _buildPopularCities()
-                : _buildSearchResults(searchState),
-          ),
+          if (searchState.query.isNotEmpty)
+            Expanded(
+              child: _buildSearchResults(searchState),
+            ),
         ],
       ),
-    );
-  }
-
-  Widget _buildPopularCities() {
-    return ListView(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      children: [
-        const Text(
-          'Popüler Şehirler',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: popularCities.map((city) {
-            return ActionChip(
-              avatar: const Icon(Icons.location_city, size: 18),
-              label: Text(city),
-              onPressed: () => context.push('/city/${Uri.encodeComponent(city)}'),
-            );
-          }).toList(),
-        ),
-      ],
     );
   }
 

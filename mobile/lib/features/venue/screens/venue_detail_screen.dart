@@ -143,7 +143,8 @@ class VenueDetailScreen extends ConsumerWidget {
                       ],
 
                       // Caiz Yemekler
-                      if (venue.allFoodHalal ||
+                      if (venue.foodHalalMode == 'all' ||
+                          venue.foodHalalMode == 'except' ||
                           venue.foodItems.isNotEmpty) ...[
                         const Text(
                           'Caiz Yemekler',
@@ -153,7 +154,7 @@ class VenueDetailScreen extends ConsumerWidget {
                           ),
                         ),
                         const SizedBox(height: 8),
-                        if (venue.allFoodHalal)
+                        if (venue.foodHalalMode == 'all')
                           Container(
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 12, vertical: 6),
@@ -183,7 +184,63 @@ class VenueDetailScreen extends ConsumerWidget {
                               ],
                             ),
                           )
-                        else
+                        else if (venue.foodHalalMode == 'except') ...[
+                          // "Caiz olmayan malzemeler" başlığı
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: Colors.orange.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: Colors.orange
+                                    .withValues(alpha: 0.3),
+                              ),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.warning_amber,
+                                    size: 16, color: Colors.orange),
+                                SizedBox(width: 6),
+                                Text(
+                                  'Şunlar Hariç Her Şey Caiz',
+                                  style: TextStyle(
+                                    color: Colors.orange,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (venue.excludedProducts.isNotEmpty) ...[
+                            const SizedBox(height: 8),
+                            Wrap(
+                              spacing: 6,
+                              runSpacing: 6,
+                              children: venue.excludedProducts
+                                  .map(
+                                    (product) => Chip(
+                                      label: Text(
+                                        product,
+                                        style: const TextStyle(fontSize: 12),
+                                      ),
+                                      materialTapTargetSize:
+                                          MaterialTapTargetSize.shrinkWrap,
+                                      visualDensity: VisualDensity.compact,
+                                      backgroundColor:
+                                          Colors.red.withValues(alpha: 0.08),
+                                      side: BorderSide(
+                                        color: Colors.red
+                                            .withValues(alpha: 0.2),
+                                      ),
+                                    ),
+                                  )
+                                  .toList(),
+                            ),
+                          ],
+                        ] else
                           Wrap(
                             spacing: 6,
                             runSpacing: 6,

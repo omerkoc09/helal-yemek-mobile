@@ -34,7 +34,7 @@ func (r *VenueRepo) FindNearby(ctx context.Context, lat, lng, radiusMeters float
 	}
 	defer rows.Close()
 
-	return scanVenueRows(rows, true)
+	return r.scanVenueRowsWithPhotos(ctx, rows, true)
 }
 
 // SearchByText — mekan adı, şehir veya adres içinde serbest metin araması yapar.
@@ -64,7 +64,7 @@ func (r *VenueRepo) SearchByText(ctx context.Context, query string) ([]models.Ve
 	}
 	defer rows.Close()
 
-	return scanVenueRows(rows, false)
+	return r.scanVenueRowsWithPhotos(ctx, rows, false)
 }
 
 // FindByCity — şehir adına göre onaylı mekanları döndürür.
@@ -89,7 +89,7 @@ func (r *VenueRepo) FindByCity(ctx context.Context, city string) ([]models.Venue
 	}
 	defer rows.Close()
 
-	return scanVenueRows(rows, false)
+	return r.scanVenueRowsWithPhotos(ctx, rows, false)
 }
 
 // FindByAddedBy — guide'ın eklediği tüm mekanları döndürür (tüm durumlar dahil).
@@ -111,7 +111,7 @@ func (r *VenueRepo) FindByAddedBy(ctx context.Context, userID string) ([]models.
 		return nil, err
 	}
 	defer rows.Close()
-	return scanVenueRows(rows, false)
+	return r.scanVenueRowsWithPhotos(ctx, rows, false)
 }
 
 // FindAll — admin için tüm mekanları döndürür (tüm durumlar dahil).
@@ -131,7 +131,7 @@ func (r *VenueRepo) FindAll(ctx context.Context) ([]models.Venue, error) {
 		return nil, fmt.Errorf("tüm mekan sorgusu başarısız: %w", err)
 	}
 	defer rows.Close()
-	return scanVenueRows(rows, false)
+	return r.scanVenueRowsWithPhotos(ctx, rows, false)
 }
 
 // FindPending — admin incelemesi için bekleyen mekanları döndürür.
@@ -152,7 +152,7 @@ func (r *VenueRepo) FindPending(ctx context.Context) ([]models.Venue, error) {
 		return nil, fmt.Errorf("bekleyen mekan sorgusu başarısız: %w", err)
 	}
 	defer rows.Close()
-	return scanVenueRows(rows, false)
+	return r.scanVenueRowsWithPhotos(ctx, rows, false)
 }
 
 // scanVenueRows — rows'u []Venue'ya dönüştürür.
@@ -192,4 +192,22 @@ func scanVenueRows(rows pgx.Rows, withDistance bool) ([]models.Venue, error) {
 		venues = []models.Venue{}
 	}
 	return venues, rows.Err()
+}
+
+// scanVenueRowsWithPhotos — mekanları tarar ve her biri için fotoğrafları yükler.
+func (r *VenueRepo) scanVenueRowsWithPhotos(ctx context.Context, rows pgx.Rows, withDistance bool) ([]models.Venue, error) {
+	venues, err := scanVenueRows(rows, withDistance)
+	if err != nil {
+		return nil, err
+	}
+
+	for i := range venues {
+		photos, err := r.GetPhotosByVenueID(ctx, venues[i].ID)
+		if err != nil {
+			return nil, err
+		}
+		venues[i].Photos = photos
+	}
+
+	return venues, nil
 }

@@ -34,7 +34,7 @@ func (r *VenueRepo) SetCriteria(ctx context.Context, venueID string, criteriaIDs
 // GetCriteriaByVenueID — mekana ait helal kriter listesini döndürür.
 func (r *VenueRepo) GetCriteriaByVenueID(ctx context.Context, venueID string) ([]models.HalalCriteria, error) {
 	query := `
-		SELECT hc.id, hc.key, hc.label_tr, hc.label_en
+		SELECT hc.id, hc.key, hc.label_tr, hc.label_en, hc.description_tr, hc.description_en
 		FROM halal_criteria hc
 		JOIN venue_criteria vc ON vc.criteria_id = hc.id
 		WHERE vc.venue_id = $1
@@ -49,7 +49,7 @@ func (r *VenueRepo) GetCriteriaByVenueID(ctx context.Context, venueID string) ([
 	var list []models.HalalCriteria
 	for rows.Next() {
 		c := models.HalalCriteria{}
-		if err := rows.Scan(&c.ID, &c.Key, &c.LabelTR, &c.LabelEN); err != nil {
+		if err := rows.Scan(&c.ID, &c.Key, &c.LabelTR, &c.LabelEN, &c.DescriptionTR, &c.DescriptionEN); err != nil {
 			return nil, err
 		}
 		list = append(list, c)
@@ -62,7 +62,7 @@ func (r *VenueRepo) GetCriteriaByVenueID(ctx context.Context, venueID string) ([
 
 // GetAllCriteria — tüm helal kriterleri döndürür.
 func (r *VenueRepo) GetAllCriteria(ctx context.Context) ([]models.HalalCriteria, error) {
-	rows, err := r.db.Query(ctx, `SELECT id, key, label_tr, label_en FROM halal_criteria ORDER BY id`)
+	rows, err := r.db.Query(ctx, `SELECT id, key, label_tr, label_en, description_tr, description_en FROM halal_criteria ORDER BY id`)
 	if err != nil {
 		return nil, err
 	}
@@ -71,7 +71,7 @@ func (r *VenueRepo) GetAllCriteria(ctx context.Context) ([]models.HalalCriteria,
 	var list []models.HalalCriteria
 	for rows.Next() {
 		c := models.HalalCriteria{}
-		if err := rows.Scan(&c.ID, &c.Key, &c.LabelTR, &c.LabelEN); err != nil {
+		if err := rows.Scan(&c.ID, &c.Key, &c.LabelTR, &c.LabelEN, &c.DescriptionTR, &c.DescriptionEN); err != nil {
 			return nil, err
 		}
 		list = append(list, c)
