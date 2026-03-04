@@ -30,7 +30,7 @@ func (r *VenueRepo) FindByID(ctx context.Context, id string) (*models.Venue, err
 			v.added_by, v.verified_at,
 			v.created_at, v.updated_at,
 			v.rejection_note, v.approved_by,
-			v.all_food_halal,
+			v.food_halal_mode, v.excluded_products,
 			COALESCE(AVG(rv.rating), 0)::float8 AS average_rating,
 			COUNT(rv.id)::int AS review_count
 		FROM venues v
@@ -47,7 +47,7 @@ func (r *VenueRepo) FindByID(ctx context.Context, id string) (*models.Venue, err
 		&v.AddedBy, &v.VerifiedAt,
 		&v.CreatedAt, &v.UpdatedAt,
 		&v.RejectionNote, &v.ApprovedBy,
-		&v.AllFoodHalal,
+		&v.FoodHalalMode, &v.ExcludedProducts,
 		&v.AverageRating, &v.ReviewCount,
 	)
 	if err != nil {
@@ -84,15 +84,19 @@ func (r *VenueRepo) FindByID(ctx context.Context, id string) (*models.Venue, err
 // Create — yeni mekan ekler, ID ve timestamp'leri geri doldurur.
 func (r *VenueRepo) Create(ctx context.Context, v *models.Venue) error {
 	query := `
-		INSERT INTO venues (name, address, city, location, notes, added_by, all_food_halal)
-		VALUES ($1, $2, $3, ST_MakePoint($5, $4)::geography, $6, $7, $8)
+		INSERT INTO venues (name, address, city, location, notes, added_by, food_halal_mode, excluded_products)
+		VALUES ($1, $2, $3, ST_MakePoint($5, $4)::geography, $6, $7, $8, $9)
 		RETURNING id, status, created_at, updated_at`
 	// ST_MakePoint(lng, lat) — PostGIS koordinat sırası: X=lng, Y=lat
+
+	if v.ExcludedProducts == nil {
+		v.ExcludedProducts = []string{}
+	}
 
 	return r.db.QueryRow(ctx, query,
 		v.Name, v.Address, v.City,
 		v.Latitude, v.Longitude,
-		v.Notes, v.AddedBy, v.AllFoodHalal,
+		v.Notes, v.AddedBy, v.FoodHalalMode, v.ExcludedProducts,
 	).Scan(&v.ID, &v.Status, &v.CreatedAt, &v.UpdatedAt)
 }
 

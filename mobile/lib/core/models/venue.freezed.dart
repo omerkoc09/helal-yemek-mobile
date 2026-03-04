@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$Venue {
 
- String get id; String get name; String get address; String get city; double get latitude; double get longitude; String? get notes; String get status;@JsonKey(name: 'rejection_note') String? get rejectionNote;@JsonKey(name: 'added_by') String get addedBy;@JsonKey(name: 'approved_by') String? get approvedBy;@JsonKey(name: 'verified_at') DateTime? get verifiedAt;@JsonKey(name: 'all_food_halal') bool get allFoodHalal; List<HalalCriteria> get criteria; List<VenuePhoto> get photos;@JsonKey(name: 'food_items') List<FoodItem> get foodItems;@JsonKey(name: 'avg_rating') double? get avgRating;@JsonKey(name: 'review_count') int get reviewCount; double? get distance;@JsonKey(name: 'created_at') DateTime? get createdAt;@JsonKey(name: 'updated_at') DateTime? get updatedAt;
+ String get id; String get name; String get address; String get city; double get latitude; double get longitude; String? get notes; String get status;@JsonKey(name: 'rejection_note') String? get rejectionNote;@JsonKey(name: 'added_by') String get addedBy;@JsonKey(name: 'approved_by') String? get approvedBy;@JsonKey(name: 'verified_at') DateTime? get verifiedAt;@JsonKey(name: 'food_halal_mode') String get foodHalalMode;@JsonKey(name: 'excluded_products') List<String> get excludedProducts; List<HalalCriteria> get criteria; List<VenuePhoto> get photos;@JsonKey(name: 'food_items') List<FoodItem> get foodItems;@JsonKey(name: 'avg_rating') double? get avgRating;@JsonKey(name: 'review_count') int get reviewCount; double? get distance;@JsonKey(name: 'created_at') DateTime? get createdAt;@JsonKey(name: 'updated_at') DateTime? get updatedAt;
 /// Create a copy of Venue
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $VenueCopyWith<Venue> get copyWith => _$VenueCopyWithImpl<Venue>(this as Venue, 
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Venue&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.address, address) || other.address == address)&&(identical(other.city, city) || other.city == city)&&(identical(other.latitude, latitude) || other.latitude == latitude)&&(identical(other.longitude, longitude) || other.longitude == longitude)&&(identical(other.notes, notes) || other.notes == notes)&&(identical(other.status, status) || other.status == status)&&(identical(other.rejectionNote, rejectionNote) || other.rejectionNote == rejectionNote)&&(identical(other.addedBy, addedBy) || other.addedBy == addedBy)&&(identical(other.approvedBy, approvedBy) || other.approvedBy == approvedBy)&&(identical(other.verifiedAt, verifiedAt) || other.verifiedAt == verifiedAt)&&(identical(other.allFoodHalal, allFoodHalal) || other.allFoodHalal == allFoodHalal)&&const DeepCollectionEquality().equals(other.criteria, criteria)&&const DeepCollectionEquality().equals(other.photos, photos)&&const DeepCollectionEquality().equals(other.foodItems, foodItems)&&(identical(other.avgRating, avgRating) || other.avgRating == avgRating)&&(identical(other.reviewCount, reviewCount) || other.reviewCount == reviewCount)&&(identical(other.distance, distance) || other.distance == distance)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Venue&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.address, address) || other.address == address)&&(identical(other.city, city) || other.city == city)&&(identical(other.latitude, latitude) || other.latitude == latitude)&&(identical(other.longitude, longitude) || other.longitude == longitude)&&(identical(other.notes, notes) || other.notes == notes)&&(identical(other.status, status) || other.status == status)&&(identical(other.rejectionNote, rejectionNote) || other.rejectionNote == rejectionNote)&&(identical(other.addedBy, addedBy) || other.addedBy == addedBy)&&(identical(other.approvedBy, approvedBy) || other.approvedBy == approvedBy)&&(identical(other.verifiedAt, verifiedAt) || other.verifiedAt == verifiedAt)&&(identical(other.foodHalalMode, foodHalalMode) || other.foodHalalMode == foodHalalMode)&&const DeepCollectionEquality().equals(other.excludedProducts, excludedProducts)&&const DeepCollectionEquality().equals(other.criteria, criteria)&&const DeepCollectionEquality().equals(other.photos, photos)&&const DeepCollectionEquality().equals(other.foodItems, foodItems)&&(identical(other.avgRating, avgRating) || other.avgRating == avgRating)&&(identical(other.reviewCount, reviewCount) || other.reviewCount == reviewCount)&&(identical(other.distance, distance) || other.distance == distance)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hashAll([runtimeType,id,name,address,city,latitude,longitude,notes,status,rejectionNote,addedBy,approvedBy,verifiedAt,allFoodHalal,const DeepCollectionEquality().hash(criteria),const DeepCollectionEquality().hash(photos),const DeepCollectionEquality().hash(foodItems),avgRating,reviewCount,distance,createdAt,updatedAt]);
+int get hashCode => Object.hashAll([runtimeType,id,name,address,city,latitude,longitude,notes,status,rejectionNote,addedBy,approvedBy,verifiedAt,foodHalalMode,const DeepCollectionEquality().hash(excludedProducts),const DeepCollectionEquality().hash(criteria),const DeepCollectionEquality().hash(photos),const DeepCollectionEquality().hash(foodItems),avgRating,reviewCount,distance,createdAt,updatedAt]);
 
 @override
 String toString() {
-  return 'Venue(id: $id, name: $name, address: $address, city: $city, latitude: $latitude, longitude: $longitude, notes: $notes, status: $status, rejectionNote: $rejectionNote, addedBy: $addedBy, approvedBy: $approvedBy, verifiedAt: $verifiedAt, allFoodHalal: $allFoodHalal, criteria: $criteria, photos: $photos, foodItems: $foodItems, avgRating: $avgRating, reviewCount: $reviewCount, distance: $distance, createdAt: $createdAt, updatedAt: $updatedAt)';
+  return 'Venue(id: $id, name: $name, address: $address, city: $city, latitude: $latitude, longitude: $longitude, notes: $notes, status: $status, rejectionNote: $rejectionNote, addedBy: $addedBy, approvedBy: $approvedBy, verifiedAt: $verifiedAt, foodHalalMode: $foodHalalMode, excludedProducts: $excludedProducts, criteria: $criteria, photos: $photos, foodItems: $foodItems, avgRating: $avgRating, reviewCount: $reviewCount, distance: $distance, createdAt: $createdAt, updatedAt: $updatedAt)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $VenueCopyWith<$Res>  {
   factory $VenueCopyWith(Venue value, $Res Function(Venue) _then) = _$VenueCopyWithImpl;
 @useResult
 $Res call({
- String id, String name, String address, String city, double latitude, double longitude, String? notes, String status,@JsonKey(name: 'rejection_note') String? rejectionNote,@JsonKey(name: 'added_by') String addedBy,@JsonKey(name: 'approved_by') String? approvedBy,@JsonKey(name: 'verified_at') DateTime? verifiedAt,@JsonKey(name: 'all_food_halal') bool allFoodHalal, List<HalalCriteria> criteria, List<VenuePhoto> photos,@JsonKey(name: 'food_items') List<FoodItem> foodItems,@JsonKey(name: 'avg_rating') double? avgRating,@JsonKey(name: 'review_count') int reviewCount, double? distance,@JsonKey(name: 'created_at') DateTime? createdAt,@JsonKey(name: 'updated_at') DateTime? updatedAt
+ String id, String name, String address, String city, double latitude, double longitude, String? notes, String status,@JsonKey(name: 'rejection_note') String? rejectionNote,@JsonKey(name: 'added_by') String addedBy,@JsonKey(name: 'approved_by') String? approvedBy,@JsonKey(name: 'verified_at') DateTime? verifiedAt,@JsonKey(name: 'food_halal_mode') String foodHalalMode,@JsonKey(name: 'excluded_products') List<String> excludedProducts, List<HalalCriteria> criteria, List<VenuePhoto> photos,@JsonKey(name: 'food_items') List<FoodItem> foodItems,@JsonKey(name: 'avg_rating') double? avgRating,@JsonKey(name: 'review_count') int reviewCount, double? distance,@JsonKey(name: 'created_at') DateTime? createdAt,@JsonKey(name: 'updated_at') DateTime? updatedAt
 });
 
 
@@ -65,7 +65,7 @@ class _$VenueCopyWithImpl<$Res>
 
 /// Create a copy of Venue
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? address = null,Object? city = null,Object? latitude = null,Object? longitude = null,Object? notes = freezed,Object? status = null,Object? rejectionNote = freezed,Object? addedBy = null,Object? approvedBy = freezed,Object? verifiedAt = freezed,Object? allFoodHalal = null,Object? criteria = null,Object? photos = null,Object? foodItems = null,Object? avgRating = freezed,Object? reviewCount = null,Object? distance = freezed,Object? createdAt = freezed,Object? updatedAt = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? address = null,Object? city = null,Object? latitude = null,Object? longitude = null,Object? notes = freezed,Object? status = null,Object? rejectionNote = freezed,Object? addedBy = null,Object? approvedBy = freezed,Object? verifiedAt = freezed,Object? foodHalalMode = null,Object? excludedProducts = null,Object? criteria = null,Object? photos = null,Object? foodItems = null,Object? avgRating = freezed,Object? reviewCount = null,Object? distance = freezed,Object? createdAt = freezed,Object? updatedAt = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
@@ -79,8 +79,9 @@ as String,rejectionNote: freezed == rejectionNote ? _self.rejectionNote : reject
 as String?,addedBy: null == addedBy ? _self.addedBy : addedBy // ignore: cast_nullable_to_non_nullable
 as String,approvedBy: freezed == approvedBy ? _self.approvedBy : approvedBy // ignore: cast_nullable_to_non_nullable
 as String?,verifiedAt: freezed == verifiedAt ? _self.verifiedAt : verifiedAt // ignore: cast_nullable_to_non_nullable
-as DateTime?,allFoodHalal: null == allFoodHalal ? _self.allFoodHalal : allFoodHalal // ignore: cast_nullable_to_non_nullable
-as bool,criteria: null == criteria ? _self.criteria : criteria // ignore: cast_nullable_to_non_nullable
+as DateTime?,foodHalalMode: null == foodHalalMode ? _self.foodHalalMode : foodHalalMode // ignore: cast_nullable_to_non_nullable
+as String,excludedProducts: null == excludedProducts ? _self.excludedProducts : excludedProducts // ignore: cast_nullable_to_non_nullable
+as List<String>,criteria: null == criteria ? _self.criteria : criteria // ignore: cast_nullable_to_non_nullable
 as List<HalalCriteria>,photos: null == photos ? _self.photos : photos // ignore: cast_nullable_to_non_nullable
 as List<VenuePhoto>,foodItems: null == foodItems ? _self.foodItems : foodItems // ignore: cast_nullable_to_non_nullable
 as List<FoodItem>,avgRating: freezed == avgRating ? _self.avgRating : avgRating // ignore: cast_nullable_to_non_nullable
@@ -173,10 +174,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  String address,  String city,  double latitude,  double longitude,  String? notes,  String status, @JsonKey(name: 'rejection_note')  String? rejectionNote, @JsonKey(name: 'added_by')  String addedBy, @JsonKey(name: 'approved_by')  String? approvedBy, @JsonKey(name: 'verified_at')  DateTime? verifiedAt, @JsonKey(name: 'all_food_halal')  bool allFoodHalal,  List<HalalCriteria> criteria,  List<VenuePhoto> photos, @JsonKey(name: 'food_items')  List<FoodItem> foodItems, @JsonKey(name: 'avg_rating')  double? avgRating, @JsonKey(name: 'review_count')  int reviewCount,  double? distance, @JsonKey(name: 'created_at')  DateTime? createdAt, @JsonKey(name: 'updated_at')  DateTime? updatedAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  String address,  String city,  double latitude,  double longitude,  String? notes,  String status, @JsonKey(name: 'rejection_note')  String? rejectionNote, @JsonKey(name: 'added_by')  String addedBy, @JsonKey(name: 'approved_by')  String? approvedBy, @JsonKey(name: 'verified_at')  DateTime? verifiedAt, @JsonKey(name: 'food_halal_mode')  String foodHalalMode, @JsonKey(name: 'excluded_products')  List<String> excludedProducts,  List<HalalCriteria> criteria,  List<VenuePhoto> photos, @JsonKey(name: 'food_items')  List<FoodItem> foodItems, @JsonKey(name: 'avg_rating')  double? avgRating, @JsonKey(name: 'review_count')  int reviewCount,  double? distance, @JsonKey(name: 'created_at')  DateTime? createdAt, @JsonKey(name: 'updated_at')  DateTime? updatedAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Venue() when $default != null:
-return $default(_that.id,_that.name,_that.address,_that.city,_that.latitude,_that.longitude,_that.notes,_that.status,_that.rejectionNote,_that.addedBy,_that.approvedBy,_that.verifiedAt,_that.allFoodHalal,_that.criteria,_that.photos,_that.foodItems,_that.avgRating,_that.reviewCount,_that.distance,_that.createdAt,_that.updatedAt);case _:
+return $default(_that.id,_that.name,_that.address,_that.city,_that.latitude,_that.longitude,_that.notes,_that.status,_that.rejectionNote,_that.addedBy,_that.approvedBy,_that.verifiedAt,_that.foodHalalMode,_that.excludedProducts,_that.criteria,_that.photos,_that.foodItems,_that.avgRating,_that.reviewCount,_that.distance,_that.createdAt,_that.updatedAt);case _:
   return orElse();
 
 }
@@ -194,10 +195,10 @@ return $default(_that.id,_that.name,_that.address,_that.city,_that.latitude,_tha
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  String address,  String city,  double latitude,  double longitude,  String? notes,  String status, @JsonKey(name: 'rejection_note')  String? rejectionNote, @JsonKey(name: 'added_by')  String addedBy, @JsonKey(name: 'approved_by')  String? approvedBy, @JsonKey(name: 'verified_at')  DateTime? verifiedAt, @JsonKey(name: 'all_food_halal')  bool allFoodHalal,  List<HalalCriteria> criteria,  List<VenuePhoto> photos, @JsonKey(name: 'food_items')  List<FoodItem> foodItems, @JsonKey(name: 'avg_rating')  double? avgRating, @JsonKey(name: 'review_count')  int reviewCount,  double? distance, @JsonKey(name: 'created_at')  DateTime? createdAt, @JsonKey(name: 'updated_at')  DateTime? updatedAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  String address,  String city,  double latitude,  double longitude,  String? notes,  String status, @JsonKey(name: 'rejection_note')  String? rejectionNote, @JsonKey(name: 'added_by')  String addedBy, @JsonKey(name: 'approved_by')  String? approvedBy, @JsonKey(name: 'verified_at')  DateTime? verifiedAt, @JsonKey(name: 'food_halal_mode')  String foodHalalMode, @JsonKey(name: 'excluded_products')  List<String> excludedProducts,  List<HalalCriteria> criteria,  List<VenuePhoto> photos, @JsonKey(name: 'food_items')  List<FoodItem> foodItems, @JsonKey(name: 'avg_rating')  double? avgRating, @JsonKey(name: 'review_count')  int reviewCount,  double? distance, @JsonKey(name: 'created_at')  DateTime? createdAt, @JsonKey(name: 'updated_at')  DateTime? updatedAt)  $default,) {final _that = this;
 switch (_that) {
 case _Venue():
-return $default(_that.id,_that.name,_that.address,_that.city,_that.latitude,_that.longitude,_that.notes,_that.status,_that.rejectionNote,_that.addedBy,_that.approvedBy,_that.verifiedAt,_that.allFoodHalal,_that.criteria,_that.photos,_that.foodItems,_that.avgRating,_that.reviewCount,_that.distance,_that.createdAt,_that.updatedAt);case _:
+return $default(_that.id,_that.name,_that.address,_that.city,_that.latitude,_that.longitude,_that.notes,_that.status,_that.rejectionNote,_that.addedBy,_that.approvedBy,_that.verifiedAt,_that.foodHalalMode,_that.excludedProducts,_that.criteria,_that.photos,_that.foodItems,_that.avgRating,_that.reviewCount,_that.distance,_that.createdAt,_that.updatedAt);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -214,10 +215,10 @@ return $default(_that.id,_that.name,_that.address,_that.city,_that.latitude,_tha
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  String address,  String city,  double latitude,  double longitude,  String? notes,  String status, @JsonKey(name: 'rejection_note')  String? rejectionNote, @JsonKey(name: 'added_by')  String addedBy, @JsonKey(name: 'approved_by')  String? approvedBy, @JsonKey(name: 'verified_at')  DateTime? verifiedAt, @JsonKey(name: 'all_food_halal')  bool allFoodHalal,  List<HalalCriteria> criteria,  List<VenuePhoto> photos, @JsonKey(name: 'food_items')  List<FoodItem> foodItems, @JsonKey(name: 'avg_rating')  double? avgRating, @JsonKey(name: 'review_count')  int reviewCount,  double? distance, @JsonKey(name: 'created_at')  DateTime? createdAt, @JsonKey(name: 'updated_at')  DateTime? updatedAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  String address,  String city,  double latitude,  double longitude,  String? notes,  String status, @JsonKey(name: 'rejection_note')  String? rejectionNote, @JsonKey(name: 'added_by')  String addedBy, @JsonKey(name: 'approved_by')  String? approvedBy, @JsonKey(name: 'verified_at')  DateTime? verifiedAt, @JsonKey(name: 'food_halal_mode')  String foodHalalMode, @JsonKey(name: 'excluded_products')  List<String> excludedProducts,  List<HalalCriteria> criteria,  List<VenuePhoto> photos, @JsonKey(name: 'food_items')  List<FoodItem> foodItems, @JsonKey(name: 'avg_rating')  double? avgRating, @JsonKey(name: 'review_count')  int reviewCount,  double? distance, @JsonKey(name: 'created_at')  DateTime? createdAt, @JsonKey(name: 'updated_at')  DateTime? updatedAt)?  $default,) {final _that = this;
 switch (_that) {
 case _Venue() when $default != null:
-return $default(_that.id,_that.name,_that.address,_that.city,_that.latitude,_that.longitude,_that.notes,_that.status,_that.rejectionNote,_that.addedBy,_that.approvedBy,_that.verifiedAt,_that.allFoodHalal,_that.criteria,_that.photos,_that.foodItems,_that.avgRating,_that.reviewCount,_that.distance,_that.createdAt,_that.updatedAt);case _:
+return $default(_that.id,_that.name,_that.address,_that.city,_that.latitude,_that.longitude,_that.notes,_that.status,_that.rejectionNote,_that.addedBy,_that.approvedBy,_that.verifiedAt,_that.foodHalalMode,_that.excludedProducts,_that.criteria,_that.photos,_that.foodItems,_that.avgRating,_that.reviewCount,_that.distance,_that.createdAt,_that.updatedAt);case _:
   return null;
 
 }
@@ -229,7 +230,7 @@ return $default(_that.id,_that.name,_that.address,_that.city,_that.latitude,_tha
 @JsonSerializable()
 
 class _Venue extends Venue {
-  const _Venue({required this.id, required this.name, required this.address, required this.city, required this.latitude, required this.longitude, this.notes, this.status = 'pending', @JsonKey(name: 'rejection_note') this.rejectionNote, @JsonKey(name: 'added_by') required this.addedBy, @JsonKey(name: 'approved_by') this.approvedBy, @JsonKey(name: 'verified_at') this.verifiedAt, @JsonKey(name: 'all_food_halal') this.allFoodHalal = false, final  List<HalalCriteria> criteria = const [], final  List<VenuePhoto> photos = const [], @JsonKey(name: 'food_items') final  List<FoodItem> foodItems = const [], @JsonKey(name: 'avg_rating') this.avgRating, @JsonKey(name: 'review_count') this.reviewCount = 0, this.distance, @JsonKey(name: 'created_at') this.createdAt, @JsonKey(name: 'updated_at') this.updatedAt}): _criteria = criteria,_photos = photos,_foodItems = foodItems,super._();
+  const _Venue({required this.id, required this.name, required this.address, required this.city, required this.latitude, required this.longitude, this.notes, this.status = 'pending', @JsonKey(name: 'rejection_note') this.rejectionNote, @JsonKey(name: 'added_by') required this.addedBy, @JsonKey(name: 'approved_by') this.approvedBy, @JsonKey(name: 'verified_at') this.verifiedAt, @JsonKey(name: 'food_halal_mode') this.foodHalalMode = 'selected', @JsonKey(name: 'excluded_products') final  List<String> excludedProducts = const [], final  List<HalalCriteria> criteria = const [], final  List<VenuePhoto> photos = const [], @JsonKey(name: 'food_items') final  List<FoodItem> foodItems = const [], @JsonKey(name: 'avg_rating') this.avgRating, @JsonKey(name: 'review_count') this.reviewCount = 0, this.distance, @JsonKey(name: 'created_at') this.createdAt, @JsonKey(name: 'updated_at') this.updatedAt}): _excludedProducts = excludedProducts,_criteria = criteria,_photos = photos,_foodItems = foodItems,super._();
   factory _Venue.fromJson(Map<String, dynamic> json) => _$VenueFromJson(json);
 
 @override final  String id;
@@ -244,7 +245,14 @@ class _Venue extends Venue {
 @override@JsonKey(name: 'added_by') final  String addedBy;
 @override@JsonKey(name: 'approved_by') final  String? approvedBy;
 @override@JsonKey(name: 'verified_at') final  DateTime? verifiedAt;
-@override@JsonKey(name: 'all_food_halal') final  bool allFoodHalal;
+@override@JsonKey(name: 'food_halal_mode') final  String foodHalalMode;
+ final  List<String> _excludedProducts;
+@override@JsonKey(name: 'excluded_products') List<String> get excludedProducts {
+  if (_excludedProducts is EqualUnmodifiableListView) return _excludedProducts;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_excludedProducts);
+}
+
  final  List<HalalCriteria> _criteria;
 @override@JsonKey() List<HalalCriteria> get criteria {
   if (_criteria is EqualUnmodifiableListView) return _criteria;
@@ -285,16 +293,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Venue&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.address, address) || other.address == address)&&(identical(other.city, city) || other.city == city)&&(identical(other.latitude, latitude) || other.latitude == latitude)&&(identical(other.longitude, longitude) || other.longitude == longitude)&&(identical(other.notes, notes) || other.notes == notes)&&(identical(other.status, status) || other.status == status)&&(identical(other.rejectionNote, rejectionNote) || other.rejectionNote == rejectionNote)&&(identical(other.addedBy, addedBy) || other.addedBy == addedBy)&&(identical(other.approvedBy, approvedBy) || other.approvedBy == approvedBy)&&(identical(other.verifiedAt, verifiedAt) || other.verifiedAt == verifiedAt)&&(identical(other.allFoodHalal, allFoodHalal) || other.allFoodHalal == allFoodHalal)&&const DeepCollectionEquality().equals(other._criteria, _criteria)&&const DeepCollectionEquality().equals(other._photos, _photos)&&const DeepCollectionEquality().equals(other._foodItems, _foodItems)&&(identical(other.avgRating, avgRating) || other.avgRating == avgRating)&&(identical(other.reviewCount, reviewCount) || other.reviewCount == reviewCount)&&(identical(other.distance, distance) || other.distance == distance)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Venue&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.address, address) || other.address == address)&&(identical(other.city, city) || other.city == city)&&(identical(other.latitude, latitude) || other.latitude == latitude)&&(identical(other.longitude, longitude) || other.longitude == longitude)&&(identical(other.notes, notes) || other.notes == notes)&&(identical(other.status, status) || other.status == status)&&(identical(other.rejectionNote, rejectionNote) || other.rejectionNote == rejectionNote)&&(identical(other.addedBy, addedBy) || other.addedBy == addedBy)&&(identical(other.approvedBy, approvedBy) || other.approvedBy == approvedBy)&&(identical(other.verifiedAt, verifiedAt) || other.verifiedAt == verifiedAt)&&(identical(other.foodHalalMode, foodHalalMode) || other.foodHalalMode == foodHalalMode)&&const DeepCollectionEquality().equals(other._excludedProducts, _excludedProducts)&&const DeepCollectionEquality().equals(other._criteria, _criteria)&&const DeepCollectionEquality().equals(other._photos, _photos)&&const DeepCollectionEquality().equals(other._foodItems, _foodItems)&&(identical(other.avgRating, avgRating) || other.avgRating == avgRating)&&(identical(other.reviewCount, reviewCount) || other.reviewCount == reviewCount)&&(identical(other.distance, distance) || other.distance == distance)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hashAll([runtimeType,id,name,address,city,latitude,longitude,notes,status,rejectionNote,addedBy,approvedBy,verifiedAt,allFoodHalal,const DeepCollectionEquality().hash(_criteria),const DeepCollectionEquality().hash(_photos),const DeepCollectionEquality().hash(_foodItems),avgRating,reviewCount,distance,createdAt,updatedAt]);
+int get hashCode => Object.hashAll([runtimeType,id,name,address,city,latitude,longitude,notes,status,rejectionNote,addedBy,approvedBy,verifiedAt,foodHalalMode,const DeepCollectionEquality().hash(_excludedProducts),const DeepCollectionEquality().hash(_criteria),const DeepCollectionEquality().hash(_photos),const DeepCollectionEquality().hash(_foodItems),avgRating,reviewCount,distance,createdAt,updatedAt]);
 
 @override
 String toString() {
-  return 'Venue(id: $id, name: $name, address: $address, city: $city, latitude: $latitude, longitude: $longitude, notes: $notes, status: $status, rejectionNote: $rejectionNote, addedBy: $addedBy, approvedBy: $approvedBy, verifiedAt: $verifiedAt, allFoodHalal: $allFoodHalal, criteria: $criteria, photos: $photos, foodItems: $foodItems, avgRating: $avgRating, reviewCount: $reviewCount, distance: $distance, createdAt: $createdAt, updatedAt: $updatedAt)';
+  return 'Venue(id: $id, name: $name, address: $address, city: $city, latitude: $latitude, longitude: $longitude, notes: $notes, status: $status, rejectionNote: $rejectionNote, addedBy: $addedBy, approvedBy: $approvedBy, verifiedAt: $verifiedAt, foodHalalMode: $foodHalalMode, excludedProducts: $excludedProducts, criteria: $criteria, photos: $photos, foodItems: $foodItems, avgRating: $avgRating, reviewCount: $reviewCount, distance: $distance, createdAt: $createdAt, updatedAt: $updatedAt)';
 }
 
 
@@ -305,7 +313,7 @@ abstract mixin class _$VenueCopyWith<$Res> implements $VenueCopyWith<$Res> {
   factory _$VenueCopyWith(_Venue value, $Res Function(_Venue) _then) = __$VenueCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String name, String address, String city, double latitude, double longitude, String? notes, String status,@JsonKey(name: 'rejection_note') String? rejectionNote,@JsonKey(name: 'added_by') String addedBy,@JsonKey(name: 'approved_by') String? approvedBy,@JsonKey(name: 'verified_at') DateTime? verifiedAt,@JsonKey(name: 'all_food_halal') bool allFoodHalal, List<HalalCriteria> criteria, List<VenuePhoto> photos,@JsonKey(name: 'food_items') List<FoodItem> foodItems,@JsonKey(name: 'avg_rating') double? avgRating,@JsonKey(name: 'review_count') int reviewCount, double? distance,@JsonKey(name: 'created_at') DateTime? createdAt,@JsonKey(name: 'updated_at') DateTime? updatedAt
+ String id, String name, String address, String city, double latitude, double longitude, String? notes, String status,@JsonKey(name: 'rejection_note') String? rejectionNote,@JsonKey(name: 'added_by') String addedBy,@JsonKey(name: 'approved_by') String? approvedBy,@JsonKey(name: 'verified_at') DateTime? verifiedAt,@JsonKey(name: 'food_halal_mode') String foodHalalMode,@JsonKey(name: 'excluded_products') List<String> excludedProducts, List<HalalCriteria> criteria, List<VenuePhoto> photos,@JsonKey(name: 'food_items') List<FoodItem> foodItems,@JsonKey(name: 'avg_rating') double? avgRating,@JsonKey(name: 'review_count') int reviewCount, double? distance,@JsonKey(name: 'created_at') DateTime? createdAt,@JsonKey(name: 'updated_at') DateTime? updatedAt
 });
 
 
@@ -322,7 +330,7 @@ class __$VenueCopyWithImpl<$Res>
 
 /// Create a copy of Venue
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? address = null,Object? city = null,Object? latitude = null,Object? longitude = null,Object? notes = freezed,Object? status = null,Object? rejectionNote = freezed,Object? addedBy = null,Object? approvedBy = freezed,Object? verifiedAt = freezed,Object? allFoodHalal = null,Object? criteria = null,Object? photos = null,Object? foodItems = null,Object? avgRating = freezed,Object? reviewCount = null,Object? distance = freezed,Object? createdAt = freezed,Object? updatedAt = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? address = null,Object? city = null,Object? latitude = null,Object? longitude = null,Object? notes = freezed,Object? status = null,Object? rejectionNote = freezed,Object? addedBy = null,Object? approvedBy = freezed,Object? verifiedAt = freezed,Object? foodHalalMode = null,Object? excludedProducts = null,Object? criteria = null,Object? photos = null,Object? foodItems = null,Object? avgRating = freezed,Object? reviewCount = null,Object? distance = freezed,Object? createdAt = freezed,Object? updatedAt = freezed,}) {
   return _then(_Venue(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
@@ -336,8 +344,9 @@ as String,rejectionNote: freezed == rejectionNote ? _self.rejectionNote : reject
 as String?,addedBy: null == addedBy ? _self.addedBy : addedBy // ignore: cast_nullable_to_non_nullable
 as String,approvedBy: freezed == approvedBy ? _self.approvedBy : approvedBy // ignore: cast_nullable_to_non_nullable
 as String?,verifiedAt: freezed == verifiedAt ? _self.verifiedAt : verifiedAt // ignore: cast_nullable_to_non_nullable
-as DateTime?,allFoodHalal: null == allFoodHalal ? _self.allFoodHalal : allFoodHalal // ignore: cast_nullable_to_non_nullable
-as bool,criteria: null == criteria ? _self._criteria : criteria // ignore: cast_nullable_to_non_nullable
+as DateTime?,foodHalalMode: null == foodHalalMode ? _self.foodHalalMode : foodHalalMode // ignore: cast_nullable_to_non_nullable
+as String,excludedProducts: null == excludedProducts ? _self._excludedProducts : excludedProducts // ignore: cast_nullable_to_non_nullable
+as List<String>,criteria: null == criteria ? _self._criteria : criteria // ignore: cast_nullable_to_non_nullable
 as List<HalalCriteria>,photos: null == photos ? _self._photos : photos // ignore: cast_nullable_to_non_nullable
 as List<VenuePhoto>,foodItems: null == foodItems ? _self._foodItems : foodItems // ignore: cast_nullable_to_non_nullable
 as List<FoodItem>,avgRating: freezed == avgRating ? _self.avgRating : avgRating // ignore: cast_nullable_to_non_nullable
@@ -356,7 +365,7 @@ as DateTime?,
 /// @nodoc
 mixin _$HalalCriteria {
 
- int get id; String get key;@JsonKey(name: 'label_tr') String get labelTr;@JsonKey(name: 'label_en') String get labelEn;
+ int get id; String get key;@JsonKey(name: 'label_tr') String get labelTr;@JsonKey(name: 'label_en') String get labelEn;@JsonKey(name: 'description_tr') String? get descriptionTr;@JsonKey(name: 'description_en') String? get descriptionEn;
 /// Create a copy of HalalCriteria
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -369,16 +378,16 @@ $HalalCriteriaCopyWith<HalalCriteria> get copyWith => _$HalalCriteriaCopyWithImp
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is HalalCriteria&&(identical(other.id, id) || other.id == id)&&(identical(other.key, key) || other.key == key)&&(identical(other.labelTr, labelTr) || other.labelTr == labelTr)&&(identical(other.labelEn, labelEn) || other.labelEn == labelEn));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is HalalCriteria&&(identical(other.id, id) || other.id == id)&&(identical(other.key, key) || other.key == key)&&(identical(other.labelTr, labelTr) || other.labelTr == labelTr)&&(identical(other.labelEn, labelEn) || other.labelEn == labelEn)&&(identical(other.descriptionTr, descriptionTr) || other.descriptionTr == descriptionTr)&&(identical(other.descriptionEn, descriptionEn) || other.descriptionEn == descriptionEn));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,key,labelTr,labelEn);
+int get hashCode => Object.hash(runtimeType,id,key,labelTr,labelEn,descriptionTr,descriptionEn);
 
 @override
 String toString() {
-  return 'HalalCriteria(id: $id, key: $key, labelTr: $labelTr, labelEn: $labelEn)';
+  return 'HalalCriteria(id: $id, key: $key, labelTr: $labelTr, labelEn: $labelEn, descriptionTr: $descriptionTr, descriptionEn: $descriptionEn)';
 }
 
 
@@ -389,7 +398,7 @@ abstract mixin class $HalalCriteriaCopyWith<$Res>  {
   factory $HalalCriteriaCopyWith(HalalCriteria value, $Res Function(HalalCriteria) _then) = _$HalalCriteriaCopyWithImpl;
 @useResult
 $Res call({
- int id, String key,@JsonKey(name: 'label_tr') String labelTr,@JsonKey(name: 'label_en') String labelEn
+ int id, String key,@JsonKey(name: 'label_tr') String labelTr,@JsonKey(name: 'label_en') String labelEn,@JsonKey(name: 'description_tr') String? descriptionTr,@JsonKey(name: 'description_en') String? descriptionEn
 });
 
 
@@ -406,13 +415,15 @@ class _$HalalCriteriaCopyWithImpl<$Res>
 
 /// Create a copy of HalalCriteria
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? key = null,Object? labelTr = null,Object? labelEn = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? key = null,Object? labelTr = null,Object? labelEn = null,Object? descriptionTr = freezed,Object? descriptionEn = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,key: null == key ? _self.key : key // ignore: cast_nullable_to_non_nullable
 as String,labelTr: null == labelTr ? _self.labelTr : labelTr // ignore: cast_nullable_to_non_nullable
 as String,labelEn: null == labelEn ? _self.labelEn : labelEn // ignore: cast_nullable_to_non_nullable
-as String,
+as String,descriptionTr: freezed == descriptionTr ? _self.descriptionTr : descriptionTr // ignore: cast_nullable_to_non_nullable
+as String?,descriptionEn: freezed == descriptionEn ? _self.descriptionEn : descriptionEn // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 
@@ -497,10 +508,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  String key, @JsonKey(name: 'label_tr')  String labelTr, @JsonKey(name: 'label_en')  String labelEn)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  String key, @JsonKey(name: 'label_tr')  String labelTr, @JsonKey(name: 'label_en')  String labelEn, @JsonKey(name: 'description_tr')  String? descriptionTr, @JsonKey(name: 'description_en')  String? descriptionEn)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _HalalCriteria() when $default != null:
-return $default(_that.id,_that.key,_that.labelTr,_that.labelEn);case _:
+return $default(_that.id,_that.key,_that.labelTr,_that.labelEn,_that.descriptionTr,_that.descriptionEn);case _:
   return orElse();
 
 }
@@ -518,10 +529,10 @@ return $default(_that.id,_that.key,_that.labelTr,_that.labelEn);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  String key, @JsonKey(name: 'label_tr')  String labelTr, @JsonKey(name: 'label_en')  String labelEn)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  String key, @JsonKey(name: 'label_tr')  String labelTr, @JsonKey(name: 'label_en')  String labelEn, @JsonKey(name: 'description_tr')  String? descriptionTr, @JsonKey(name: 'description_en')  String? descriptionEn)  $default,) {final _that = this;
 switch (_that) {
 case _HalalCriteria():
-return $default(_that.id,_that.key,_that.labelTr,_that.labelEn);case _:
+return $default(_that.id,_that.key,_that.labelTr,_that.labelEn,_that.descriptionTr,_that.descriptionEn);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -538,10 +549,10 @@ return $default(_that.id,_that.key,_that.labelTr,_that.labelEn);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  String key, @JsonKey(name: 'label_tr')  String labelTr, @JsonKey(name: 'label_en')  String labelEn)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  String key, @JsonKey(name: 'label_tr')  String labelTr, @JsonKey(name: 'label_en')  String labelEn, @JsonKey(name: 'description_tr')  String? descriptionTr, @JsonKey(name: 'description_en')  String? descriptionEn)?  $default,) {final _that = this;
 switch (_that) {
 case _HalalCriteria() when $default != null:
-return $default(_that.id,_that.key,_that.labelTr,_that.labelEn);case _:
+return $default(_that.id,_that.key,_that.labelTr,_that.labelEn,_that.descriptionTr,_that.descriptionEn);case _:
   return null;
 
 }
@@ -553,13 +564,15 @@ return $default(_that.id,_that.key,_that.labelTr,_that.labelEn);case _:
 @JsonSerializable()
 
 class _HalalCriteria implements HalalCriteria {
-  const _HalalCriteria({required this.id, required this.key, @JsonKey(name: 'label_tr') required this.labelTr, @JsonKey(name: 'label_en') required this.labelEn});
+  const _HalalCriteria({required this.id, required this.key, @JsonKey(name: 'label_tr') required this.labelTr, @JsonKey(name: 'label_en') required this.labelEn, @JsonKey(name: 'description_tr') this.descriptionTr, @JsonKey(name: 'description_en') this.descriptionEn});
   factory _HalalCriteria.fromJson(Map<String, dynamic> json) => _$HalalCriteriaFromJson(json);
 
 @override final  int id;
 @override final  String key;
 @override@JsonKey(name: 'label_tr') final  String labelTr;
 @override@JsonKey(name: 'label_en') final  String labelEn;
+@override@JsonKey(name: 'description_tr') final  String? descriptionTr;
+@override@JsonKey(name: 'description_en') final  String? descriptionEn;
 
 /// Create a copy of HalalCriteria
 /// with the given fields replaced by the non-null parameter values.
@@ -574,16 +587,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _HalalCriteria&&(identical(other.id, id) || other.id == id)&&(identical(other.key, key) || other.key == key)&&(identical(other.labelTr, labelTr) || other.labelTr == labelTr)&&(identical(other.labelEn, labelEn) || other.labelEn == labelEn));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _HalalCriteria&&(identical(other.id, id) || other.id == id)&&(identical(other.key, key) || other.key == key)&&(identical(other.labelTr, labelTr) || other.labelTr == labelTr)&&(identical(other.labelEn, labelEn) || other.labelEn == labelEn)&&(identical(other.descriptionTr, descriptionTr) || other.descriptionTr == descriptionTr)&&(identical(other.descriptionEn, descriptionEn) || other.descriptionEn == descriptionEn));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,key,labelTr,labelEn);
+int get hashCode => Object.hash(runtimeType,id,key,labelTr,labelEn,descriptionTr,descriptionEn);
 
 @override
 String toString() {
-  return 'HalalCriteria(id: $id, key: $key, labelTr: $labelTr, labelEn: $labelEn)';
+  return 'HalalCriteria(id: $id, key: $key, labelTr: $labelTr, labelEn: $labelEn, descriptionTr: $descriptionTr, descriptionEn: $descriptionEn)';
 }
 
 
@@ -594,7 +607,7 @@ abstract mixin class _$HalalCriteriaCopyWith<$Res> implements $HalalCriteriaCopy
   factory _$HalalCriteriaCopyWith(_HalalCriteria value, $Res Function(_HalalCriteria) _then) = __$HalalCriteriaCopyWithImpl;
 @override @useResult
 $Res call({
- int id, String key,@JsonKey(name: 'label_tr') String labelTr,@JsonKey(name: 'label_en') String labelEn
+ int id, String key,@JsonKey(name: 'label_tr') String labelTr,@JsonKey(name: 'label_en') String labelEn,@JsonKey(name: 'description_tr') String? descriptionTr,@JsonKey(name: 'description_en') String? descriptionEn
 });
 
 
@@ -611,13 +624,15 @@ class __$HalalCriteriaCopyWithImpl<$Res>
 
 /// Create a copy of HalalCriteria
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? key = null,Object? labelTr = null,Object? labelEn = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? key = null,Object? labelTr = null,Object? labelEn = null,Object? descriptionTr = freezed,Object? descriptionEn = freezed,}) {
   return _then(_HalalCriteria(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,key: null == key ? _self.key : key // ignore: cast_nullable_to_non_nullable
 as String,labelTr: null == labelTr ? _self.labelTr : labelTr // ignore: cast_nullable_to_non_nullable
 as String,labelEn: null == labelEn ? _self.labelEn : labelEn // ignore: cast_nullable_to_non_nullable
-as String,
+as String,descriptionTr: freezed == descriptionTr ? _self.descriptionTr : descriptionTr // ignore: cast_nullable_to_non_nullable
+as String?,descriptionEn: freezed == descriptionEn ? _self.descriptionEn : descriptionEn // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 

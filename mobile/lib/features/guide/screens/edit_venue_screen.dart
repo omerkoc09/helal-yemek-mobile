@@ -438,22 +438,95 @@ class _EditVenueScreenState extends ConsumerState<EditVenueScreen> {
 
   Widget _buildFoodSection(EditVenueState state) {
     final categoriesAsync = ref.watch(foodCategoriesProvider);
+    final notifier = ref.read(editVenueProvider.notifier);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Tüm Yemekler Caiz toggle
-        CheckboxListTile(
-          value: state.allFoodHalal,
-          onChanged: (_) =>
-              ref.read(editVenueProvider.notifier).toggleAllFoodHalal(),
-          title: const Text('Tüm Yemekler Caiz'),
+        // 3 modlu radio seçimi
+        RadioListTile<String>(
+          value: 'all',
+          groupValue: state.foodHalalMode,
+          onChanged: (v) => notifier.setFoodHalalMode(v!),
+          title: const Text('Tüm Yemekler Caiz', style: TextStyle(fontSize: 14)),
           controlAffinity: ListTileControlAffinity.leading,
           contentPadding: EdgeInsets.zero,
           dense: true,
           activeColor: AppTheme.primary,
         ),
-        if (!state.allFoodHalal)
+        RadioListTile<String>(
+          value: 'except',
+          groupValue: state.foodHalalMode,
+          onChanged: (v) => notifier.setFoodHalalMode(v!),
+          title: const Text('Şunlar Hariç Caiz', style: TextStyle(fontSize: 14)),
+          controlAffinity: ListTileControlAffinity.leading,
+          contentPadding: EdgeInsets.zero,
+          dense: true,
+          activeColor: AppTheme.primary,
+        ),
+        RadioListTile<String>(
+          value: 'selected',
+          groupValue: state.foodHalalMode,
+          onChanged: (v) => notifier.setFoodHalalMode(v!),
+          title: const Text('Belirli Yemekler Caiz', style: TextStyle(fontSize: 14)),
+          controlAffinity: ListTileControlAffinity.leading,
+          contentPadding: EdgeInsets.zero,
+          dense: true,
+          activeColor: AppTheme.primary,
+        ),
+
+        // Except modu: sakıncalı malzeme girişi
+        if (state.foodHalalMode == 'except') ...[
+          const SizedBox(height: 8),
+          const Text(
+            'Caiz olmayan malzemeler',
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 8),
+          ...state.excludedProducts.asMap().entries.map((entry) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      initialValue: entry.value,
+                      onChanged: (v) =>
+                          notifier.updateExcludedProduct(entry.key, v),
+                      decoration: InputDecoration(
+                        hintText: entry.key == 0 ? 'örn. kaşar' : 'Malzeme adı',
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 10),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
+                  ),
+                  if (state.excludedProducts.length > 1)
+                    IconButton(
+                      icon: const Icon(Icons.close, size: 20),
+                      onPressed: () =>
+                          notifier.removeExcludedProduct(entry.key),
+                      color: Colors.red.shade400,
+                      padding: const EdgeInsets.all(4),
+                      constraints: const BoxConstraints(),
+                    ),
+                ],
+              ),
+            );
+          }),
+          TextButton.icon(
+            onPressed: () => notifier.addExcludedProduct(''),
+            icon: const Icon(Icons.add, size: 18),
+            label: const Text('Malzeme ekle'),
+            style: TextButton.styleFrom(foregroundColor: AppTheme.primary),
+          ),
+        ],
+
+        // Kategori seçimi: sadece selected modunda gösterilir
+        if (state.foodHalalMode == 'selected')
           categoriesAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (_, _) => const Text('Yemek kategorileri yüklenemedi.'),
@@ -487,9 +560,7 @@ class _EditVenueScreenState extends ConsumerState<EditVenueScreen> {
                               style: const TextStyle(fontSize: 12),
                             ),
                             selected: isSelected,
-                            onSelected: (_) => ref
-                                .read(editVenueProvider.notifier)
-                                .toggleFoodItem(item.id),
+                            onSelected: (_) => notifier.toggleFoodItem(item.id),
                             selectedColor:
                                 AppTheme.primary.withValues(alpha: 0.2),
                             checkmarkColor: AppTheme.primary,

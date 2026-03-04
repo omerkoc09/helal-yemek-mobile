@@ -38,9 +38,10 @@
 
 #### 2. Mekan Bilgileri
 - **Temel Bilgiler**: Ad, adres, çalışma saatleri
-- **Helal Kriterleri**: Önceden tanımlı etiketler
-  - Kişisel Deneyim
-  - Helal Sertifikası var
+- **Helal Kriterleri**: Önceden tanımlı etiketler (her biri açıklama içerir, popup ile gösterilir)
+  - Helal Sertifikası
+  - İşletme Sahibinden Teyit
+  - Boykot Ürünü Yok
 - **Fotoğraf Galerisi**: Mekan fotoğrafları
 - **Güven Göstergeleri**: Son doğrulanma tarihi, çift doğrulanmış badge
 

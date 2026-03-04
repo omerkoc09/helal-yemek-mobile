@@ -4,23 +4,15 @@
 Mevcut Durum Notu: Proje genel hatlarıyla Faz 5'e (Test & Yayın) geçmiş gibi görünse de, Faz 1-4 arasındaki bazı özelliklerde (MVP çekirdeği) mimari değişiklikler, UX revizyonları ve bug fix'ler yapılmaktadır. Bir modülü düzenlerken, eski kodun kusursuz olduğunu varsayma; refactoring (kod iyileştirme) ve mantık değişiklikleri yapmak serbesttir ve gereklidir.
 ---
 
+## Düzgün Çalışmayan Kısımlar
+1. Eklenen fotoğraf gözükmüyor
+
 ## Revize Edilecek Özellikler:
-1. yemek ekleme kısmında  except kısmı olsun
-çünkü şu hariç her şey caiz gibi bir ifade olmalı (mesela kaşar içermeyen her şey caiz gibi) Oraya sakıncalı ürünler diye bir başlık konur rehber sırayla ürünleri girer. Mesela default olarak bir kutucuk konur kullanıcı içine kaşar yazar. sonra artı ikonu gibi bir şey koyarız yeni bir kutucuk açılır. kullanıcı içine sucuk yazar. Böylece sakıncalı ürünler listemiz belirlenir: kaşar, sucuk. Bu da  kullanıcılara uygun bir formatta mekan detay sayfasında sunulur.
+
+1. rehberin ekklediği mekanın bilgilerini belli süre geçtikten sonra (3 ay, 6 ay) güncellemesi için bildirim atılır. Güncellemezse mekan uygulamada askıya alınır.
 
 
-3. Rehberlik başvurusuna kısıtlama getirilecek. Sadece rehber referans kodu olanlar başvurabilecek. Tabi bunun için rehberlere bir unique referans kodu vermemiz gerekiyor öncelikle.
-
-4. rehberin mekanın bilgilerini belli süre geçtikten sonra (3 ay, 6 ay) güncellemesi için bildirim atılır. Güncellemezse mekan uygulamada askıya alınır.
-
-5. helallik kriterleri
-zenginleştirmeli daha çok seçenek olsun.
-gezgin ve rehber bu kriterlerin ne ifade ettiğini daha iyi anlaması için info koyulabilir.
--kişisel araştırma: mekanı kendi imkanlarımla araştırdım, helal ve tayyip olduğuna kanaat getirdim.
--mekan sahibini tanıyorum: helal ürünler kullandığını mekan sahibinden teyit ettim.
--helal sertifikası var: GİMDES helal sertifikasına sahip olduğundan eminim.
-
-6. admin panelinde
+2. admin panelinde
 onay bekleyen mekanların koordinatları yerine rehberin sisteme eklediği  mekanın google maps linki olsun. Tıklandığında google mapse yönlendirsin Böylece admin onun doğruluğunu kontrol edebilir. 
 
 ## Öncelikli Olarak Yapılması Gerekenler

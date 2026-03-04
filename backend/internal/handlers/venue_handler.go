@@ -83,15 +83,16 @@ func (h *VenueHandler) Create(c *fiber.Ctx) error {
 	userID := c.Locals("userID").(string)
 
 	var req struct {
-		Name         string  `json:"name"`
-		Address      string  `json:"address"`
-		City         string  `json:"city"`
-		Latitude     float64 `json:"latitude"`
-		Longitude    float64 `json:"longitude"`
-		Notes        *string `json:"notes"`
-		CriteriaIDs  []int   `json:"criteria_ids"`
-		FoodItemIDs  []int   `json:"food_item_ids"`
-		AllFoodHalal bool    `json:"all_food_halal"`
+		Name             string   `json:"name"`
+		Address          string   `json:"address"`
+		City             string   `json:"city"`
+		Latitude         float64  `json:"latitude"`
+		Longitude        float64  `json:"longitude"`
+		Notes            *string  `json:"notes"`
+		CriteriaIDs      []int    `json:"criteria_ids"`
+		FoodItemIDs      []int    `json:"food_item_ids"`
+		FoodHalalMode    string   `json:"food_halal_mode"`
+		ExcludedProducts []string `json:"excluded_products"`
 	}
 	if err := c.BodyParser(&req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "geçersiz istek gövdesi"})
@@ -108,15 +109,26 @@ func (h *VenueHandler) Create(c *fiber.Ctx) error {
 		})
 	}
 
+	// food_halal_mode varsayılan değer
+	if req.FoodHalalMode == "" {
+		req.FoodHalalMode = "selected"
+	}
+	if req.FoodHalalMode != "all" && req.FoodHalalMode != "except" && req.FoodHalalMode != "selected" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "food_halal_mode 'all', 'except' veya 'selected' olmalıdır",
+		})
+	}
+
 	venue := &models.Venue{
-		Name:         req.Name,
-		Address:      req.Address,
-		City:         req.City,
-		Latitude:     req.Latitude,
-		Longitude:    req.Longitude,
-		Notes:        req.Notes,
-		AddedBy:      userID,
-		AllFoodHalal: req.AllFoodHalal,
+		Name:             req.Name,
+		Address:          req.Address,
+		City:             req.City,
+		Latitude:         req.Latitude,
+		Longitude:        req.Longitude,
+		Notes:            req.Notes,
+		AddedBy:          userID,
+		FoodHalalMode:    req.FoodHalalMode,
+		ExcludedProducts: req.ExcludedProducts,
 	}
 
 	if err := h.venueRepo.Create(c.Context(), venue); err != nil {
@@ -140,15 +152,25 @@ func (h *VenueHandler) Create(c *fiber.Ctx) error {
 		venue.Criteria = []models.HalalCriteria{}
 	}
 
-	// Yemek çeşitlerini kaydet
-	if len(req.FoodItemIDs) > 0 {
-		if err := h.venueRepo.SetVenueFoodItems(c.Context(), venue.ID, req.FoodItemIDs); err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "yemek çeşitleri kaydedilemedi"})
-		}
-		foodItems, _ := h.venueRepo.GetFoodItemsByVenueID(c.Context(), venue.ID)
-		venue.FoodItems = foodItems
-	} else {
+	// Yemek çeşitlerini mod bazlı kaydet
+	switch venue.FoodHalalMode {
+	case "all":
 		venue.FoodItems = []models.FoodItem{}
+		venue.ExcludedProducts = []string{}
+	case "except":
+		// Sakıncalı ürünler zaten venue'da kayıtlı; yemek çeşitleri kaydedilmez
+		venue.FoodItems = []models.FoodItem{}
+	default: // "selected"
+		venue.ExcludedProducts = []string{}
+		if len(req.FoodItemIDs) > 0 {
+			if err := h.venueRepo.SetVenueFoodItems(c.Context(), venue.ID, req.FoodItemIDs); err != nil {
+				return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "yemek çeşitleri kaydedilemedi"})
+			}
+			foodItems, _ := h.venueRepo.GetFoodItemsByVenueID(c.Context(), venue.ID)
+			venue.FoodItems = foodItems
+		} else {
+			venue.FoodItems = []models.FoodItem{}
+		}
 	}
 	venue.Photos = []models.VenuePhoto{}
 
@@ -260,15 +282,16 @@ func (h *VenueHandler) Update(c *fiber.Ctx) error {
 	}
 
 	var req struct {
-		Name         *string  `json:"name"`
-		Address      *string  `json:"address"`
-		City         *string  `json:"city"`
-		Latitude     *float64 `json:"latitude"`
-		Longitude    *float64 `json:"longitude"`
-		Notes        *string  `json:"notes"`
-		CriteriaIDs  *[]int   `json:"criteria_ids"`
-		FoodItemIDs  *[]int   `json:"food_item_ids"`
-		AllFoodHalal *bool    `json:"all_food_halal"`
+		Name             *string   `json:"name"`
+		Address          *string   `json:"address"`
+		City             *string   `json:"city"`
+		Latitude         *float64  `json:"latitude"`
+		Longitude        *float64  `json:"longitude"`
+		Notes            *string   `json:"notes"`
+		CriteriaIDs      *[]int    `json:"criteria_ids"`
+		FoodItemIDs      *[]int    `json:"food_item_ids"`
+		FoodHalalMode    *string   `json:"food_halal_mode"`
+		ExcludedProducts *[]string `json:"excluded_products"`
 	}
 	if err := c.BodyParser(&req); err != nil {
 		return fiber.ErrBadRequest
@@ -291,8 +314,13 @@ func (h *VenueHandler) Update(c *fiber.Ctx) error {
 		}
 	}
 
-	if req.AllFoodHalal != nil {
-		if err := h.venueRepo.SetAllFoodHalal(c.Context(), venueID, *req.AllFoodHalal); err != nil {
+	if req.FoodHalalMode != nil {
+		if err := h.venueRepo.SetFoodHalalMode(c.Context(), venueID, *req.FoodHalalMode); err != nil {
+			return fiber.ErrInternalServerError
+		}
+	}
+	if req.ExcludedProducts != nil {
+		if err := h.venueRepo.SetExcludedProducts(c.Context(), venueID, *req.ExcludedProducts); err != nil {
 			return fiber.ErrInternalServerError
 		}
 	}

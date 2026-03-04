@@ -21,7 +21,12 @@ _Venue _$VenueFromJson(Map<String, dynamic> json) => _Venue(
   verifiedAt: json['verified_at'] == null
       ? null
       : DateTime.parse(json['verified_at'] as String),
-  allFoodHalal: json['all_food_halal'] as bool? ?? false,
+  foodHalalMode: json['food_halal_mode'] as String? ?? 'selected',
+  excludedProducts:
+      (json['excluded_products'] as List<dynamic>?)
+          ?.map((e) => e as String)
+          .toList() ??
+      const [],
   criteria:
       (json['criteria'] as List<dynamic>?)
           ?.map((e) => HalalCriteria.fromJson(e as Map<String, dynamic>))
@@ -61,7 +66,8 @@ Map<String, dynamic> _$VenueToJson(_Venue instance) => <String, dynamic>{
   'added_by': instance.addedBy,
   'approved_by': instance.approvedBy,
   'verified_at': instance.verifiedAt?.toIso8601String(),
-  'all_food_halal': instance.allFoodHalal,
+  'food_halal_mode': instance.foodHalalMode,
+  'excluded_products': instance.excludedProducts,
   'criteria': instance.criteria,
   'photos': instance.photos,
   'food_items': instance.foodItems,
@@ -78,6 +84,8 @@ _HalalCriteria _$HalalCriteriaFromJson(Map<String, dynamic> json) =>
       key: json['key'] as String,
       labelTr: json['label_tr'] as String,
       labelEn: json['label_en'] as String,
+      descriptionTr: json['description_tr'] as String?,
+      descriptionEn: json['description_en'] as String?,
     );
 
 Map<String, dynamic> _$HalalCriteriaToJson(_HalalCriteria instance) =>
@@ -86,6 +94,8 @@ Map<String, dynamic> _$HalalCriteriaToJson(_HalalCriteria instance) =>
       'key': instance.key,
       'label_tr': instance.labelTr,
       'label_en': instance.labelEn,
+      'description_tr': instance.descriptionTr,
+      'description_en': instance.descriptionEn,
     };
 
 _VenuePhoto _$VenuePhotoFromJson(Map<String, dynamic> json) => _VenuePhoto(

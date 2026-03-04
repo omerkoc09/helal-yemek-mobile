@@ -10,23 +10,62 @@ class HalalCriteriaChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Chip(
-      avatar: Icon(
-        _iconForCriteria(criteria.key),
-        size: 16,
-        color: AppTheme.primary,
+    return GestureDetector(
+      onTap: () => _showDescription(context),
+      child: Chip(
+        avatar: Icon(
+          _iconForCriteria(criteria.key),
+          size: 16,
+          color: AppTheme.primary,
+        ),
+        label: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(criteria.labelTr),
+            if (criteria.descriptionTr != null) ...[
+              const SizedBox(width: 4),
+              Icon(Icons.info_outline, size: 14, color: Colors.grey[600]),
+            ],
+          ],
+        ),
+        visualDensity: VisualDensity.compact,
       ),
-      label: Text(criteria.labelTr),
-      visualDensity: VisualDensity.compact,
+    );
+  }
+
+  void _showDescription(BuildContext context) {
+    final description = criteria.descriptionTr;
+    if (description == null || description.isEmpty) return;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(_iconForCriteria(criteria.key), color: AppTheme.primary),
+            const SizedBox(width: 8),
+            Expanded(child: Text(criteria.labelTr, style: const TextStyle(fontSize: 16))),
+          ],
+        ),
+        content: Text(description),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Tamam'),
+          ),
+        ],
+      ),
     );
   }
 
   IconData _iconForCriteria(String key) {
     switch (key) {
-      case 'personel_experience':
-        return Icons.person_outline;
       case 'halal_certified':
         return Icons.verified_outlined;
+      case 'known_owner':
+        return Icons.store_outlined;
+      case 'no_boycott_products':
+        return Icons.block_outlined;
       default:
         return Icons.check_circle_outline;
     }

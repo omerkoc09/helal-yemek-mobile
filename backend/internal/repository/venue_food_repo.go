@@ -82,11 +82,23 @@ func (r *VenueRepo) SetVenueFoodItems(ctx context.Context, venueID string, foodI
 	return tx.Commit(ctx)
 }
 
-// SetAllFoodHalal — mekanın all_food_halal flag'ini günceller.
-func (r *VenueRepo) SetAllFoodHalal(ctx context.Context, venueID string, allHalal bool) error {
+// SetFoodHalalMode — mekanın food_halal_mode değerini günceller.
+func (r *VenueRepo) SetFoodHalalMode(ctx context.Context, venueID string, mode string) error {
 	_, err := r.db.Exec(ctx,
-		`UPDATE venues SET all_food_halal = $1, updated_at = NOW() WHERE id = $2 AND deleted_at IS NULL`,
-		allHalal, venueID,
+		`UPDATE venues SET food_halal_mode = $1, updated_at = NOW() WHERE id = $2 AND deleted_at IS NULL`,
+		mode, venueID,
+	)
+	return err
+}
+
+// SetExcludedProducts — mekanın sakıncalı ürün listesini günceller.
+func (r *VenueRepo) SetExcludedProducts(ctx context.Context, venueID string, products []string) error {
+	if products == nil {
+		products = []string{}
+	}
+	_, err := r.db.Exec(ctx,
+		`UPDATE venues SET excluded_products = $1, updated_at = NOW() WHERE id = $2 AND deleted_at IS NULL`,
+		products, venueID,
 	)
 	return err
 }

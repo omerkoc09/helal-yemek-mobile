@@ -18,7 +18,8 @@ abstract class Venue with _$Venue {
     @JsonKey(name: 'added_by') required String addedBy,
     @JsonKey(name: 'approved_by') String? approvedBy,
     @JsonKey(name: 'verified_at') DateTime? verifiedAt,
-    @JsonKey(name: 'all_food_halal') @Default(false) bool allFoodHalal,
+    @JsonKey(name: 'food_halal_mode') @Default('selected') String foodHalalMode,
+    @JsonKey(name: 'excluded_products') @Default([]) List<String> excludedProducts,
     @Default([]) List<HalalCriteria> criteria,
     @Default([]) List<VenuePhoto> photos,
     @JsonKey(name: 'food_items') @Default([]) List<FoodItem> foodItems,
@@ -45,6 +46,8 @@ abstract class HalalCriteria with _$HalalCriteria {
     required String key,
     @JsonKey(name: 'label_tr') required String labelTr,
     @JsonKey(name: 'label_en') required String labelEn,
+    @JsonKey(name: 'description_tr') String? descriptionTr,
+    @JsonKey(name: 'description_en') String? descriptionEn,
   }) = _HalalCriteria;
 
   factory HalalCriteria.fromJson(Map<String, dynamic> json) =>
