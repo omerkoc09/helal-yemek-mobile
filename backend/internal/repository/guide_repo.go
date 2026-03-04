@@ -97,20 +97,3 @@ func (r *GuideRepo) UpdateStatus(ctx context.Context, id, adminID string, status
 	}
 	return nil
 }
-
-func scanApplicationRows(rows pgx.Rows) ([]models.GuideApplication, error) {
-	var list []models.GuideApplication
-	for rows.Next() {
-		app := models.GuideApplication{}
-		if err := rows.Scan(
-			&app.ID, &app.UserID, &app.Status, &app.Note, &app.ReviewedBy, &app.ReviewedAt, &app.ReferredBy, &app.CreatedAt,
-		); err != nil {
-			return nil, err
-		}
-		list = append(list, app)
-	}
-	if list == nil {
-		list = []models.GuideApplication{}
-	}
-	return list, rows.Err()
-}

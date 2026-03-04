@@ -80,7 +80,10 @@ func (h *VenueHandler) Detail(c *fiber.Ctx) error {
 // Create godoc
 // POST /api/v1/venues  (Guide + Admin)
 func (h *VenueHandler) Create(c *fiber.Ctx) error {
-	userID := c.Locals("userID").(string)
+	userID, err := getUserID(c)
+	if err != nil {
+		return err
+	}
 
 	var req struct {
 		Name             string   `json:"name"`
@@ -103,9 +106,9 @@ func (h *VenueHandler) Create(c *fiber.Ctx) error {
 			"error": "ad, adres ve şehir zorunludur",
 		})
 	}
-	if req.Latitude == 0 || req.Longitude == 0 {
+	if req.Latitude < -90 || req.Latitude > 90 || req.Longitude < -180 || req.Longitude > 180 {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "geçerli koordinat (latitude, longitude) zorunludur",
+			"error": "geçerli koordinat (latitude: -90..90, longitude: -180..180) zorunludur",
 		})
 	}
 
@@ -136,7 +139,7 @@ func (h *VenueHandler) Create(c *fiber.Ctx) error {
 	}
 
 	// Admin eklediği mekanlar otomatik onaylı olsun
-	role, _ := c.Locals("userRole").(string)
+	role := getUserRole(c)
 	if role == "admin" {
 		_ = h.venueRepo.Approve(c.Context(), venue.ID, userID)
 		venue.Status = "approved"
@@ -181,7 +184,10 @@ func (h *VenueHandler) Create(c *fiber.Ctx) error {
 // POST /api/v1/venues/:id/photos  (Guide + Admin)
 func (h *VenueHandler) UploadPhoto(c *fiber.Ctx) error {
 	venueID := c.Params("id")
-	userID := c.Locals("userID").(string)
+	userID, err := getUserID(c)
+	if err != nil {
+		return err
+	}
 
 	// Mekanın var olup olmadığını kontrol et
 	if _, err := h.venueRepo.FindByID(c.Context(), venueID); err != nil {
@@ -244,7 +250,10 @@ func (h *VenueHandler) DeletePhoto(c *fiber.Ctx) error {
 // POST /api/v1/venues/:id/confirm  (Guide)
 func (h *VenueHandler) ConfirmVenue(c *fiber.Ctx) error {
 	venueID := c.Params("id")
-	guideID := c.Locals("userID").(string)
+	guideID, err := getUserID(c)
+	if err != nil {
+		return err
+	}
 
 	if err := h.venueRepo.ConfirmVenue(c.Context(), venueID, guideID); err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
@@ -265,8 +274,11 @@ func (h *VenueHandler) ConfirmVenue(c *fiber.Ctx) error {
 // PUT /api/v1/venues/:id  (Guide — kendi mekanı)
 func (h *VenueHandler) Update(c *fiber.Ctx) error {
 	venueID := c.Params("id")
-	userID := c.Locals("userID").(string)
-	role, _ := c.Locals("userRole").(string)
+	userID, err := getUserID(c)
+	if err != nil {
+		return err
+	}
+	role := getUserRole(c)
 
 	venue, err := h.venueRepo.FindByID(c.Context(), venueID)
 	if err != nil {
@@ -315,7 +327,13 @@ func (h *VenueHandler) Update(c *fiber.Ctx) error {
 	}
 
 	if req.FoodHalalMode != nil {
-		if err := h.venueRepo.SetFoodHalalMode(c.Context(), venueID, *req.FoodHalalMode); err != nil {
+		mode := *req.FoodHalalMode
+		if mode != "all" && mode != "except" && mode != "selected" {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": "food_halal_mode 'all', 'except' veya 'selected' olmalıdır",
+			})
+		}
+		if err := h.venueRepo.SetFoodHalalMode(c.Context(), venueID, mode); err != nil {
 			return fiber.ErrInternalServerError
 		}
 	}

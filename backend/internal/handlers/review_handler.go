@@ -30,7 +30,10 @@ func (h *ReviewHandler) List(c *fiber.Ctx) error {
 // POST /venues/:id/reviews
 func (h *ReviewHandler) Create(c *fiber.Ctx) error {
 	venueID := c.Params("id")
-	userID := c.Locals("userID").(string)
+	userID, err := getUserID(c)
+	if err != nil {
+		return err
+	}
 
 	var req struct {
 		Rating  int     `json:"rating"`
@@ -62,7 +65,10 @@ func (h *ReviewHandler) Create(c *fiber.Ctx) error {
 // PUT /venues/:id/reviews/:reviewId
 func (h *ReviewHandler) Update(c *fiber.Ctx) error {
 	reviewID := c.Params("reviewId")
-	userID := c.Locals("userID").(string)
+	userID, err := getUserID(c)
+	if err != nil {
+		return err
+	}
 
 	var req struct {
 		Rating  int     `json:"rating"`
@@ -88,8 +94,11 @@ func (h *ReviewHandler) Update(c *fiber.Ctx) error {
 // DELETE /venues/:id/reviews/:reviewId
 func (h *ReviewHandler) Delete(c *fiber.Ctx) error {
 	reviewID := c.Params("reviewId")
-	userID := c.Locals("userID").(string)
-	role, _ := c.Locals("userRole").(string)
+	userID, err := getUserID(c)
+	if err != nil {
+		return err
+	}
+	role := getUserRole(c)
 
 	if err := h.reviewRepo.Delete(c.Context(), reviewID, userID, role == "admin"); err != nil {
 		if errors.Is(err, repository.ErrNotFound) {

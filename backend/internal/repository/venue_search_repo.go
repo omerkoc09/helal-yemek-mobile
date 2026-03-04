@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/jackc/pgx/v5"
 
@@ -37,8 +38,15 @@ func (r *VenueRepo) FindNearby(ctx context.Context, lat, lng, radiusMeters float
 	return r.scanVenueRowsWithPhotos(ctx, rows, true)
 }
 
+// escapeILIKE — ILIKE meta-karakterlerini (%_\) escape eder.
+func escapeILIKE(s string) string {
+	r := strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`)
+	return r.Replace(s)
+}
+
 // SearchByText — mekan adı, şehir veya adres içinde serbest metin araması yapar.
 func (r *VenueRepo) SearchByText(ctx context.Context, query string) ([]models.Venue, error) {
+	query = escapeILIKE(query)
 	q := `
 		SELECT
 			v.id, v.name, v.address, v.city,

@@ -35,7 +35,10 @@ func NewAdminHandler(
 
 // writeAuditLog — audit kaydını yazar; hata olsa da isteği bloklamaz, sadece loglar.
 func (h *AdminHandler) writeAuditLog(c *fiber.Ctx, action, targetType, targetID string, note *string) {
-	adminID := c.Locals("userID").(string)
+	adminID, _ := getUserID(c)
+	if adminID == "" {
+		return
+	}
 	l := &models.AuditLog{
 		AdminID:    adminID,
 		Action:     action,
@@ -99,14 +102,22 @@ func (h *AdminHandler) UpdateVenue(c *fiber.Ctx) error {
 
 	// Status değişikliği
 	if req.Status != nil {
-		adminID := c.Locals("userID").(string)
+		adminID, err := getUserID(c)
+		if err != nil {
+			return err
+		}
+		var statusErr error
 		switch *req.Status {
 		case "approved":
-			_ = h.venueRepo.Approve(c.Context(), venueID, adminID)
+			statusErr = h.venueRepo.Approve(c.Context(), venueID, adminID)
 		case "rejected":
-			_ = h.venueRepo.Reject(c.Context(), venueID, adminID, nil)
+			statusErr = h.venueRepo.Reject(c.Context(), venueID, adminID, nil)
 		case "pending":
-			_ = h.venueRepo.Suspend(c.Context(), venueID, adminID)
+			statusErr = h.venueRepo.Suspend(c.Context(), venueID, adminID)
+		}
+		if statusErr != nil {
+			log.Printf("[ADMIN] UpdateVenue status change error for id=%s: %v", venueID, statusErr)
+			return fiber.ErrInternalServerError
 		}
 	}
 
@@ -130,7 +141,10 @@ func (h *AdminHandler) ListPendingVenues(c *fiber.Ctx) error {
 // PUT /admin/venues/:id/approve
 func (h *AdminHandler) ApproveVenue(c *fiber.Ctx) error {
 	id := c.Params("id")
-	adminID := c.Locals("userID").(string)
+	adminID, err := getUserID(c)
+	if err != nil {
+		return err
+	}
 
 	if err := h.venueRepo.Approve(c.Context(), id, adminID); err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
@@ -147,7 +161,10 @@ func (h *AdminHandler) ApproveVenue(c *fiber.Ctx) error {
 // Body: {"note": "..."}
 func (h *AdminHandler) RejectVenue(c *fiber.Ctx) error {
 	id := c.Params("id")
-	adminID := c.Locals("userID").(string)
+	adminID, err := getUserID(c)
+	if err != nil {
+		return err
+	}
 
 	var req struct {
 		Note *string `json:"note"`
@@ -180,7 +197,10 @@ func (h *AdminHandler) ListApplications(c *fiber.Ctx) error {
 // PUT /admin/applications/:id/approve
 func (h *AdminHandler) ApproveApplication(c *fiber.Ctx) error {
 	id := c.Params("id")
-	adminID := c.Locals("userID").(string)
+	adminID, err := getUserID(c)
+	if err != nil {
+		return err
+	}
 
 	app, err := h.guideRepo.FindByID(c.Context(), id)
 	if err != nil {
@@ -215,7 +235,10 @@ func (h *AdminHandler) ApproveApplication(c *fiber.Ctx) error {
 // Body: {"note": "..."}
 func (h *AdminHandler) RejectApplication(c *fiber.Ctx) error {
 	id := c.Params("id")
-	adminID := c.Locals("userID").(string)
+	adminID, err := getUserID(c)
+	if err != nil {
+		return err
+	}
 
 	var req struct {
 		Note *string `json:"note"`
@@ -296,7 +319,10 @@ func (h *AdminHandler) DeleteUser(c *fiber.Ctx) error {
 	id := c.Params("id")
 
 	// Admin kendini silemesin
-	adminID := c.Locals("userID").(string)
+	adminID, err := getUserID(c)
+	if err != nil {
+		return err
+	}
 	if id == adminID {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "kendi hesabınızı silemezsiniz"})
 	}

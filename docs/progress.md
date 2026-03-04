@@ -5,7 +5,7 @@ Mevcut Durum Notu: Proje genel hatlarıyla Faz 5'e (Test & Yayın) geçmiş gibi
 ---
 
 ## Düzgün Çalışmayan Kısımlar
-1. Eklenen fotoğraf gözükmüyor
+
 
 ## Revize Edilecek Özellikler:
 

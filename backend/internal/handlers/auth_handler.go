@@ -125,7 +125,10 @@ func (h *AuthHandler) Refresh(c *fiber.Ctx) error {
 // Me godoc
 // GET /api/v1/auth/me
 func (h *AuthHandler) Me(c *fiber.Ctx) error {
-	userID := c.Locals("userID").(string)
+	userID, err := getUserID(c)
+	if err != nil {
+		return err
+	}
 	user, err := h.authService.GetUser(c.Context(), userID)
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "kullanıcı bulunamadı"})
@@ -136,7 +139,10 @@ func (h *AuthHandler) Me(c *fiber.Ctx) error {
 // UpdateProfile godoc
 // PUT /api/v1/auth/profile
 func (h *AuthHandler) UpdateProfile(c *fiber.Ctx) error {
-	userID := c.Locals("userID").(string)
+	userID, err := getUserID(c)
+	if err != nil {
+		return err
+	}
 
 	var req struct {
 		Name string `json:"name"`

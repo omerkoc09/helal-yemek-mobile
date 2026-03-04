@@ -17,7 +17,10 @@ func NewFavoriteHandler(favoriteRepo *repository.FavoriteRepo) *FavoriteHandler 
 
 // GET /favorites
 func (h *FavoriteHandler) List(c *fiber.Ctx) error {
-	userID := c.Locals("userID").(string)
+	userID, err := getUserID(c)
+	if err != nil {
+		return err
+	}
 	venues, err := h.favoriteRepo.ListByUser(c.Context(), userID)
 	if err != nil {
 		return fiber.ErrInternalServerError
@@ -27,7 +30,10 @@ func (h *FavoriteHandler) List(c *fiber.Ctx) error {
 
 // POST /favorites/:venueId
 func (h *FavoriteHandler) Add(c *fiber.Ctx) error {
-	userID := c.Locals("userID").(string)
+	userID, err := getUserID(c)
+	if err != nil {
+		return err
+	}
 	venueID := c.Params("venueId")
 	if err := h.favoriteRepo.Add(c.Context(), userID, venueID); err != nil {
 		return fiber.ErrInternalServerError
@@ -37,7 +43,10 @@ func (h *FavoriteHandler) Add(c *fiber.Ctx) error {
 
 // DELETE /favorites/:venueId
 func (h *FavoriteHandler) Remove(c *fiber.Ctx) error {
-	userID := c.Locals("userID").(string)
+	userID, err := getUserID(c)
+	if err != nil {
+		return err
+	}
 	venueID := c.Params("venueId")
 	if err := h.favoriteRepo.Remove(c.Context(), userID, venueID); err != nil {
 		if errors.Is(err, repository.ErrNotFound) {

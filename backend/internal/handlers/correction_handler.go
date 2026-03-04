@@ -20,7 +20,10 @@ func NewCorrectionHandler(correctionRepo *repository.CorrectionRepo, auditRepo *
 // POST /venues/:id/corrections — Guide
 func (h *CorrectionHandler) Create(c *fiber.Ctx) error {
 	venueID := c.Params("id")
-	userID := c.Locals("userID").(string)
+	userID, err := getUserID(c)
+	if err != nil {
+		return err
+	}
 
 	var req struct {
 		FieldName string  `json:"field_name"`
@@ -61,7 +64,10 @@ func (h *CorrectionHandler) ListPending(c *fiber.Ctx) error {
 // Body: {"action": "approve"|"reject", "note": "..."}
 func (h *CorrectionHandler) Review(c *fiber.Ctx) error {
 	id := c.Params("id")
-	adminID := c.Locals("userID").(string)
+	adminID, err := getUserID(c)
+	if err != nil {
+		return err
+	}
 
 	var req struct {
 		Action string  `json:"action"` // "approve" | "reject"
@@ -74,7 +80,7 @@ func (h *CorrectionHandler) Review(c *fiber.Ctx) error {
 		return c.Status(400).JSON(fiber.Map{"error": "action 'approve' veya 'reject' olmalıdır"})
 	}
 
-	_, err := h.correctionRepo.FindByID(c.Context(), id)
+	_, err = h.correctionRepo.FindByID(c.Context(), id)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
 			return fiber.ErrNotFound

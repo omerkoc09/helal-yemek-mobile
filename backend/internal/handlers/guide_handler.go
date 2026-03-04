@@ -21,8 +21,11 @@ func NewGuideHandler(guideRepo *repository.GuideRepo, venueRepo *repository.Venu
 
 // POST /guide/apply — Traveler → Guide başvurusu gönderir.
 func (h *GuideHandler) Apply(c *fiber.Ctx) error {
-	userID := c.Locals("userID").(string)
-	role, _ := c.Locals("userRole").(string)
+	userID, err := getUserID(c)
+	if err != nil {
+		return err
+	}
+	role := getUserRole(c)
 
 	if role != string(models.RoleTraveler) {
 		return c.Status(400).JSON(fiber.Map{"error": "yalnızca traveler kullanıcılar başvurabilir"})
@@ -77,7 +80,10 @@ func (h *GuideHandler) Apply(c *fiber.Ctx) error {
 
 // GET /guide/my-venues — Guide'ın kendi eklediği mekanları listeler.
 func (h *GuideHandler) MyVenues(c *fiber.Ctx) error {
-	userID := c.Locals("userID").(string)
+	userID, err := getUserID(c)
+	if err != nil {
+		return err
+	}
 	venues, err := h.venueRepo.FindByAddedBy(c.Context(), userID)
 	if err != nil {
 		return fiber.ErrInternalServerError
@@ -87,12 +93,16 @@ func (h *GuideHandler) MyVenues(c *fiber.Ctx) error {
 
 // GET /guide/my-referral-code — Guide'ın aktif referans kodunu döndürür.
 func (h *GuideHandler) MyReferralCode(c *fiber.Ctx) error {
-	userID := c.Locals("userID").(string)
+	userID, err := getUserID(c)
+	if err != nil {
+		return err
+	}
 	rc, err := h.referralRepo.GetActiveByGuideID(c.Context(), userID)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
 			return c.Status(404).JSON(fiber.Map{"error": "aktif referans kodunuz bulunmuyor"})
 		}
+		return fiber.ErrInternalServerError
 	}
 	return c.JSON(fiber.Map{"referral_code": rc.Code})
 }
