@@ -36,20 +36,27 @@ class GuideApplicationNotifier extends Notifier<GuideApplicationState> {
   @override
   GuideApplicationState build() => const GuideApplicationState();
 
-  Future<void> apply() async {
+  Future<void> apply(String referralCode) async {
     state = state.copyWith(isLoading: true, error: null, isSuccess: false);
     try {
       final apiClient = ref.read(apiClientProvider);
-      await apiClient.post(ApiEndpoints.guideApply);
+      await apiClient.post(
+        ApiEndpoints.guideApply,
+        data: {'referral_code': referralCode},
+      );
       state = state.copyWith(
         isLoading: false,
         isSuccess: true,
         currentStatus: 'pending',
       );
     } catch (e) {
+      String errorMsg = 'Başvuru gönderilemedi. Lütfen tekrar deneyin.';
+      if (e.toString().contains('400')) {
+        errorMsg = 'Geçersiz veya kullanılmış referans kodu.';
+      }
       state = state.copyWith(
         isLoading: false,
-        error: 'Başvuru gönderilemedi. Lütfen tekrar deneyin.',
+        error: errorMsg,
       );
     }
   }
@@ -58,6 +65,48 @@ class GuideApplicationNotifier extends Notifier<GuideApplicationState> {
 final guideApplicationProvider =
     NotifierProvider<GuideApplicationNotifier, GuideApplicationState>(
   GuideApplicationNotifier.new,
+);
+
+// Guide referans kodu
+class ReferralCodeState {
+  final bool isLoading;
+  final String? code;
+  final String? error;
+
+  const ReferralCodeState({this.isLoading = false, this.code, this.error});
+
+  ReferralCodeState copyWith({bool? isLoading, String? code, String? error}) {
+    return ReferralCodeState(
+      isLoading: isLoading ?? this.isLoading,
+      code: code ?? this.code,
+      error: error,
+    );
+  }
+}
+
+class ReferralCodeNotifier extends Notifier<ReferralCodeState> {
+  @override
+  ReferralCodeState build() => const ReferralCodeState();
+
+  Future<void> fetch() async {
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      final apiClient = ref.read(apiClientProvider);
+      final response = await apiClient.get(ApiEndpoints.guideMyReferralCode);
+      final code = response.data['referral_code'] as String;
+      state = ReferralCodeState(code: code);
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Referans kodu alınamadı.',
+      );
+    }
+  }
+}
+
+final referralCodeProvider =
+    NotifierProvider<ReferralCodeNotifier, ReferralCodeState>(
+  ReferralCodeNotifier.new,
 );
 
 // Profil düzenleme

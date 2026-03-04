@@ -10,10 +10,11 @@ import (
 )
 
 type AdminHandler struct {
-	venueRepo *repository.VenueRepo
-	guideRepo *repository.GuideRepo
-	userRepo  *repository.UserRepo
-	auditRepo *repository.AuditRepo
+	venueRepo    *repository.VenueRepo
+	guideRepo    *repository.GuideRepo
+	userRepo     *repository.UserRepo
+	auditRepo    *repository.AuditRepo
+	referralRepo *repository.ReferralRepo
 }
 
 func NewAdminHandler(
@@ -21,12 +22,14 @@ func NewAdminHandler(
 	guideRepo *repository.GuideRepo,
 	userRepo *repository.UserRepo,
 	auditRepo *repository.AuditRepo,
+	referralRepo *repository.ReferralRepo,
 ) *AdminHandler {
 	return &AdminHandler{
-		venueRepo: venueRepo,
-		guideRepo: guideRepo,
-		userRepo:  userRepo,
-		auditRepo: auditRepo,
+		venueRepo:    venueRepo,
+		guideRepo:    guideRepo,
+		userRepo:     userRepo,
+		auditRepo:    auditRepo,
+		referralRepo: referralRepo,
 	}
 }
 
@@ -197,6 +200,11 @@ func (h *AdminHandler) ApproveApplication(c *fiber.Ctx) error {
 	// Kullanıcı rolünü guide'a yükselt
 	if err := h.userRepo.UpdateRole(c.Context(), app.UserID, models.RoleGuide); err != nil {
 		return fiber.ErrInternalServerError
+	}
+
+	// Yeni Guide'a ilk referans kodunu üret
+	if _, err := h.referralRepo.CreateCode(c.Context(), app.UserID); err != nil {
+		log.Printf("[ADMIN] referans kodu üretme hatası user=%s: %v", app.UserID, err)
 	}
 
 	h.writeAuditLog(c, "approve_guide_application", "guide_application", id, nil)

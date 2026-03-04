@@ -40,6 +40,7 @@ func main() {
 	correctionRepo := repository.NewCorrectionRepo(pool)
 	guideRepo := repository.NewGuideRepo(pool)
 	auditRepo := repository.NewAuditRepo(pool)
+	referralRepo := repository.NewReferralRepo(pool)
 
 	// Service katmanı
 	authService := services.NewAuthService(userRepo, cfg.JWTSecret, cfg.GoogleClientID)
@@ -51,8 +52,8 @@ func main() {
 	reviewHandler := handlers.NewReviewHandler(reviewRepo)
 	favoriteHandler := handlers.NewFavoriteHandler(favoriteRepo)
 	correctionHandler := handlers.NewCorrectionHandler(correctionRepo, auditRepo)
-	guideHandler := handlers.NewGuideHandler(guideRepo, venueRepo)
-	adminHandler := handlers.NewAdminHandler(venueRepo, guideRepo, userRepo, auditRepo)
+	guideHandler := handlers.NewGuideHandler(guideRepo, venueRepo, referralRepo)
+	adminHandler := handlers.NewAdminHandler(venueRepo, guideRepo, userRepo, auditRepo, referralRepo)
 
 	// Fiber uygulaması
 	app := fiber.New(fiber.Config{
@@ -162,6 +163,10 @@ func main() {
 	guide.Get("/my-venues",
 		middleware.RequireRole("guide", "admin"),
 		guideHandler.MyVenues,
+	)
+	guide.Get("/my-referral-code",
+		middleware.RequireRole("guide", "admin"),
+		guideHandler.MyReferralCode,
 	)
 
 	// Admin endpoint'leri

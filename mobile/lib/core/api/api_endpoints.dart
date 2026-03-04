@@ -32,6 +32,7 @@ class ApiEndpoints {
   // Guide
   static const String guideApply = '/guide/apply';
   static const String guideMyVenues = '/guide/my-venues';
+  static const String guideMyReferralCode = '/guide/my-referral-code';
 
   // Admin
   static const String adminVenues = '/admin/venues';

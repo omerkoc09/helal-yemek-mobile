@@ -18,6 +18,8 @@ _GuideApplication _$GuideApplicationFromJson(Map<String, dynamic> json) =>
           : DateTime.parse(json['reviewed_at'] as String),
       userName: json['user_name'] as String?,
       userEmail: json['user_email'] as String?,
+      referredBy: json['referred_by'] as String?,
+      referrerName: json['referrer_name'] as String?,
       createdAt: json['created_at'] == null
           ? null
           : DateTime.parse(json['created_at'] as String),
@@ -33,5 +35,7 @@ Map<String, dynamic> _$GuideApplicationToJson(_GuideApplication instance) =>
       'reviewed_at': instance.reviewedAt?.toIso8601String(),
       'user_name': instance.userName,
       'user_email': instance.userEmail,
+      'referred_by': instance.referredBy,
+      'referrer_name': instance.referrerName,
       'created_at': instance.createdAt?.toIso8601String(),
     };

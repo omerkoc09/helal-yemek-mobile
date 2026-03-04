@@ -29,30 +29,52 @@ func (r *GuideRepo) HasPendingApplication(ctx context.Context, userID string) (b
 
 func (r *GuideRepo) Create(ctx context.Context, app *models.GuideApplication) error {
 	return r.db.QueryRow(ctx,
-		`INSERT INTO guide_applications (user_id) VALUES ($1) RETURNING id, created_at`,
-		app.UserID,
+		`INSERT INTO guide_applications (user_id, referred_by) VALUES ($1, $2) RETURNING id, created_at`,
+		app.UserID, app.ReferredBy,
 	).Scan(&app.ID, &app.CreatedAt)
 }
 
 func (r *GuideRepo) ListPending(ctx context.Context) ([]models.GuideApplication, error) {
 	rows, err := r.db.Query(ctx,
-		`SELECT id, user_id, status, note, reviewed_by, reviewed_at, created_at
-		 FROM guide_applications WHERE status = 'pending' ORDER BY created_at`,
+		`SELECT ga.id, ga.user_id, ga.status, ga.note, ga.reviewed_by, ga.reviewed_at,
+		        ga.referred_by, r.name AS referrer_name, u.name AS user_name, u.email AS user_email,
+		        ga.created_at
+		 FROM guide_applications ga
+		 JOIN users u ON u.id = ga.user_id
+		 LEFT JOIN users r ON r.id = ga.referred_by
+		 WHERE ga.status = 'pending'
+		 ORDER BY ga.created_at`,
 	)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	return scanApplicationRows(rows)
+
+	var list []models.GuideApplication
+	for rows.Next() {
+		app := models.GuideApplication{}
+		if err := rows.Scan(
+			&app.ID, &app.UserID, &app.Status, &app.Note, &app.ReviewedBy, &app.ReviewedAt,
+			&app.ReferredBy, &app.ReferrerName, &app.UserName, &app.UserEmail,
+			&app.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		list = append(list, app)
+	}
+	if list == nil {
+		list = []models.GuideApplication{}
+	}
+	return list, rows.Err()
 }
 
 func (r *GuideRepo) FindByID(ctx context.Context, id string) (*models.GuideApplication, error) {
 	app := &models.GuideApplication{}
 	err := r.db.QueryRow(ctx,
-		`SELECT id, user_id, status, note, reviewed_by, reviewed_at, created_at
+		`SELECT id, user_id, status, note, reviewed_by, reviewed_at, referred_by, created_at
 		 FROM guide_applications WHERE id = $1`,
 		id,
-	).Scan(&app.ID, &app.UserID, &app.Status, &app.Note, &app.ReviewedBy, &app.ReviewedAt, &app.CreatedAt)
+	).Scan(&app.ID, &app.UserID, &app.Status, &app.Note, &app.ReviewedBy, &app.ReviewedAt, &app.ReferredBy, &app.CreatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -81,7 +103,7 @@ func scanApplicationRows(rows pgx.Rows) ([]models.GuideApplication, error) {
 	for rows.Next() {
 		app := models.GuideApplication{}
 		if err := rows.Scan(
-			&app.ID, &app.UserID, &app.Status, &app.Note, &app.ReviewedBy, &app.ReviewedAt, &app.CreatedAt,
+			&app.ID, &app.UserID, &app.Status, &app.Note, &app.ReviewedBy, &app.ReviewedAt, &app.ReferredBy, &app.CreatedAt,
 		); err != nil {
 			return nil, err
 		}

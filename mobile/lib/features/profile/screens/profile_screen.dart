@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -51,6 +52,8 @@ class ProfileScreen extends ConsumerWidget {
 
           // Guide menü öğeleri
           if (user.isGuide || user.isAdmin) ...[
+            _ReferralCodeCard(),
+            const SizedBox(height: 8),
             _MenuTile(
               icon: Icons.store_outlined,
               title: 'Mekanlarım',
@@ -201,9 +204,23 @@ class _RoleBadge extends StatelessWidget {
   }
 }
 
-class _GuideApplicationCard extends ConsumerWidget {
+class _GuideApplicationCard extends ConsumerStatefulWidget {
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_GuideApplicationCard> createState() =>
+      _GuideApplicationCardState();
+}
+
+class _GuideApplicationCardState extends ConsumerState<_GuideApplicationCard> {
+  final _codeController = TextEditingController();
+
+  @override
+  void dispose() {
+    _codeController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final appState = ref.watch(guideApplicationProvider);
 
     // Başvuru zaten gönderildi
@@ -261,11 +278,25 @@ class _GuideApplicationCard extends ConsumerWidget {
             ),
             const SizedBox(height: 8),
             const Text(
-              'Rehber olarak helal mekanlar ekleyebilir ve topluluğa katkıda bulunabilirsiniz.',
+              'Rehber olarak helal mekanlar ekleyebilir ve topluluğa katkıda bulunabilirsiniz. Başvurmak için bir rehberden aldığınız referans kodunu girin.',
               style: TextStyle(
                 fontSize: 13,
                 color: AppTheme.textSecondary,
               ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _codeController,
+              textCapitalization: TextCapitalization.characters,
+              maxLength: 5,
+              decoration: const InputDecoration(
+                labelText: 'Referans Kodu',
+                hintText: 'Örn: A7X3K',
+                prefixIcon: Icon(Icons.vpn_key_outlined),
+                counterText: '',
+                border: OutlineInputBorder(),
+              ),
+              onChanged: (_) => setState(() {}),
             ),
             if (appState.error != null) ...[
               const SizedBox(height: 8),
@@ -278,11 +309,12 @@ class _GuideApplicationCard extends ConsumerWidget {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: appState.isLoading
+                onPressed: appState.isLoading ||
+                        _codeController.text.trim().length < 5
                     ? null
                     : () => ref
                         .read(guideApplicationProvider.notifier)
-                        .apply(),
+                        .apply(_codeController.text.trim()),
                 child: appState.isLoading
                     ? const SizedBox(
                         height: 20,
@@ -295,6 +327,101 @@ class _GuideApplicationCard extends ConsumerWidget {
                     : const Text('Başvur'),
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ReferralCodeCard extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final rcState = ref.watch(referralCodeProvider);
+
+    // İlk yüklemede kodu çek
+    if (rcState.code == null && !rcState.isLoading && rcState.error == null) {
+      Future.microtask(
+          () => ref.read(referralCodeProvider.notifier).fetch());
+    }
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.share_outlined, color: AppTheme.primary),
+                const SizedBox(width: 8),
+                const Text(
+                  'Referans Kodunuz',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Bu kodu paylaşarak yeni rehberlerin başvurmasını sağlayabilirsiniz.',
+              style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+            ),
+            const SizedBox(height: 12),
+            if (rcState.isLoading)
+              const Center(
+                child: SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              )
+            else if (rcState.error != null)
+              Text(
+                rcState.error!,
+                style: const TextStyle(color: AppTheme.error, fontSize: 13),
+              )
+            else if (rcState.code != null)
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: AppTheme.primary.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: AppTheme.primary.withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      rcState.code!,
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 4,
+                        color: AppTheme.primary,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.copy, color: AppTheme.primary),
+                      onPressed: () {
+                        Clipboard.setData(
+                            ClipboardData(text: rcState.code!));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Referans kodu kopyalandı'),
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
           ],
         ),
       ),

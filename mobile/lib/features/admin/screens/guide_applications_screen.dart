@@ -116,6 +116,24 @@ class _GuideApplicationsScreenState
                       ),
                     ],
                   ),
+                  if (app.referrerName != null) ...[
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        const Icon(Icons.person_outline,
+                            size: 14, color: AppTheme.primary),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Referans: ${app.referrerName}',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: AppTheme.primary,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                   if (app.createdAt != null) ...[
                     const SizedBox(height: 8),
                     Text(
