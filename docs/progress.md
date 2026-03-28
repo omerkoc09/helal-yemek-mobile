@@ -1,6 +1,6 @@
 # Caiz mi? — Proje İlerleme Durumu
 
-> Son güncelleme: 2026-02-28
+> Son güncelleme: 2026-03-28
 Mevcut Durum Notu: Proje genel hatlarıyla Faz 5'e (Test & Yayın) geçmiş gibi görünse de, Faz 1-4 arasındaki bazı özelliklerde (MVP çekirdeği) mimari değişiklikler, UX revizyonları ve bug fix'ler yapılmaktadır. Bir modülü düzenlerken, eski kodun kusursuz olduğunu varsayma; refactoring (kod iyileştirme) ve mantık değişiklikleri yapmak serbesttir ve gereklidir.
 ---
 
@@ -23,7 +23,7 @@ Mevcut Durum Notu: Proje genel hatlarıyla Faz 5'e (Test & Yayın) geçmiş gibi
 |-------|-------|-------|
 | Proje yapısı (cmd/internal/pkg) | ✅ | Clean architecture: handler → service → repository |
 | PostgreSQL + PostGIS bağlantısı | ✅ | Connection pool, docker-compose ile dev ortamı |
-| Veritabanı migration sistemi | ✅ | 13 migration dosyası, golang-migrate |
+| Veritabanı migration sistemi | ✅ | 19 migration dosyası, golang-migrate |
 | Kullanıcı modeli & repo | ✅ | Traveler/Guide/Admin rolleri |
 | JWT Authentication | ✅ | Access + Refresh token, token yenileme |
 | Email/Şifre kayıt & giriş | ✅ | bcrypt hash, validation |
@@ -44,6 +44,9 @@ Mevcut Durum Notu: Proje genel hatlarıyla Faz 5'e (Test & Yayın) geçmiş gibi
 | Admin endpointleri | ✅ | Onay/red, kullanıcı yönetimi |
 | Audit log | ✅ | Tüm admin işlemleri kayıt altında |
 | Çift doğrulama (double-verified) | ✅ | venue_confirmations tablosu |
+| Google Place ID entegrasyonu | ✅ | PlacesService, venue modeline google_place_id eklendi, harita launcher'larına iletildi |
+| Kategori bazlı mekan arama | ✅ | FindByFoodCategory sorgusu + /venues/by-category/:id endpoint'i |
+| Referral code sistemi | ✅ | ReferralRepo, 5-karakter benzersiz kod üretimi, guide başvurusu referred_by alanı |
 
 ### Mobil Uygulama (Flutter)
 
@@ -76,8 +79,11 @@ Mevcut Durum Notu: Proje genel hatlarıyla Faz 5'e (Test & Yayın) geçmiş gibi
 | Profil ekranı | ✅ | Kullanıcı bilgileri |
 | Profil düzenleme | ✅ | edit_profile_screen |
 | Konum servisleri | ✅ | GPS, geolocator, 5dk cache |
-| Harita yönlendirme | ✅ | map_launcher (Google/Apple Maps) |
+| Harita yönlendirme | ✅ | map_launcher (Google/Apple Maps), googlePlaceId ile resmi profil açılımı |
 | Güvenli token depolama | ✅ | flutter_secure_storage |
+| Food Discovery ekranı | ✅ | Yemek kategorisine göre yakın mekan keşfi, alt nav "Ne Yesem?" sekmesi |
+| Yemek seçimi (tüm modlar) | ✅ | Yemek kategorileri artık sadece 'selected' değil tüm helal modlarda gösterilir |
+| Mekan ekleme konum UX | ✅ | Harita seçici artık Google Maps linki yoksa son çare olarak sunuluyor |
 
 ### Veritabanı
 
@@ -97,6 +103,9 @@ Mevcut Durum Notu: Proje genel hatlarıyla Faz 5'e (Test & Yayın) geçmiş gibi
 | correction_suggestions | ✅ |
 | audit_logs | ✅ |
 | venue_confirmations | ✅ |
+| referral_codes | ✅ |
+| venues.google_place_id | ✅ |
+| guide_applications.referred_by | ✅ |
 
 ---
 

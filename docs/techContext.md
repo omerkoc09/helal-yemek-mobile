@@ -88,6 +88,7 @@ caiz-mi-backend/
 | Method | Path | Açıklama | Auth | Role |
 |---|---|---|---|---|
 | GET | `/api/v1/venues` | Yakın/şehir mekanları | - | Public |
+| GET | `/api/v1/venues/by-category/:categoryId` | Kategoriye göre yakın mekanlar | - | Public |
 | GET | `/api/v1/venues/:id` | Mekan detayı | - | Public |
 | POST | `/api/v1/venues` | Mekan ekleme | ✅ | Guide+ |
 | PUT | `/api/v1/venues/:id` | Mekan güncelleme | ✅ | Owner/Admin |
@@ -130,6 +131,7 @@ caiz-mi-backend/
 | Method | Path | Açıklama | Auth | Role |
 |---|---|---|---|---|
 | GET | `/api/v1/criteria` | Helal kriter listesi | - | Public |
+| GET | `/api/v1/food-categories` | Yemek kategorileri | - | Public |
 | GET | `/health` | Health check | - | Public |
 
 ## Flutter Uygulama Yapısı
@@ -153,6 +155,7 @@ lib/
 │   ├── favorites/                  # Favorites management
 │   ├── guide/                      # Guide-specific features
 │   ├── admin/                      # Admin panel
+│   ├── food_discovery/             # Yemek kategorisine göre mekan keşfi
 │   └── profile/                    # User profile
 └── shared/
     └── widgets/                    # Reusable widgets
@@ -283,6 +286,7 @@ JWT_SECRET=your-super-secret-key
 JWT_EXPIRY=15m
 REFRESH_TOKEN_EXPIRY=720h
 GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_MAPS_API_KEY=your-google-maps-api-key
 APPLE_TEAM_ID=your-apple-team-id
 S3_BUCKET=caizmi-photos
 S3_REGION=eu-west-1

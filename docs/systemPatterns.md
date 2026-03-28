@@ -74,6 +74,7 @@ CREATE TABLE venues (
     city            VARCHAR(100) NOT NULL,
     country         VARCHAR(100) NOT NULL,
     location        GEOGRAPHY(POINT, 4326) NOT NULL,  -- PostGIS
+    google_place_id VARCHAR(255),                      -- Google Maps Place ID (opsiyonel)
     working_hours   JSONB,                             -- {mon: "09:00-22:00", ...}
     notes           TEXT,
     status          VARCHAR(20) NOT NULL DEFAULT 'pending', -- pending | approved | rejected
@@ -148,6 +149,19 @@ CREATE TABLE favorites (
 );
 ```
 
+#### referral_codes
+```sql
+CREATE TABLE referral_codes (
+    id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    guide_id   UUID NOT NULL REFERENCES users(id),
+    code       VARCHAR(10) UNIQUE NOT NULL,   -- 5 karakterlik benzersiz kod (I,O,0,1 hariç)
+    status     VARCHAR(20) NOT NULL DEFAULT 'active', -- active | used
+    used_by    UUID REFERENCES users(id),
+    used_at    TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+```
+
 ### Yönetim Tabloları
 
 #### guide_applications
@@ -157,6 +171,7 @@ CREATE TABLE guide_applications (
     user_id     UUID NOT NULL REFERENCES users(id),
     status      VARCHAR(20) NOT NULL DEFAULT 'pending', -- pending | approved | rejected
     note        TEXT,                   -- admin notu
+    referred_by UUID REFERENCES users(id),              -- referans veren guide
     reviewed_by UUID REFERENCES users(id),
     reviewed_at TIMESTAMPTZ,
     created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
