@@ -141,6 +141,7 @@ class _VenueBottomSheetContent extends StatelessWidget {
                       latitude: venue.latitude,
                       longitude: venue.longitude,
                       label: venue.name,
+                      googlePlaceId: venue.googlePlaceId,
                     );
                   },
                   icon: const Icon(Icons.directions),

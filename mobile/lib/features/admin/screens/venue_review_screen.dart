@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/map_launcher.dart';
 import '../../../shared/widgets/error_retry_widget.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../venue/providers/venue_detail_provider.dart';
@@ -255,28 +256,44 @@ class VenueReviewScreen extends ConsumerWidget {
                               const SizedBox(height: 16),
                             ],
 
-                            // Konum bilgisi
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: AppTheme.textSecondary
-                                    .withValues(alpha: 0.06),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Row(
-                                children: [
-                                  const Icon(Icons.gps_fixed,
-                                      size: 18, color: AppTheme.textSecondary),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    '${venue.latitude.toStringAsFixed(5)}, ${venue.longitude.toStringAsFixed(5)}',
-                                    style: const TextStyle(
-                                      fontSize: 13,
-                                      color: AppTheme.textSecondary,
-                                      fontFamily: 'monospace',
+                            // Konum bilgisi - Google Maps'e yönlendiren link
+                            InkWell(
+                              onTap: () async {
+                                await MapLauncher.openLocation(
+                                  latitude: venue.latitude,
+                                  longitude: venue.longitude,
+                                  googlePlaceId: venue.googlePlaceId,
+                                );
+                              },
+                              borderRadius: BorderRadius.circular(8),
+                              child: Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.textSecondary
+                                      .withValues(alpha: 0.06),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.location_on,
+                                        size: 18, color: AppTheme.primary),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        '${venue.latitude.toStringAsFixed(5)}, ${venue.longitude.toStringAsFixed(5)}',
+                                        style: const TextStyle(
+                                          fontSize: 13,
+                                          color: AppTheme.primary,
+                                          fontFamily: 'monospace',
+                                          decoration:
+                                              TextDecoration.underline,
+                                        ),
+                                      ),
                                     ),
-                                  ),
-                                ],
+                                    const Icon(Icons.open_in_new,
+                                        size: 16, color: AppTheme.primary),
+                                  ],
+                                ),
                               ),
                             ),
                           ],

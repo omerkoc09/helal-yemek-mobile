@@ -72,6 +72,8 @@ class VenueDetailScreen extends ConsumerWidget {
                       latitude: venue.latitude,
                       longitude: venue.longitude,
                       label: venue.name,
+                      address: '${venue.address}, ${venue.city}',
+                      googlePlaceId: venue.googlePlaceId,
                     ),
                   ),
                 ],
