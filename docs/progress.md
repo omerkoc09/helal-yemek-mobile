@@ -11,12 +11,8 @@ Mevcut Durum Notu: Proje genel hatlarıyla Faz 5'e (Test & Yayın) geçmiş gibi
 
 1. rehberin ekklediği mekanın bilgilerini belli süre geçtikten sonra (3 ay, 6 ay) güncellemesi için bildirim atılır. Güncellemezse mekan uygulamada askıya alınır.
 
-
-2. admin panelinde
-onay bekleyen mekanların koordinatları yerine rehberin sisteme eklediği  mekanın google maps linki olsun. Tıklandığında google mapse yönlendirsin Böylece admin onun doğruluğunu kontrol edebilir. 
-
 ## Öncelikli Olarak Yapılması Gerekenler
-1. ayrı bir tane tab olsun ne yesem? adında ->yemek kategorileri çıksın karşısına  seçebileceği ( çorba, döner, tatlı gibi) mevcut konuma göre var olan uygun mekanlar listelensin. (yakından uzağa göre en alakalı)
+
 
 
 ## Tamamlanan İşler
