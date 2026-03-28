@@ -14,7 +14,27 @@ class GoogleMapsParser {
     final url = await _resolveUrl(trimmed);
     if (url == null) return null;
 
-    return _extractCoordinates(url);
+    final coords = _extractCoordinates(url);
+    if (coords == null) return null;
+
+    return MapCoordinates(
+      latitude: coords.latitude,
+      longitude: coords.longitude,
+      placeId: _extractPlaceId(url),
+    );
+  }
+
+  /// URL'den place_id çıkarmayı dener.
+  /// Google Maps URL'lerinde iki format kullanılır:
+  ///   - !1s0x14cab...:0x... (hex format — yaygın)
+  ///   - !1sChIJ...          (base64 format — nadir)
+  static String? _extractPlaceId(String url) {
+    final dataPattern = RegExp(r'!1s((?:ChIJ|0x)[^!&]+)');
+    final match = dataPattern.firstMatch(url);
+    if (match != null) {
+      return Uri.decodeComponent(match.group(1)!);
+    }
+    return null;
   }
 
   /// URL'den koordinat çıkarmayı dener (birden fazla format destekler).
@@ -177,9 +197,14 @@ class GoogleMapsParser {
 class MapCoordinates {
   final double latitude;
   final double longitude;
+  final String? placeId;
 
-  const MapCoordinates({required this.latitude, required this.longitude});
+  const MapCoordinates({
+    required this.latitude,
+    required this.longitude,
+    this.placeId,
+  });
 
   @override
-  String toString() => '($latitude, $longitude)';
+  String toString() => '($latitude, $longitude, placeId: $placeId)';
 }

@@ -23,6 +23,7 @@ class AddVenueState {
   final bool isParsingLink; // Link parse ediliyor mu
   final double? latitude;
   final double? longitude;
+  final String? googlePlaceId; // Linkten parse edilen place_id
   final List<int> selectedCriteriaIds;
   final String? notes;
   final List<String> photoPaths; // Yerel dosya yolları
@@ -45,6 +46,7 @@ class AddVenueState {
     this.isParsingLink = false,
     this.latitude,
     this.longitude,
+    this.googlePlaceId,
     this.selectedCriteriaIds = const [],
     this.notes,
     this.photoPaths = const [],
@@ -66,6 +68,7 @@ class AddVenueState {
     bool? isParsingLink,
     double? latitude,
     double? longitude,
+    String? googlePlaceId,
     List<int>? selectedCriteriaIds,
     String? notes,
     List<String>? photoPaths,
@@ -86,6 +89,7 @@ class AddVenueState {
       isParsingLink: isParsingLink ?? this.isParsingLink,
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
+      googlePlaceId: googlePlaceId ?? this.googlePlaceId,
       selectedCriteriaIds: selectedCriteriaIds ?? this.selectedCriteriaIds,
       notes: notes ?? this.notes,
       photoPaths: photoPaths ?? this.photoPaths,
@@ -104,15 +108,18 @@ class AddVenueState {
   bool get canProceedStep2 => selectedCriteriaIds.isNotEmpty;
   // Step 3 (not + fotoğraf) opsiyonel, her zaman geçilebilir
   bool get canProceedStep3 => true;
-  // Step 4 (yemek kategorileri) — mod bazlı validasyon
+  // Step 4 (yemek kategorileri) — tüm modlarda yemek seçimi zorunlu
   bool get canProceedStep4 {
+    final hasFoodItems =
+        selectedFoodItemIds.values.any((items) => items.isNotEmpty);
     switch (foodHalalMode) {
       case 'all':
-        return true;
+        return hasFoodItems;
       case 'except':
-        return excludedProducts.any((p) => p.trim().isNotEmpty);
+        return hasFoodItems &&
+            excludedProducts.any((p) => p.trim().isNotEmpty);
       case 'selected':
-        return selectedFoodItemIds.values.any((items) => items.isNotEmpty);
+        return hasFoodItems;
       default:
         return false;
     }
@@ -138,10 +145,11 @@ class AddVenueNotifier extends Notifier<AddVenueState> {
   }
 
   void setCoordinates({required double latitude, required double longitude}) {
-    state = state.copyWith(latitude: latitude, longitude: longitude);
+    // Koordinat manuel değişince place_id geçersiz olur
+    state = state.copyWith(latitude: latitude, longitude: longitude, googlePlaceId: null);
   }
 
-  /// Google Maps linkini parse edip koordinatları çıkarır.
+  /// Google Maps linkini parse edip koordinat ve place_id'yi çıkarır.
   Future<bool> parseMapsLink(String link) async {
     state = state.copyWith(mapsLink: link, isParsingLink: true, error: null);
 
@@ -163,6 +171,7 @@ class AddVenueNotifier extends Notifier<AddVenueState> {
       state = state.copyWith(
         latitude: coords.latitude,
         longitude: coords.longitude,
+        googlePlaceId: coords.placeId,
         isParsingLink: false,
       );
       return true;
@@ -202,10 +211,10 @@ class AddVenueNotifier extends Notifier<AddVenueState> {
   void setFoodHalalMode(String mode) {
     state = state.copyWith(
       foodHalalMode: mode,
-      selectedFoodItemIds: mode == 'all' ? {} : state.selectedFoodItemIds,
-      excludedProducts: mode == 'all' || mode == 'selected'
-          ? []
-          : (state.excludedProducts.isEmpty ? [''] : state.excludedProducts),
+      // Yemek seçimleri tüm modlarda korunur
+      excludedProducts: mode == 'except'
+          ? (state.excludedProducts.isEmpty ? [''] : state.excludedProducts)
+          : [],
     );
   }
 
@@ -333,6 +342,7 @@ class AddVenueNotifier extends Notifier<AddVenueState> {
           'country': 'Türkiye',
           'latitude': state.latitude,
           'longitude': state.longitude,
+          if (state.googlePlaceId != null) 'google_place_id': state.googlePlaceId,
           'criteria_ids': state.selectedCriteriaIds,
           'notes': state.notes?.trim(),
           'food_halal_mode': state.foodHalalMode,
@@ -449,6 +459,7 @@ class EditVenueState {
   final String? notes;
   final double? latitude;
   final double? longitude;
+  final String? googlePlaceId;
   final List<int> selectedCriteriaIds;
   final List<int> selectedFoodItemIds;
   final String foodHalalMode;
@@ -470,6 +481,7 @@ class EditVenueState {
     this.notes,
     this.latitude,
     this.longitude,
+    this.googlePlaceId,
     this.selectedCriteriaIds = const [],
     this.selectedFoodItemIds = const [],
     this.foodHalalMode = 'selected',
@@ -490,6 +502,7 @@ class EditVenueState {
     String? notes,
     double? latitude,
     double? longitude,
+    String? googlePlaceId,
     List<int>? selectedCriteriaIds,
     List<int>? selectedFoodItemIds,
     String? foodHalalMode,
@@ -509,6 +522,7 @@ class EditVenueState {
       notes: notes ?? this.notes,
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
+      googlePlaceId: googlePlaceId ?? this.googlePlaceId,
       selectedCriteriaIds: selectedCriteriaIds ?? this.selectedCriteriaIds,
       selectedFoodItemIds: selectedFoodItemIds ?? this.selectedFoodItemIds,
       foodHalalMode: foodHalalMode ?? this.foodHalalMode,
@@ -562,7 +576,8 @@ class EditVenueNotifier extends Notifier<EditVenueState> {
   void setNotes(String? notes) => state = state.copyWith(notes: notes);
 
   void setCoordinates({required double latitude, required double longitude}) {
-    state = state.copyWith(latitude: latitude, longitude: longitude);
+    // Koordinat manuel değişince place_id geçersiz olur
+    state = state.copyWith(latitude: latitude, longitude: longitude, googlePlaceId: null);
   }
 
   Future<bool> parseMapsLink(String link) async {
@@ -586,6 +601,7 @@ class EditVenueNotifier extends Notifier<EditVenueState> {
       state = state.copyWith(
         latitude: coords.latitude,
         longitude: coords.longitude,
+        googlePlaceId: coords.placeId,
         isParsingLink: false,
       );
       return true;
@@ -621,10 +637,10 @@ class EditVenueNotifier extends Notifier<EditVenueState> {
   void setFoodHalalMode(String mode) {
     state = state.copyWith(
       foodHalalMode: mode,
-      selectedFoodItemIds: mode == 'all' ? [] : state.selectedFoodItemIds,
-      excludedProducts: mode == 'all' || mode == 'selected'
-          ? []
-          : (state.excludedProducts.isEmpty ? [''] : state.excludedProducts),
+      // Yemek seçimleri tüm modlarda korunur
+      excludedProducts: mode == 'except'
+          ? (state.excludedProducts.isEmpty ? [''] : state.excludedProducts)
+          : [],
     );
   }
 
@@ -658,6 +674,7 @@ class EditVenueNotifier extends Notifier<EditVenueState> {
           'city': state.city.trim(),
           'latitude': state.latitude,
           'longitude': state.longitude,
+          if (state.googlePlaceId != null) 'google_place_id': state.googlePlaceId,
           'notes': state.notes?.trim(),
           'criteria_ids': state.selectedCriteriaIds,
           'food_item_ids': state.selectedFoodItemIds,
