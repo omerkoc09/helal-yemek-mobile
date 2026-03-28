@@ -51,6 +51,8 @@ static const String adminAuditLogs = '/admin/audit-logs';
 
   // Food Categories
   static const String foodCategories = '/food-categories';
+  static String venuesByCategory(int categoryId) =>
+      '/venues/by-category/$categoryId';
   static String foodCategoryItems(String id) => '/food-categories/$id/items';
 
   // Misc

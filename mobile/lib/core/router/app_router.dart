@@ -10,6 +10,7 @@ import '../../features/map/screens/map_screen.dart';
 import '../../features/profile/screens/profile_screen.dart';
 import '../../features/profile/screens/edit_profile_screen.dart';
 import '../../features/search/screens/search_screen.dart';
+import '../../features/food_discovery/screens/food_discovery_screen.dart';
 import '../../features/venue/screens/venue_detail_screen.dart';
 import '../../features/venue/screens/city_venues_screen.dart';
 import '../../features/guide/screens/add_venue_screen.dart';
@@ -31,6 +32,7 @@ class AppRoutes {
   static const String login = '/login';
   static const String register = '/register';
   static const String map = '/map';
+  static const String foodDiscovery = '/food-discovery';
   static const String search = '/search';
   static const String favorites = '/favorites';
   static const String profile = '/profile';
@@ -117,6 +119,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: AppRoutes.map,
             builder: (context, state) => const MapScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.foodDiscovery,
+            builder: (context, state) => const FoodDiscoveryScreen(),
           ),
           GoRoute(
             path: AppRoutes.search,
@@ -228,10 +234,13 @@ class AppShell extends StatelessWidget {
     return Scaffold(
       body: child,
       bottomNavigationBar: BottomNavigationBar(
+        type: BottomNavigationBarType.fixed,
         currentIndex: _currentIndex(GoRouterState.of(context).matchedLocation),
         onTap: (index) => _onTap(context, index),
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.map), label: 'Harita'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.restaurant_menu), label: 'Ne Yesem?'),
           BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Ara'),
           BottomNavigationBarItem(
               icon: Icon(Icons.favorite), label: 'Favoriler'),
@@ -242,9 +251,10 @@ class AppShell extends StatelessWidget {
   }
 
   int _currentIndex(String location) {
-    if (location.startsWith(AppRoutes.search)) return 1;
-    if (location.startsWith(AppRoutes.favorites)) return 2;
-    if (location.startsWith(AppRoutes.profile)) return 3;
+    if (location.startsWith(AppRoutes.foodDiscovery)) return 1;
+    if (location.startsWith(AppRoutes.search)) return 2;
+    if (location.startsWith(AppRoutes.favorites)) return 3;
+    if (location.startsWith(AppRoutes.profile)) return 4;
     return 0;
   }
 
@@ -253,10 +263,12 @@ class AppShell extends StatelessWidget {
       case 0:
         context.go(AppRoutes.map);
       case 1:
-        context.go(AppRoutes.search);
+        context.go(AppRoutes.foodDiscovery);
       case 2:
-        context.go(AppRoutes.favorites);
+        context.go(AppRoutes.search);
       case 3:
+        context.go(AppRoutes.favorites);
+      case 4:
         context.go(AppRoutes.profile);
     }
   }
