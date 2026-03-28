@@ -30,7 +30,7 @@
         <!-- Google Maps: value = Maps Platform API key from Google Cloud Console -->
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="AIzaSyAEhI4n2GjAlSc0AsTRtW2iov9fMEQE4NI" />
+            android:value="AIzaSyDLcaEnxPW7-LKl5ojnfug2t3rSZmE3yQk" />
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
