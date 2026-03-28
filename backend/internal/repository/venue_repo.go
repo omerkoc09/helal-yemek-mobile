@@ -26,6 +26,7 @@ func (r *VenueRepo) FindByID(ctx context.Context, id string) (*models.Venue, err
 			v.id, v.name, v.address, v.city,
 			ST_Y(v.location::geometry) AS latitude,
 			ST_X(v.location::geometry) AS longitude,
+			v.google_place_id,
 			v.notes, v.status,
 			v.added_by, v.verified_at,
 			v.created_at, v.updated_at,
@@ -43,6 +44,7 @@ func (r *VenueRepo) FindByID(ctx context.Context, id string) (*models.Venue, err
 	err := r.db.QueryRow(ctx, query, id).Scan(
 		&v.ID, &v.Name, &v.Address, &v.City,
 		&v.Latitude, &v.Longitude,
+		&v.GooglePlaceID,
 		&v.Notes, &v.Status,
 		&v.AddedBy, &v.VerifiedAt,
 		&v.CreatedAt, &v.UpdatedAt,
@@ -84,8 +86,8 @@ func (r *VenueRepo) FindByID(ctx context.Context, id string) (*models.Venue, err
 // Create — yeni mekan ekler, ID ve timestamp'leri geri doldurur.
 func (r *VenueRepo) Create(ctx context.Context, v *models.Venue) error {
 	query := `
-		INSERT INTO venues (name, address, city, location, notes, added_by, food_halal_mode, excluded_products)
-		VALUES ($1, $2, $3, ST_MakePoint($5, $4)::geography, $6, $7, $8, $9)
+		INSERT INTO venues (name, address, city, location, google_place_id, notes, added_by, food_halal_mode, excluded_products)
+		VALUES ($1, $2, $3, ST_MakePoint($5, $4)::geography, $6, $7, $8, $9, $10)
 		RETURNING id, status, created_at, updated_at`
 	// ST_MakePoint(lng, lat) — PostGIS koordinat sırası: X=lng, Y=lat
 
@@ -96,6 +98,7 @@ func (r *VenueRepo) Create(ctx context.Context, v *models.Venue) error {
 	return r.db.QueryRow(ctx, query,
 		v.Name, v.Address, v.City,
 		v.Latitude, v.Longitude,
+		v.GooglePlaceID,
 		v.Notes, v.AddedBy, v.FoodHalalMode, v.ExcludedProducts,
 	).Scan(&v.ID, &v.Status, &v.CreatedAt, &v.UpdatedAt)
 }
@@ -105,6 +108,7 @@ func (r *VenueRepo) UpdateVenue(ctx context.Context, id string,
 	name, address, city *string,
 	lat, lng *float64,
 	notes *string,
+	googlePlaceID *string,
 ) error {
 	query := `
 		UPDATE venues SET
@@ -115,10 +119,11 @@ func (r *VenueRepo) UpdateVenue(ctx context.Context, id string,
 			                      THEN ST_MakePoint($6, $5)::geography
 			                      ELSE location END,
 			notes          = COALESCE($7, notes),
+			google_place_id = COALESCE($8, google_place_id),
 			updated_at     = NOW()
 		WHERE id = $1 AND deleted_at IS NULL`
 
-	result, err := r.db.Exec(ctx, query, id, name, address, city, lat, lng, notes)
+	result, err := r.db.Exec(ctx, query, id, name, address, city, lat, lng, notes, googlePlaceID)
 	if err != nil {
 		return fmt.Errorf("mekan güncellemesi başarısız: %w", err)
 	}

@@ -45,10 +45,11 @@ func main() {
 	// Service katmanı
 	authService := services.NewAuthService(userRepo, cfg.JWTSecret, cfg.GoogleClientID)
 	storageService := services.NewStorageService("./uploads", cfg.StorageURL+"/static")
+	placesService := services.NewPlacesService(cfg.GoogleMapsAPIKey)
 
 	// Handler katmanı
 	authHandler := handlers.NewAuthHandler(authService)
-	venueHandler := handlers.NewVenueHandler(venueRepo, storageService)
+	venueHandler := handlers.NewVenueHandler(venueRepo, storageService, placesService)
 	reviewHandler := handlers.NewReviewHandler(reviewRepo)
 	favoriteHandler := handlers.NewFavoriteHandler(favoriteRepo)
 	correctionHandler := handlers.NewCorrectionHandler(correctionRepo, auditRepo)
@@ -92,6 +93,7 @@ func main() {
 
 	// Venue endpoint'leri (public)
 	api.Get("/venues", venueHandler.List)
+	api.Get("/venues/by-category/:categoryId", venueHandler.ListByCategory)
 	api.Get("/venues/:id", venueHandler.Detail)
 	api.Get("/criteria", venueHandler.ListCriteria)
 	api.Get("/food-categories", venueHandler.ListFoodCategories)

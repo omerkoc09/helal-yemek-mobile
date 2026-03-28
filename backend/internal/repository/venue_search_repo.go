@@ -18,6 +18,7 @@ func (r *VenueRepo) FindNearby(ctx context.Context, lat, lng, radiusMeters float
 			v.id, v.name, v.address, v.city,
 			ST_Y(v.location::geometry) AS latitude,
 			ST_X(v.location::geometry) AS longitude,
+			v.google_place_id,
 			v.notes, v.status,
 			v.added_by, v.verified_at,
 			v.created_at, v.updated_at,
@@ -52,6 +53,7 @@ func (r *VenueRepo) SearchByText(ctx context.Context, query string) ([]models.Ve
 			v.id, v.name, v.address, v.city,
 			ST_Y(v.location::geometry) AS latitude,
 			ST_X(v.location::geometry) AS longitude,
+			v.google_place_id,
 			v.notes, v.status,
 			v.added_by, v.verified_at,
 			v.created_at, v.updated_at
@@ -82,6 +84,7 @@ func (r *VenueRepo) FindByCity(ctx context.Context, city string) ([]models.Venue
 			v.id, v.name, v.address, v.city,
 			ST_Y(v.location::geometry) AS latitude,
 			ST_X(v.location::geometry) AS longitude,
+			v.google_place_id,
 			v.notes, v.status,
 			v.added_by, v.verified_at,
 			v.created_at, v.updated_at
@@ -106,6 +109,7 @@ func (r *VenueRepo) FindByAddedBy(ctx context.Context, userID string) ([]models.
 		`SELECT v.id, v.name, v.address, v.city,
 		        ST_Y(v.location::geometry) AS latitude,
 		        ST_X(v.location::geometry) AS longitude,
+		        v.google_place_id,
 		        v.notes, v.status,
 		        v.added_by, v.verified_at,
 		        v.created_at, v.updated_at
@@ -128,6 +132,7 @@ func (r *VenueRepo) FindAll(ctx context.Context) ([]models.Venue, error) {
 		`SELECT v.id, v.name, v.address, v.city,
 		        ST_Y(v.location::geometry) AS latitude,
 		        ST_X(v.location::geometry) AS longitude,
+		        v.google_place_id,
 		        v.notes, v.status,
 		        v.added_by, v.verified_at,
 		        v.created_at, v.updated_at
@@ -148,6 +153,7 @@ func (r *VenueRepo) FindPending(ctx context.Context) ([]models.Venue, error) {
 		`SELECT v.id, v.name, v.address, v.city,
 		        ST_Y(v.location::geometry) AS latitude,
 		        ST_X(v.location::geometry) AS longitude,
+		        v.google_place_id,
 		        v.notes, v.status,
 		        v.added_by, v.verified_at,
 		        v.created_at, v.updated_at
@@ -163,6 +169,38 @@ func (r *VenueRepo) FindPending(ctx context.Context) ([]models.Venue, error) {
 	return r.scanVenueRowsWithPhotos(ctx, rows, false)
 }
 
+// FindByFoodCategory — belirli yemek kategorisindeki yemekleri sunan yakın mekanları döndürür.
+// $1=categoryID, $2=lat, $3=lng, $4=radius(metre)
+func (r *VenueRepo) FindByFoodCategory(ctx context.Context, categoryID int, lat, lng, radiusMeters float64) ([]models.Venue, error) {
+	query := `
+		SELECT DISTINCT
+			v.id, v.name, v.address, v.city,
+			ST_Y(v.location::geometry) AS latitude,
+			ST_X(v.location::geometry) AS longitude,
+			v.google_place_id,
+			v.notes, v.status,
+			v.added_by, v.verified_at,
+			v.created_at, v.updated_at,
+			ST_Distance(v.location, ST_MakePoint($3, $2)::geography) AS distance
+		FROM venues v
+		JOIN venue_food_items vfi ON vfi.venue_id = v.id
+		JOIN food_items fi ON fi.id = vfi.food_item_id
+		WHERE fi.category_id = $1
+		  AND v.status = 'approved'
+		  AND v.deleted_at IS NULL
+		  AND ST_DWithin(v.location, ST_MakePoint($3, $2)::geography, $4)
+		ORDER BY distance
+		LIMIT 50`
+
+	rows, err := r.db.Query(ctx, query, categoryID, lat, lng, radiusMeters)
+	if err != nil {
+		return nil, fmt.Errorf("kategori bazlı mekan sorgusu başarısız: %w", err)
+	}
+	defer rows.Close()
+
+	return r.scanVenueRowsWithPhotos(ctx, rows, true)
+}
+
 // scanVenueRows — rows'u []Venue'ya dönüştürür.
 // withDistance: ST_Distance sütunu sorguya dahilse true.
 func scanVenueRows(rows pgx.Rows, withDistance bool) ([]models.Venue, error) {
@@ -175,6 +213,7 @@ func scanVenueRows(rows pgx.Rows, withDistance bool) ([]models.Venue, error) {
 			err = rows.Scan(
 				&v.ID, &v.Name, &v.Address, &v.City,
 				&v.Latitude, &v.Longitude,
+				&v.GooglePlaceID,
 				&v.Notes, &v.Status,
 				&v.AddedBy, &v.VerifiedAt,
 				&v.CreatedAt, &v.UpdatedAt,
@@ -184,6 +223,7 @@ func scanVenueRows(rows pgx.Rows, withDistance bool) ([]models.Venue, error) {
 			err = rows.Scan(
 				&v.ID, &v.Name, &v.Address, &v.City,
 				&v.Latitude, &v.Longitude,
+				&v.GooglePlaceID,
 				&v.Notes, &v.Status,
 				&v.AddedBy, &v.VerifiedAt,
 				&v.CreatedAt, &v.UpdatedAt,

@@ -52,6 +52,7 @@ type Venue struct {
 	City             string          `json:"city"`
 	Latitude         float64         `json:"latitude"`
 	Longitude        float64         `json:"longitude"`
+	GooglePlaceID    *string         `json:"google_place_id,omitempty"`
 	Notes            *string         `json:"notes"`
 	Status           VenueStatus     `json:"status"`
 	RejectionNote    *string         `json:"rejection_note,omitempty"`
