@@ -525,8 +525,7 @@ class _EditVenueScreenState extends ConsumerState<EditVenueScreen> {
           ),
         ],
 
-        // Kategori seçimi: sadece selected modunda gösterilir
-        if (state.foodHalalMode == 'selected')
+        // Kategori seçimi: tüm modlarda gösterilir
           categoriesAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (_, _) => const Text('Yemek kategorileri yüklenemedi.'),

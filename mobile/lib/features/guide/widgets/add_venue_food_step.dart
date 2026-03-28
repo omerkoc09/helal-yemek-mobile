@@ -107,13 +107,15 @@ class AddVenueFoodStep extends ConsumerWidget {
             const SizedBox(height: 8),
           ],
 
-          // Kategori seçimi: sadece selected modunda gösterilir
-          if (state.foodHalalMode == 'selected') ...[
+          // Kategori seçimi: tüm modlarda gösterilir
+          ...[
             const Divider(),
             const SizedBox(height: 8),
-            const Text(
-              'Kategorilere göre seçin:',
-              style: TextStyle(
+            Text(
+              state.foodHalalMode == 'selected'
+                  ? 'Kategorilere göre seçin:'
+                  : 'Bu mekanda sunulan yemekleri seçin:',
+              style: const TextStyle(
                 color: AppTheme.textSecondary,
                 fontSize: 13,
               ),
