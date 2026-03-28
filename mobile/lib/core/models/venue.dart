@@ -12,6 +12,7 @@ abstract class Venue with _$Venue {
     required String city,
     required double latitude,
     required double longitude,
+    @JsonKey(name: 'google_place_id') String? googlePlaceId,
     String? notes,
     @Default('pending') String status,
     @JsonKey(name: 'rejection_note') String? rejectionNote,
