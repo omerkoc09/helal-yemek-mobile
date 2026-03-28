@@ -14,10 +14,11 @@ import (
 type VenueHandler struct {
 	venueRepo      *repository.VenueRepo
 	storageService *services.StorageService
+	placesService  *services.PlacesService
 }
 
-func NewVenueHandler(venueRepo *repository.VenueRepo, storageService *services.StorageService) *VenueHandler {
-	return &VenueHandler{venueRepo: venueRepo, storageService: storageService}
+func NewVenueHandler(venueRepo *repository.VenueRepo, storageService *services.StorageService, placesService *services.PlacesService) *VenueHandler {
+	return &VenueHandler{venueRepo: venueRepo, storageService: storageService, placesService: placesService}
 }
 
 // List godoc
@@ -63,6 +64,36 @@ func (h *VenueHandler) List(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"data": venues, "count": len(venues)})
 }
 
+// ListByCategory godoc
+// GET /api/v1/venues/by-category/:categoryId?lat=41.0&lng=29.0&radius=5000
+func (h *VenueHandler) ListByCategory(c *fiber.Ctx) error {
+	categoryID, err := c.ParamsInt("categoryId")
+	if err != nil || categoryID <= 0 {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "geçerli bir kategori ID gereklidir",
+		})
+	}
+
+	latStr := c.Query("lat")
+	lngStr := c.Query("lng")
+	if latStr == "" || lngStr == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "lat ve lng parametreleri zorunludur",
+		})
+	}
+
+	lat := c.QueryFloat("lat", 0)
+	lng := c.QueryFloat("lng", 0)
+	radius := c.QueryFloat("radius", 5000)
+
+	venues, err := h.venueRepo.FindByFoodCategory(c.Context(), categoryID, lat, lng, radius)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "mekanlar listelenemedi"})
+	}
+
+	return c.JSON(fiber.Map{"data": venues, "count": len(venues)})
+}
+
 // Detail godoc
 // GET /api/v1/venues/:id
 func (h *VenueHandler) Detail(c *fiber.Ctx) error {
@@ -91,6 +122,7 @@ func (h *VenueHandler) Create(c *fiber.Ctx) error {
 		City             string   `json:"city"`
 		Latitude         float64  `json:"latitude"`
 		Longitude        float64  `json:"longitude"`
+		GooglePlaceID    *string  `json:"google_place_id"`
 		Notes            *string  `json:"notes"`
 		CriteriaIDs      []int    `json:"criteria_ids"`
 		FoodItemIDs      []int    `json:"food_item_ids"`
@@ -122,12 +154,28 @@ func (h *VenueHandler) Create(c *fiber.Ctx) error {
 		})
 	}
 
+	// Google Place ID: istemci ChIJ... formatında gönderdiyse kullan.
+	// 0x... (hex) formatı Maps URL'lerinde görünür ama Places API'de geçersizdir,
+	// bu durumda Places API ile doğru ChIJ ID'sini resolve et.
+	googlePlaceID := req.GooglePlaceID
+	needsResolve := googlePlaceID == nil || *googlePlaceID == "" ||
+		strings.HasPrefix(*googlePlaceID, "0x")
+	if needsResolve && h.placesService != nil {
+		if resolved := h.placesService.ResolvePlaceID(req.Name, req.Latitude, req.Longitude); resolved != "" {
+			googlePlaceID = &resolved
+		} else if needsResolve && googlePlaceID != nil && strings.HasPrefix(*googlePlaceID, "0x") {
+			// Hex ID kullanılamaz, temizle
+			googlePlaceID = nil
+		}
+	}
+
 	venue := &models.Venue{
 		Name:             req.Name,
 		Address:          req.Address,
 		City:             req.City,
 		Latitude:         req.Latitude,
 		Longitude:        req.Longitude,
+		GooglePlaceID:    googlePlaceID,
 		Notes:            req.Notes,
 		AddedBy:          userID,
 		FoodHalalMode:    req.FoodHalalMode,
@@ -155,25 +203,19 @@ func (h *VenueHandler) Create(c *fiber.Ctx) error {
 		venue.Criteria = []models.HalalCriteria{}
 	}
 
-	// Yemek çeşitlerini mod bazlı kaydet
-	switch venue.FoodHalalMode {
-	case "all":
-		venue.FoodItems = []models.FoodItem{}
+	// Yemek çeşitlerini kaydet (tüm modlarda zorunlu)
+	if len(req.FoodItemIDs) == 0 {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "en az bir yemek çeşidi seçilmelidir"})
+	}
+	if err := h.venueRepo.SetVenueFoodItems(c.Context(), venue.ID, req.FoodItemIDs); err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "yemek çeşitleri kaydedilemedi"})
+	}
+	foodItems, _ := h.venueRepo.GetFoodItemsByVenueID(c.Context(), venue.ID)
+	venue.FoodItems = foodItems
+
+	// ExcludedProducts sadece except modunda anlamlı
+	if venue.FoodHalalMode != "except" {
 		venue.ExcludedProducts = []string{}
-	case "except":
-		// Sakıncalı ürünler zaten venue'da kayıtlı; yemek çeşitleri kaydedilmez
-		venue.FoodItems = []models.FoodItem{}
-	default: // "selected"
-		venue.ExcludedProducts = []string{}
-		if len(req.FoodItemIDs) > 0 {
-			if err := h.venueRepo.SetVenueFoodItems(c.Context(), venue.ID, req.FoodItemIDs); err != nil {
-				return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "yemek çeşitleri kaydedilemedi"})
-			}
-			foodItems, _ := h.venueRepo.GetFoodItemsByVenueID(c.Context(), venue.ID)
-			venue.FoodItems = foodItems
-		} else {
-			venue.FoodItems = []models.FoodItem{}
-		}
 	}
 	venue.Photos = []models.VenuePhoto{}
 
@@ -299,6 +341,7 @@ func (h *VenueHandler) Update(c *fiber.Ctx) error {
 		City             *string   `json:"city"`
 		Latitude         *float64  `json:"latitude"`
 		Longitude        *float64  `json:"longitude"`
+		GooglePlaceID    *string   `json:"google_place_id"`
 		Notes            *string   `json:"notes"`
 		CriteriaIDs      *[]int    `json:"criteria_ids"`
 		FoodItemIDs      *[]int    `json:"food_item_ids"`
@@ -309,8 +352,34 @@ func (h *VenueHandler) Update(c *fiber.Ctx) error {
 		return fiber.ErrBadRequest
 	}
 
+	// Koordinat değişmişse veya hex place_id gelmiş ise Places API ile resolve et
+	googlePlaceID := req.GooglePlaceID
+	if googlePlaceID != nil && strings.HasPrefix(*googlePlaceID, "0x") {
+		name := venue.Name
+		if req.Name != nil {
+			name = *req.Name
+		}
+		lat := venue.Latitude
+		if req.Latitude != nil {
+			lat = *req.Latitude
+		}
+		lng := venue.Longitude
+		if req.Longitude != nil {
+			lng = *req.Longitude
+		}
+		if h.placesService != nil {
+			if resolved := h.placesService.ResolvePlaceID(name, lat, lng); resolved != "" {
+				googlePlaceID = &resolved
+			} else {
+				googlePlaceID = nil
+			}
+		} else {
+			googlePlaceID = nil
+		}
+	}
+
 	if err := h.venueRepo.UpdateVenue(c.Context(), venueID, req.Name, req.Address, req.City,
-		req.Latitude, req.Longitude, req.Notes); err != nil {
+		req.Latitude, req.Longitude, req.Notes, googlePlaceID); err != nil {
 		return fiber.ErrInternalServerError
 	}
 
