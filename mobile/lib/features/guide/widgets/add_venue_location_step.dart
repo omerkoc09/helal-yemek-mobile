@@ -21,6 +21,7 @@ class _AddVenueLocationStepState extends ConsumerState<AddVenueLocationStep> {
   GoogleMapController? _mapController;
   LatLng? _selectedLocation;
   bool _locationConfirmed = false;
+  bool _noGoogleMapsLink = false;
 
   @override
   void dispose() {
@@ -51,7 +52,8 @@ class _AddVenueLocationStepState extends ConsumerState<AddVenueLocationStep> {
                 ),
                 const SizedBox(height: 8),
                 const Text(
-                  'Mekanın il ve ilçesini seçin, ardından Google Maps linkini yapıştırın.',
+                  'Mekanın il ve ilçesini seçin, ardından Google Maps linkini yapıştırın. '
+                  'Link bulunamazsa haritadan manuel konum seçebilirsiniz.',
                   style: TextStyle(color: AppTheme.textSecondary),
                 ),
                 const SizedBox(height: 20),
@@ -205,43 +207,117 @@ class _AddVenueLocationStepState extends ConsumerState<AddVenueLocationStep> {
             ),
             const SizedBox(height: 24),
           ] else ...[
-            // Haritada elle seçim alanı
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppTheme.textSecondary.withValues(alpha: 0.05),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: AppTheme.textSecondary.withValues(alpha: 0.15),
+            if (_noGoogleMapsLink) ...[
+              // Haritada elle seçim alanı (sadece "link yok" onaylandıktan sonra)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppTheme.textSecondary.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: AppTheme.textSecondary.withValues(alpha: 0.15),
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      const Icon(Icons.touch_app_outlined,
+                          size: 32, color: AppTheme.textSecondary),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Haritada konumu işaretleyin',
+                        style: TextStyle(
+                          color: AppTheme.textSecondary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      const Text(
+                        'Koordinatlar üzerinden konum belirlenir; mekanın Google Maps kaydıyla ilişkilendirilemez.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: AppTheme.textSecondary,
+                          fontSize: 11,
+                          height: 1.4,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: _openFullMapPicker,
+                          icon: const Icon(Icons.map_outlined),
+                          label: const Text('Haritada Seç'),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                child: Column(
-                  children: [
-                    const Icon(Icons.touch_app_outlined,
-                        size: 32, color: AppTheme.textSecondary),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'veya haritada konumu seçin',
-                      style: TextStyle(
-                        color: AppTheme.textSecondary,
-                        fontWeight: FontWeight.w500,
-                      ),
+              ),
+            ] else ...[
+              // Kullanıcıya "link yok mu?" sorusunu sor
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppTheme.textSecondary.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: AppTheme.textSecondary.withValues(alpha: 0.15),
                     ),
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton.icon(
-                        onPressed: _openFullMapPicker,
-                        icon: const Icon(Icons.map_outlined),
-                        label: const Text('Haritada Seç'),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Row(
+                        children: [
+                          Icon(Icons.info_outline,
+                              size: 18, color: AppTheme.textSecondary),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Bu mekanın Google Maps linki yok mu?',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 6),
+                      const Text(
+                        'Google Maps\'te aratıp "Paylaş" butonundan linki kopyalayabilirsiniz. '
+                        'Link varsa mekanın resmi kaydıyla eşleştirilir.',
+                        style: TextStyle(
+                          color: AppTheme.textSecondary,
+                          fontSize: 12,
+                          height: 1.4,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton(
+                          onPressed: () =>
+                              setState(() => _noGoogleMapsLink = true),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppTheme.textSecondary,
+                            side: BorderSide(
+                              color:
+                                  AppTheme.textSecondary.withValues(alpha: 0.4),
+                            ),
+                          ),
+                          child: const Text('Evet, Google Maps\'te kayıtlı değil'),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
+            ],
             const SizedBox(height: 24),
           ],
         ],
