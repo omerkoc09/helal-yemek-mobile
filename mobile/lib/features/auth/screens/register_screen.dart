@@ -52,21 +52,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 children: [
                   const SizedBox(height: 48),
                   // Logo
-                  Container(
-                    width: 96,
+                  Image.asset(
+                    'assets/images/app_logo_nobg.png',
                     height: 96,
-                    decoration: BoxDecoration(
-                      color: AppTheme.primary.withValues(alpha: 0.1),
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: AppTheme.primary.withValues(alpha: 0.2),
-                      ),
-                    ),
-                    child: const Icon(
-                      Icons.location_on,
-                      size: 56,
-                      color: AppTheme.primary,
-                    ),
                   ),
                   const SizedBox(height: 16),
                   const Text(

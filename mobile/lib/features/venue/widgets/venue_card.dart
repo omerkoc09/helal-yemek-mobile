@@ -100,6 +100,18 @@ class VenueCard extends StatelessWidget {
                           ),
                       ],
                     ),
+                    if (venue.categoriesStr != null) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        venue.categoriesStr!,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppTheme.textSecondary,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
                     if (venue.criteria.isNotEmpty) ...[
                       const SizedBox(height: 6),
                       HalalCriteriaChips(criteria: venue.criteria),
@@ -123,9 +135,6 @@ class VenueCard extends StatelessWidget {
   }
 
   String _formatDistance(double meters) {
-    if (meters < 1000) {
-      return '${meters.round()} m';
-    }
     return '${(meters / 1000).toStringAsFixed(1)} km';
   }
 }

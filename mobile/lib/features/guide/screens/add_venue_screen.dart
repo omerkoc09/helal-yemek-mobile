@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../providers/guide_provider.dart';
+import '../widgets/add_venue_details_step.dart';
 import '../widgets/add_venue_food_step.dart';
 import '../widgets/add_venue_location_step.dart';
 import '../widgets/photo_widgets.dart';
@@ -18,7 +19,6 @@ class AddVenueScreen extends ConsumerStatefulWidget {
 }
 
 class _AddVenueScreenState extends ConsumerState<AddVenueScreen> {
-  final _nameController = TextEditingController();
   final _notesController = TextEditingController();
 
   @override
@@ -31,7 +31,6 @@ class _AddVenueScreenState extends ConsumerState<AddVenueScreen> {
 
   @override
   void dispose() {
-    _nameController.dispose();
     _notesController.dispose();
     super.dispose();
   }
@@ -77,8 +76,8 @@ class _AddVenueScreenState extends ConsumerState<AddVenueScreen> {
 
   Widget _buildStepContent(AddVenueState state) {
     return switch (state.currentStep) {
-      0 => _buildNameStep(),
-      1 => const AddVenueLocationStep(),
+      0 => const AddVenueLocationStep(), // link girişi
+      1 => const AddVenueDetailsStep(),  // ad + il/ilçe + konum doğrulama
       2 => _buildCriteriaStep(),
       3 => _buildNotesPhotoStep(state),
       4 => const AddVenueFoodStep(),
@@ -86,44 +85,7 @@ class _AddVenueScreenState extends ConsumerState<AddVenueScreen> {
     };
   }
 
-  // ─── Adım 1: Mekan Adı ───
-
-  Widget _buildNameStep() {
-    return Padding(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Mekan Adı',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Eklemek istediğiniz mekanın adını yazın.',
-            style: TextStyle(color: AppTheme.textSecondary),
-          ),
-          const SizedBox(height: 24),
-          TextField(
-            controller: _nameController,
-            decoration: const InputDecoration(
-              labelText: 'Mekan adı',
-              hintText: 'Örn: Sultan Ahmet Restaurant',
-              prefixIcon: Icon(Icons.store_outlined),
-            ),
-            textCapitalization: TextCapitalization.words,
-            onChanged: (value) =>
-                ref.read(addVenueProvider.notifier).setName(value),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ─── Adım 3: Helal Kriterleri ───
+  // ─── Adım 2: Helal Kriterleri ───
 
   Widget _buildCriteriaStep() {
     final criteriaAsync = ref.watch(halalCriteriaProvider);

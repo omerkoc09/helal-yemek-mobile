@@ -21,7 +21,25 @@ class GoogleMapsParser {
       latitude: coords.latitude,
       longitude: coords.longitude,
       placeId: _extractPlaceId(url),
+      placeName: _extractPlaceName(url),
     );
+  }
+
+  /// URL'den mekan adını çıkarmayı dener.
+  /// Örn: /maps/place/Sultan+Ahmet+Camii/@ → "Sultan Ahmet Camii"
+  static String? _extractPlaceName(String url) {
+    final pattern = RegExp(r'/maps/place/([^/@?]+)');
+    final match = pattern.firstMatch(url);
+    if (match != null) {
+      final raw = match.group(1)!.replaceAll('+', ' ');
+      final decoded = Uri.decodeComponent(raw).trim();
+      // Koordinat gibi görünen (sadece rakam, virgül, nokta) değerleri reddet
+      if (decoded.isEmpty || RegExp(r'^[\d.,\-]+$').hasMatch(decoded)) {
+        return null;
+      }
+      return decoded;
+    }
+    return null;
   }
 
   /// URL'den place_id çıkarmayı dener.
@@ -38,39 +56,42 @@ class GoogleMapsParser {
   }
 
   /// URL'den koordinat çıkarmayı dener (birden fazla format destekler).
+  /// ÖNCELİK SIRASI ÖNEMLİ: !3d/!4d pin koordinatını verir (kamera değil).
   static MapCoordinates? _extractCoordinates(String url) {
-    // Format 1: /@lat,lng,zoom
-    // Örn: google.com/maps/place/.../@41.0082,28.9784,17z
-    final atPattern = RegExp(r'/@(-?\d+\.?\d*),(-?\d+\.?\d*)');
-    var match = atPattern.firstMatch(url);
+    // Format 1 (EN YÜKSEK ÖNCELİK): data=...!8m2!3d{lat}!4d{lng}
+    // Mekanın tam pin koordinatı — en güvenilir format.
+    final dataPattern = RegExp(r'!8m2!3d(-?\d+\.?\d*)!4d(-?\d+\.?\d*)');
+    var match = dataPattern.firstMatch(url);
     if (match != null) {
       return _tryParse(match.group(1)!, match.group(2)!);
     }
 
-    // Format 2: ?q=lat,lng veya ?ll=lat,lng
-    final qPattern = RegExp(r'[?&](?:q|ll|query)=(-?\d+\.?\d*),(-?\d+\.?\d*)');
-    match = qPattern.firstMatch(url);
-    if (match != null) {
-      return _tryParse(match.group(1)!, match.group(2)!);
-    }
-
-    // Format 3: /maps/place/lat,lng
-    final placePattern = RegExp(r'/maps/place/(-?\d+\.?\d*),(-?\d+\.?\d*)');
-    match = placePattern.firstMatch(url);
-    if (match != null) {
-      return _tryParse(match.group(1)!, match.group(2)!);
-    }
-
-    // Format 4: !3d{lat}!4d{lng} (embed / short URL resolved format)
+    // Format 2: !3d{lat}!4d{lng} (embed / short URL resolved format)
+    // Yine pin koordinatı, !8m2 olmadan da gelebilir.
     final embedPattern = RegExp(r'!3d(-?\d+\.?\d*)!4d(-?\d+\.?\d*)');
     match = embedPattern.firstMatch(url);
     if (match != null) {
       return _tryParse(match.group(1)!, match.group(2)!);
     }
 
-    // Format 5: data=...!8m2!3d{lat}!4d{lng}
-    final dataPattern = RegExp(r'!8m2!3d(-?\d+\.?\d*)!4d(-?\d+\.?\d*)');
-    match = dataPattern.firstMatch(url);
+    // Format 3: /@lat,lng,zoom — KAMERA merkezi, pin değil.
+    // Sadece yukarıdaki formatlar bulunamazsa kullan.
+    final atPattern = RegExp(r'/@(-?\d+\.?\d*),(-?\d+\.?\d*)');
+    match = atPattern.firstMatch(url);
+    if (match != null) {
+      return _tryParse(match.group(1)!, match.group(2)!);
+    }
+
+    // Format 4: ?q=lat,lng veya ?ll=lat,lng
+    final qPattern = RegExp(r'[?&](?:q|ll|query)=(-?\d+\.?\d*),(-?\d+\.?\d*)');
+    match = qPattern.firstMatch(url);
+    if (match != null) {
+      return _tryParse(match.group(1)!, match.group(2)!);
+    }
+
+    // Format 5: /maps/place/lat,lng
+    final placePattern = RegExp(r'/maps/place/(-?\d+\.?\d*),(-?\d+\.?\d*)');
+    match = placePattern.firstMatch(url);
     if (match != null) {
       return _tryParse(match.group(1)!, match.group(2)!);
     }
@@ -198,11 +219,13 @@ class MapCoordinates {
   final double latitude;
   final double longitude;
   final String? placeId;
+  final String? placeName;
 
   const MapCoordinates({
     required this.latitude,
     required this.longitude,
     this.placeId,
+    this.placeName,
   });
 
   @override

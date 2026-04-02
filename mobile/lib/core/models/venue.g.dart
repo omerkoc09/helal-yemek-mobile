@@ -11,6 +11,7 @@ _Venue _$VenueFromJson(Map<String, dynamic> json) => _Venue(
   name: json['name'] as String,
   address: json['address'] as String,
   city: json['city'] as String,
+  district: json['district'] as String?,
   latitude: (json['latitude'] as num).toDouble(),
   longitude: (json['longitude'] as num).toDouble(),
   googlePlaceId: json['google_place_id'] as String?,
@@ -43,9 +44,10 @@ _Venue _$VenueFromJson(Map<String, dynamic> json) => _Venue(
           ?.map((e) => FoodItem.fromJson(e as Map<String, dynamic>))
           .toList() ??
       const [],
-  avgRating: (json['avg_rating'] as num?)?.toDouble(),
+  avgRating: (json['average_rating'] as num?)?.toDouble(),
   reviewCount: (json['review_count'] as num?)?.toInt() ?? 0,
   distance: (json['distance'] as num?)?.toDouble(),
+  categoriesStr: json['categories_str'] as String?,
   createdAt: json['created_at'] == null
       ? null
       : DateTime.parse(json['created_at'] as String),
@@ -59,6 +61,7 @@ Map<String, dynamic> _$VenueToJson(_Venue instance) => <String, dynamic>{
   'name': instance.name,
   'address': instance.address,
   'city': instance.city,
+  'district': instance.district,
   'latitude': instance.latitude,
   'longitude': instance.longitude,
   'google_place_id': instance.googlePlaceId,
@@ -73,9 +76,10 @@ Map<String, dynamic> _$VenueToJson(_Venue instance) => <String, dynamic>{
   'criteria': instance.criteria,
   'photos': instance.photos,
   'food_items': instance.foodItems,
-  'avg_rating': instance.avgRating,
+  'average_rating': instance.avgRating,
   'review_count': instance.reviewCount,
   'distance': instance.distance,
+  'categories_str': instance.categoriesStr,
   'created_at': instance.createdAt?.toIso8601String(),
   'updated_at': instance.updatedAt?.toIso8601String(),
 };

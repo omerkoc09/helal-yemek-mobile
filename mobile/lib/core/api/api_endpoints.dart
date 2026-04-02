@@ -49,6 +49,10 @@ static const String adminAuditLogs = '/admin/audit-logs';
   static const String adminUsers = '/admin/users';
   static String adminUser(String id) => '/admin/users/$id';
 
+  // Home feed
+  static const String venuesNearby = '/venues/nearby';
+  static const String venuesPopular = '/venues/popular';
+
   // Food Categories
   static const String foodCategories = '/food-categories';
   static String venuesByCategory(int categoryId) =>
@@ -57,4 +61,5 @@ static const String adminAuditLogs = '/admin/audit-logs';
 
   // Misc
   static const String criteria = '/criteria';
+  static const String placePreview = '/venues/place-preview';
 }

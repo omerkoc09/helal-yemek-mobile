@@ -17,7 +17,7 @@ class FoodDiscoveryScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          state.selectedCategoryLabel ?? 'Ne Yesem?',
+          state.selectedCategoryLabel ?? 'Mutfaklar',
         ),
         leading: state.selectedCategoryId != null
             ? IconButton(
@@ -58,7 +58,7 @@ class FoodDiscoveryScreen extends ConsumerWidget {
             final category = categories[index];
             return _CategoryCard(
               label: category.labelTr,
-              icon: _categoryIcon(category.key),
+              categoryKey: category.key,
               onTap: () =>
                   notifier.selectCategory(category.id, category.labelTr),
             );
@@ -107,82 +107,70 @@ class FoodDiscoveryScreen extends ConsumerWidget {
     );
   }
 
-  IconData _categoryIcon(String key) {
-    switch (key) {
-      case 'doner':
-        return Icons.kebab_dining;
-      case 'tost':
-        return Icons.bakery_dining;
-      case 'borek':
-        return Icons.breakfast_dining;
-      case 'pide_lahmacun':
-        return Icons.local_pizza;
-      case 'pizza':
-        return Icons.local_pizza_outlined;
-      case 'kofte':
-        return Icons.lunch_dining;
-      case 'cig_kofte':
-        return Icons.set_meal;
-      case 'tatli':
-        return Icons.cake;
-      case 'tantuni':
-        return Icons.fastfood;
-      case 'tavuk':
-        return Icons.restaurant;
-      case 'corba':
-        return Icons.soup_kitchen;
-      case 'kebap':
-        return Icons.kebab_dining;
-      case 'balik':
-        return Icons.set_meal;
-      case 'dondurma':
-        return Icons.icecream;
-      default:
-        return Icons.restaurant_menu;
-    }
-  }
 }
 
 class _CategoryCard extends StatelessWidget {
   final String label;
-  final IconData icon;
+  final String categoryKey;
   final VoidCallback onTap;
 
   const _CategoryCard({
     required this.label,
-    required this.icon,
+    required this.categoryKey,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: InkWell(
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: GestureDetector(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, size: 32, color: AppTheme.primary),
-              const SizedBox(height: 8),
-              Text(
-                label,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Image.asset(
+              'assets/images/categories/$categoryKey.png',
+              fit: BoxFit.cover,
+              errorBuilder: (_, _, _) => Container(
+                color: AppTheme.primary.withValues(alpha: 0.1),
+                child: const Icon(
+                  Icons.restaurant_menu,
+                  color: AppTheme.primary,
+                  size: 32,
                 ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
               ),
-            ],
-          ),
+            ),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.topCenter,
+                    colors: [
+                      Colors.black.withValues(alpha: 0.65),
+                      Colors.transparent,
+                    ],
+                  ),
+                ),
+                child: Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

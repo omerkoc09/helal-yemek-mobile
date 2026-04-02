@@ -23,6 +23,9 @@ import '../../features/admin/screens/guide_applications_screen.dart';
 import '../../features/admin/screens/all_venues_screen.dart';
 import '../../features/admin/screens/audit_log_screen.dart';
 import '../../features/admin/screens/users_screen.dart';
+import '../../features/home/screens/home_screen.dart';
+import '../../features/home/screens/all_venues_screen.dart' as home;
+import '../../shared/widgets/app_header.dart';
 
 // Route isimleri
 class AppRoutes {
@@ -31,6 +34,7 @@ class AppRoutes {
   static const String splash = '/';
   static const String login = '/login';
   static const String register = '/register';
+  static const String home = '/home';
   static const String map = '/map';
   static const String foodDiscovery = '/food-discovery';
   static const String search = '/search';
@@ -42,6 +46,7 @@ class AppRoutes {
   static const String addVenue = '/add-venue';
   static const String myVenues = '/my-venues';
   static const String editVenue = '/venue/:id/edit';
+  static const String allVenues = '/venues/all';
   static const String adminDashboard = '/admin';
   static const String adminPendingVenues = '/admin/pending-venues';
   static const String adminVenueReview = '/admin/venue/:id';
@@ -63,34 +68,28 @@ final routerProvider = Provider<GoRouter>((ref) {
           state.matchedLocation == AppRoutes.register;
       final isSplash = state.matchedLocation == AppRoutes.splash;
 
-      // Auth durumu henüz belirlenmemişse splash'ta kal
       if (authState.status == AuthStatus.unknown) {
         return isSplash ? null : AppRoutes.splash;
       }
 
-      // Giriş yapılmamış ve auth sayfasında değilse → login'e yönlendir
       if (!isAuthenticated && !isAuthRoute) {
         return AppRoutes.login;
       }
 
-      // Giriş yapılmış ve auth sayfasındaysa → yönlendir
       if (isAuthenticated && (isAuthRoute || isSplash)) {
-        // Admin ise admin paneline, değilse haritaya yönlendir
-        return authState.isAdmin ? AppRoutes.adminDashboard : AppRoutes.map;
+        return authState.isAdmin ? AppRoutes.adminDashboard : AppRoutes.home;
       }
 
-      // Admin rotaları koruması
       final isAdminRoute = state.matchedLocation.startsWith('/admin');
       if (isAdminRoute && !authState.isAdmin) {
-        return AppRoutes.map;
+        return AppRoutes.home;
       }
 
-      // Guide rotaları koruması
       final guideRoutes = [AppRoutes.addVenue, AppRoutes.myVenues];
       final isGuideRoute = guideRoutes.contains(state.matchedLocation) ||
           state.matchedLocation.endsWith('/edit');
       if (isGuideRoute && !authState.isGuide && !authState.isAdmin) {
-        return AppRoutes.map;
+        return AppRoutes.home;
       }
 
       return null;
@@ -112,13 +111,26 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const RegisterScreen(),
       ),
 
-      // Ana sekmeler — ShellRoute ile bottom nav
+      // Ana sekmeler — ShellRoute ile bottom nav + AppHeader
       ShellRoute(
         builder: (context, state, child) => AppShell(child: child),
         routes: [
           GoRoute(
+            path: AppRoutes.home,
+            builder: (context, state) => const HomeScreen(),
+          ),
+          GoRoute(
             path: AppRoutes.map,
             builder: (context, state) => const MapScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.profile,
+            builder: (context, state) => const ProfileScreen(),
+          ),
+          // Header'dan erişilebilir sayfalar (tab ikonları yok ama shell içinde)
+          GoRoute(
+            path: AppRoutes.favorites,
+            builder: (context, state) => const FavoritesScreen(),
           ),
           GoRoute(
             path: AppRoutes.foodDiscovery,
@@ -128,15 +140,22 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: AppRoutes.search,
             builder: (context, state) => const SearchScreen(),
           ),
-          GoRoute(
-            path: AppRoutes.favorites,
-            builder: (context, state) => const FavoritesScreen(),
-          ),
-          GoRoute(
-            path: AppRoutes.profile,
-            builder: (context, state) => const ProfileScreen(),
-          ),
         ],
+      ),
+
+      // Tümünü Gör (nearby / popular)
+      GoRoute(
+        path: AppRoutes.allVenues,
+        builder: (context, state) {
+          final type = state.uri.queryParameters['type'];
+          return home.AllVenuesScreen(
+            type: type == 'popular'
+                ? home.AllVenuesType.popular
+                : type == 'city'
+                    ? home.AllVenuesType.city
+                    : home.AllVenuesType.nearby,
+          );
+        },
       ),
 
       // Detay sayfaları
@@ -231,44 +250,58 @@ class AppShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final location = GoRouterState.of(context).matchedLocation;
+    final showBottomNav = _isTabRoute(location);
+
     return Scaffold(
+      appBar: const AppHeader(),
       body: child,
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        currentIndex: _currentIndex(GoRouterState.of(context).matchedLocation),
-        onTap: (index) => _onTap(context, index),
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.map), label: 'Harita'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.restaurant_menu), label: 'Ne Yesem?'),
-          BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Ara'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.favorite), label: 'Favoriler'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profil'),
-        ],
-      ),
+      bottomNavigationBar: showBottomNav
+          ? BottomNavigationBar(
+              type: BottomNavigationBarType.fixed,
+              currentIndex: _currentIndex(location),
+              onTap: (index) => _onTap(context, index),
+              items: const [
+                BottomNavigationBarItem(
+                    icon: Icon(Icons.home_outlined),
+                    activeIcon: Icon(Icons.home),
+                    label: 'Ana Sayfa'),
+                BottomNavigationBarItem(
+                    icon: Icon(Icons.map_outlined),
+                    activeIcon: Icon(Icons.map),
+                    label: 'Harita'),
+                BottomNavigationBarItem(
+                    icon: Icon(Icons.person_outline),
+                    activeIcon: Icon(Icons.person),
+                    label: 'Profil'),
+              ],
+            )
+          : null,
     );
   }
 
+  bool _isTabRoute(String location) {
+    return location == AppRoutes.home ||
+        location.startsWith(AppRoutes.map) ||
+        location == AppRoutes.profile ||
+        location == AppRoutes.favorites ||
+        location == AppRoutes.foodDiscovery ||
+        location == AppRoutes.search;
+  }
+
   int _currentIndex(String location) {
-    if (location.startsWith(AppRoutes.foodDiscovery)) return 1;
-    if (location.startsWith(AppRoutes.search)) return 2;
-    if (location.startsWith(AppRoutes.favorites)) return 3;
-    if (location.startsWith(AppRoutes.profile)) return 4;
+    if (location.startsWith(AppRoutes.map)) return 1;
+    if (location == AppRoutes.profile) return 2;
     return 0;
   }
 
   void _onTap(BuildContext context, int index) {
     switch (index) {
       case 0:
-        context.go(AppRoutes.map);
+        context.go(AppRoutes.home);
       case 1:
-        context.go(AppRoutes.foodDiscovery);
+        context.go(AppRoutes.map);
       case 2:
-        context.go(AppRoutes.search);
-      case 3:
-        context.go(AppRoutes.favorites);
-      case 4:
         context.go(AppRoutes.profile);
     }
   }

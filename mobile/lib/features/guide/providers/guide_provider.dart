@@ -21,6 +21,7 @@ class AddVenueState {
   final String district; // İlçe
   final String mapsLink; // Google Maps linki
   final bool isParsingLink; // Link parse ediliyor mu
+  final bool isLoadingPlaceDetails; // Place Details API çağrısı devam ediyor
   final double? latitude;
   final double? longitude;
   final String? googlePlaceId; // Linkten parse edilen place_id
@@ -32,6 +33,7 @@ class AddVenueState {
   final Map<int, List<int>> selectedFoodItemIds; // kategori ID → seçili item ID listesi
   final String foodHalalMode; // 'all', 'except', 'selected'
   final List<String> excludedProducts; // sakıncalı ürünler (except modunda)
+  final bool isManualMode; // Link yok, bilgiler elle girilecek
 
   const AddVenueState({
     this.isLoading = false,
@@ -44,6 +46,7 @@ class AddVenueState {
     this.district = '',
     this.mapsLink = '',
     this.isParsingLink = false,
+    this.isLoadingPlaceDetails = false,
     this.latitude,
     this.longitude,
     this.googlePlaceId,
@@ -53,6 +56,7 @@ class AddVenueState {
     this.selectedFoodItemIds = const {},
     this.foodHalalMode = 'selected',
     this.excludedProducts = const [],
+    this.isManualMode = false,
   });
 
   AddVenueState copyWith({
@@ -66,6 +70,7 @@ class AddVenueState {
     String? district,
     String? mapsLink,
     bool? isParsingLink,
+    bool? isLoadingPlaceDetails,
     double? latitude,
     double? longitude,
     String? googlePlaceId,
@@ -75,6 +80,7 @@ class AddVenueState {
     Map<int, List<int>>? selectedFoodItemIds,
     String? foodHalalMode,
     List<String>? excludedProducts,
+    bool? isManualMode,
   }) {
     return AddVenueState(
       isLoading: isLoading ?? this.isLoading,
@@ -87,6 +93,7 @@ class AddVenueState {
       district: district ?? this.district,
       mapsLink: mapsLink ?? this.mapsLink,
       isParsingLink: isParsingLink ?? this.isParsingLink,
+      isLoadingPlaceDetails: isLoadingPlaceDetails ?? this.isLoadingPlaceDetails,
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
       googlePlaceId: googlePlaceId ?? this.googlePlaceId,
@@ -96,15 +103,20 @@ class AddVenueState {
       selectedFoodItemIds: selectedFoodItemIds ?? this.selectedFoodItemIds,
       foodHalalMode: foodHalalMode ?? this.foodHalalMode,
       excludedProducts: excludedProducts ?? this.excludedProducts,
+      isManualMode: isManualMode ?? this.isManualMode,
     );
   }
 
-  bool get canProceedStep0 => name.trim().isNotEmpty;
+  // Adım 0 = Link adımı: ya koordinat parse edildi ya da manuel mod seçildi
+  bool get canProceedStep0 =>
+      (latitude != null && longitude != null) || isManualMode;
+  // Adım 1 = Detay doğrulama: ad + il + ilçe + koordinat zorunlu
   bool get canProceedStep1 =>
-      latitude != null &&
-      longitude != null &&
+      name.trim().isNotEmpty &&
       city.isNotEmpty &&
-      district.isNotEmpty;
+      district.isNotEmpty &&
+      latitude != null &&
+      longitude != null;
   bool get canProceedStep2 => selectedCriteriaIds.isNotEmpty;
   // Step 3 (not + fotoğraf) opsiyonel, her zaman geçilebilir
   bool get canProceedStep3 => true;
@@ -129,6 +141,9 @@ class AddVenueState {
 class AddVenueNotifier extends Notifier<AddVenueState> {
   @override
   AddVenueState build() => const AddVenueState();
+
+  void setManualMode(bool value) =>
+      state = state.copyWith(isManualMode: value);
 
   void setName(String name) => state = state.copyWith(name: name);
 
@@ -168,11 +183,21 @@ class AddVenueNotifier extends Notifier<AddVenueState> {
 
     final coords = await GoogleMapsParser.parseLink(link);
     if (coords != null) {
+      // URL'den gelen adı pre-populate et (kullanıcı sonraki adımda düzeltebilir)
+      final nameFromUrl = coords.placeName ?? '';
       state = state.copyWith(
         latitude: coords.latitude,
         longitude: coords.longitude,
         googlePlaceId: coords.placeId,
+        name: nameFromUrl.isNotEmpty ? nameFromUrl : state.name,
         isParsingLink: false,
+      );
+      // Koordinatlarla arka planda şehir/ilçe bilgilerini çek
+      fetchPlaceDetails(
+        placeId: coords.placeId,
+        latitude: coords.latitude,
+        longitude: coords.longitude,
+        name: nameFromUrl,
       );
       return true;
     } else {
@@ -181,6 +206,52 @@ class AddVenueNotifier extends Notifier<AddVenueState> {
         error: 'Linkten koordinat çıkarılamadı. Haritada manuel seçim yapabilirsiniz.',
       );
       return false;
+    }
+  }
+
+  /// Koordinat ve opsiyonel place_id ile mekan detaylarını çeker.
+  /// city/district backend'den gelir; name URL'den gelmişse korunur.
+  /// Hata durumunda sessizce fail eder — kullanıcı bilgileri elle düzeltir.
+  Future<void> fetchPlaceDetails({
+    String? placeId,
+    required double latitude,
+    required double longitude,
+    String name = '',
+  }) async {
+    state = state.copyWith(isLoadingPlaceDetails: true);
+    try {
+      final apiClient = ref.read(apiClientProvider);
+      final queryParams = <String, dynamic>{
+        'lat': latitude,
+        'lng': longitude,
+      };
+      if (placeId != null && placeId.startsWith('ChIJ')) {
+        queryParams['place_id'] = placeId;
+      } else if (name.isNotEmpty) {
+        queryParams['name'] = name;
+      }
+
+      final response = await apiClient.get(
+        ApiEndpoints.placePreview,
+        queryParameters: queryParams,
+      );
+      final data = response.data as Map<String, dynamic>;
+      final fetchedName = (data['name'] as String? ?? '').trim();
+      final fetchedCity = (data['city'] as String? ?? '').trim();
+      final fetchedDistrict = (data['district'] as String? ?? '').trim();
+
+      state = state.copyWith(
+        // Eğer state'te zaten bir isim varsa (URL'den geldiyse) koru,
+        // yoksa backend'den gelen ismi kullan
+        name: state.name.isNotEmpty
+            ? state.name
+            : (fetchedName.isNotEmpty ? fetchedName : state.name),
+        city: fetchedCity.isNotEmpty ? fetchedCity : state.city,
+        district: fetchedDistrict.isNotEmpty ? fetchedDistrict : state.district,
+        isLoadingPlaceDetails: false,
+      );
+    } catch (_) {
+      state = state.copyWith(isLoadingPlaceDetails: false);
     }
   }
 
@@ -337,9 +408,9 @@ class AddVenueNotifier extends Notifier<AddVenueState> {
         ApiEndpoints.venues,
         data: {
           'name': state.name.trim(),
-          'address': state.district,
+          'address': state.district.isNotEmpty ? state.district : state.city,
           'city': state.city,
-          'country': 'Türkiye',
+          'district': state.district.isNotEmpty ? state.district : null,
           'latitude': state.latitude,
           'longitude': state.longitude,
           if (state.googlePlaceId != null) 'google_place_id': state.googlePlaceId,
