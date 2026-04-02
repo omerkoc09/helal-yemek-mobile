@@ -92,7 +92,7 @@ func (h *AdminHandler) UpdateVenue(c *fiber.Ctx) error {
 	}
 
 	if err := h.venueRepo.UpdateVenue(c.Context(), venueID, req.Name, req.Address, req.City,
-		nil, nil, req.Notes, nil); err != nil {
+		nil, nil, nil, req.Notes, nil); err != nil {
 		log.Printf("[ADMIN] UpdateVenue repo error for id=%s: %v", venueID, err)
 		if errors.Is(err, repository.ErrNotFound) {
 			return fiber.ErrNotFound

@@ -78,29 +78,55 @@ func (r *VenueRepo) SearchByText(ctx context.Context, query string) ([]models.Ve
 }
 
 // FindByCity — şehir adına göre onaylı mekanları döndürür.
-func (r *VenueRepo) FindByCity(ctx context.Context, city string) ([]models.Venue, error) {
-	query := `
+// lat, lng: kullanıcı konumu (mesafe hesabı için); 0,0 gönderilirse mesafe NULL döner.
+// limit: döndürülecek max mekan sayısı; 0 ise tüm mekanlar döner.
+func (r *VenueRepo) FindByCity(ctx context.Context, city string, lat, lng float64, limit int) ([]models.Venue, error) {
+	limitClause := ""
+	if limit > 0 {
+		limitClause = fmt.Sprintf("LIMIT %d", limit)
+	}
+
+	query := fmt.Sprintf(`
 		SELECT
-			v.id, v.name, v.address, v.city,
+			v.id, v.name, v.address, v.city, v.district,
 			ST_Y(v.location::geometry) AS latitude,
 			ST_X(v.location::geometry) AS longitude,
 			v.google_place_id,
 			v.notes, v.status,
 			v.added_by, v.verified_at,
-			v.created_at, v.updated_at
+			v.created_at, v.updated_at,
+			CASE WHEN $2 != 0.0 AND $3 != 0.0
+			     THEN ST_Distance(v.location, ST_MakePoint($3, $2)::geography)
+			     ELSE NULL END AS distance,
+			COALESCE(AVG(rv.rating), 0)::float8 AS avg_rating,
+			COUNT(rv.id)::int AS review_count,
+			(
+				SELECT STRING_AGG(fc.label_tr, ' · ')
+				FROM (
+					SELECT DISTINCT fc2.label_tr
+					FROM venue_food_items vfi2
+					JOIN food_items fi2 ON fi2.id = vfi2.food_item_id
+					JOIN food_categories fc2 ON fc2.id = fi2.category_id
+					WHERE vfi2.venue_id = v.id
+					LIMIT 2
+				) fc
+			) AS categories_str
 		FROM venues v
-		WHERE v.status IN ('approved', 'pending')
+		LEFT JOIN reviews rv ON rv.venue_id = v.id
+		WHERE v.city ILIKE $1
+		  AND v.status = 'approved'
 		  AND v.deleted_at IS NULL
-		  AND LOWER(v.city) = LOWER($1)
-		ORDER BY CASE WHEN v.status = 'approved' THEN 0 ELSE 1 END, v.name`
+		GROUP BY v.id
+		ORDER BY distance ASC NULLS LAST, v.name ASC
+		%s`, limitClause)
 
-	rows, err := r.db.Query(ctx, query, city)
+	rows, err := r.db.Query(ctx, query, city, lat, lng)
 	if err != nil {
 		return nil, fmt.Errorf("şehir sorgusu başarısız: %w", err)
 	}
 	defer rows.Close()
 
-	return r.scanVenueRowsWithPhotos(ctx, rows, false)
+	return r.scanVenueCityRows(ctx, rows)
 }
 
 // FindByAddedBy — guide'ın eklediği tüm mekanları döndürür (tüm durumlar dahil).
@@ -199,6 +225,187 @@ func (r *VenueRepo) FindByFoodCategory(ctx context.Context, categoryID int, lat,
 	defer rows.Close()
 
 	return r.scanVenueRowsWithPhotos(ctx, rows, true)
+}
+
+// FindNearbyApproved — onaylı mekanları mesafeye göre döndürür.
+// limit=0 ise tüm mekanlar döner; limit>0 ise en fazla limit kadar döner.
+func (r *VenueRepo) FindNearbyApproved(ctx context.Context, lat, lng, radiusMeters float64, limit int) ([]models.Venue, error) {
+	limitClause := ""
+	if limit > 0 {
+		limitClause = fmt.Sprintf("LIMIT %d", limit)
+	}
+	query := fmt.Sprintf(`
+		SELECT
+			v.id, v.name, v.address, v.city,
+			ST_Y(v.location::geometry) AS latitude,
+			ST_X(v.location::geometry) AS longitude,
+			v.google_place_id,
+			v.notes, v.status,
+			v.added_by, v.verified_at,
+			v.created_at, v.updated_at,
+			ST_Distance(v.location, ST_MakePoint($2, $1)::geography) AS distance,
+			COALESCE(AVG(rv.rating), 0)::float8 AS avg_rating,
+			COUNT(rv.id)::int AS review_count,
+			(
+				SELECT STRING_AGG(fc.label_tr, ' · ')
+				FROM (
+					SELECT DISTINCT fc2.label_tr
+					FROM venue_food_items vfi2
+					JOIN food_items fi2 ON fi2.id = vfi2.food_item_id
+					JOIN food_categories fc2 ON fc2.id = fi2.category_id
+					WHERE vfi2.venue_id = v.id
+					LIMIT 2
+				) fc
+			) AS categories_str
+		FROM venues v
+		LEFT JOIN reviews rv ON rv.venue_id = v.id
+		WHERE v.status = 'approved'
+		  AND v.deleted_at IS NULL
+		  AND ST_DWithin(v.location, ST_MakePoint($2, $1)::geography, $3)
+		GROUP BY v.id
+		ORDER BY distance ASC
+		%s`, limitClause)
+
+	rows, err := r.db.Query(ctx, query, lat, lng, radiusMeters)
+	if err != nil {
+		return nil, fmt.Errorf("yakın onaylı mekan sorgusu başarısız: %w", err)
+	}
+	defer rows.Close()
+
+	return r.scanVenueRowsWithRatingAndPhotos(ctx, rows)
+}
+
+// FindPopular — popülerlik skoruna göre (avg_rating * log(review_count+1)) onaylı mekanları döndürür.
+// limit=0 ise tüm mekanlar döner; limit>0 ise en fazla limit kadar döner.
+func (r *VenueRepo) FindPopular(ctx context.Context, lat, lng, radiusMeters float64, limit int) ([]models.Venue, error) {
+	limitClause := ""
+	if limit > 0 {
+		limitClause = fmt.Sprintf("LIMIT %d", limit)
+	}
+	query := fmt.Sprintf(`
+		SELECT
+			v.id, v.name, v.address, v.city,
+			ST_Y(v.location::geometry) AS latitude,
+			ST_X(v.location::geometry) AS longitude,
+			v.google_place_id,
+			v.notes, v.status,
+			v.added_by, v.verified_at,
+			v.created_at, v.updated_at,
+			ST_Distance(v.location, ST_MakePoint($2, $1)::geography) AS distance,
+			COALESCE(AVG(rv.rating), 0)::float8 AS avg_rating,
+			COUNT(rv.id)::int AS review_count,
+			(
+				SELECT STRING_AGG(fc.label_tr, ' · ')
+				FROM (
+					SELECT DISTINCT fc2.label_tr
+					FROM venue_food_items vfi2
+					JOIN food_items fi2 ON fi2.id = vfi2.food_item_id
+					JOIN food_categories fc2 ON fc2.id = fi2.category_id
+					WHERE vfi2.venue_id = v.id
+					LIMIT 2
+				) fc
+			) AS categories_str
+		FROM venues v
+		LEFT JOIN reviews rv ON rv.venue_id = v.id
+		WHERE v.status = 'approved'
+		  AND v.deleted_at IS NULL
+		  AND ST_DWithin(v.location, ST_MakePoint($2, $1)::geography, $3)
+		GROUP BY v.id
+		ORDER BY (COALESCE(AVG(rv.rating), 0) * LOG(COUNT(rv.id) + 1)) DESC, distance ASC
+		%s`, limitClause)
+
+	rows, err := r.db.Query(ctx, query, lat, lng, radiusMeters)
+	if err != nil {
+		return nil, fmt.Errorf("popüler mekan sorgusu başarısız: %w", err)
+	}
+	defer rows.Close()
+
+	return r.scanVenueRowsWithRatingAndPhotos(ctx, rows)
+}
+
+// scanVenueRowsWithRatingAndPhotos — distance + avg_rating + review_count + categories_str içeren satırları tarar.
+func (r *VenueRepo) scanVenueRowsWithRatingAndPhotos(ctx context.Context, rows pgx.Rows) ([]models.Venue, error) {
+	var venues []models.Venue
+	for rows.Next() {
+		v := models.Venue{}
+		err := rows.Scan(
+			&v.ID, &v.Name, &v.Address, &v.City,
+			&v.Latitude, &v.Longitude,
+			&v.GooglePlaceID,
+			&v.Notes, &v.Status,
+			&v.AddedBy, &v.VerifiedAt,
+			&v.CreatedAt, &v.UpdatedAt,
+			&v.Distance,
+			&v.AverageRating,
+			&v.ReviewCount,
+			&v.CategoriesStr,
+		)
+		if err != nil {
+			return nil, err
+		}
+		v.Criteria = []models.HalalCriteria{}
+		v.Photos = []models.VenuePhoto{}
+		venues = append(venues, v)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	if venues == nil {
+		venues = []models.Venue{}
+	}
+
+	for i := range venues {
+		photos, err := r.GetPhotosByVenueID(ctx, venues[i].ID)
+		if err != nil {
+			return nil, err
+		}
+		venues[i].Photos = photos
+	}
+	return venues, nil
+}
+
+// scanVenueCityRows — FindByCity sorgusundan dönen satırları tarar.
+// Sütun sırası: id, name, address, city, district, lat, lng, google_place_id,
+//               notes, status, added_by, verified_at, created_at, updated_at,
+//               distance, avg_rating, review_count, categories_str
+func (r *VenueRepo) scanVenueCityRows(ctx context.Context, rows pgx.Rows) ([]models.Venue, error) {
+	var venues []models.Venue
+	for rows.Next() {
+		v := models.Venue{}
+		err := rows.Scan(
+			&v.ID, &v.Name, &v.Address, &v.City, &v.District,
+			&v.Latitude, &v.Longitude,
+			&v.GooglePlaceID,
+			&v.Notes, &v.Status,
+			&v.AddedBy, &v.VerifiedAt,
+			&v.CreatedAt, &v.UpdatedAt,
+			&v.Distance,
+			&v.AverageRating,
+			&v.ReviewCount,
+			&v.CategoriesStr,
+		)
+		if err != nil {
+			return nil, err
+		}
+		v.Criteria = []models.HalalCriteria{}
+		v.Photos = []models.VenuePhoto{}
+		venues = append(venues, v)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	if venues == nil {
+		venues = []models.Venue{}
+	}
+
+	for i := range venues {
+		photos, err := r.GetPhotosByVenueID(ctx, venues[i].ID)
+		if err != nil {
+			return nil, err
+		}
+		venues[i].Photos = photos
+	}
+	return venues, nil
 }
 
 // scanVenueRows — rows'u []Venue'ya dönüştürür.

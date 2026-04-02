@@ -93,7 +93,14 @@ func main() {
 
 	// Venue endpoint'leri (public)
 	api.Get("/venues", venueHandler.List)
+	api.Get("/venues/nearby", venueHandler.ListNearby)
+	api.Get("/venues/popular", venueHandler.ListPopular)
 	api.Get("/venues/by-category/:categoryId", venueHandler.ListByCategory)
+	api.Get("/venues/place-preview",
+		middleware.Auth(cfg.JWTSecret),
+		middleware.RequireRole("guide", "admin"),
+		venueHandler.PlacePreview,
+	)
 	api.Get("/venues/:id", venueHandler.Detail)
 	api.Get("/criteria", venueHandler.ListCriteria)
 	api.Get("/food-categories", venueHandler.ListFoodCategories)

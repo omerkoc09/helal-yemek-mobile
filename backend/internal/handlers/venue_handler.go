@@ -39,7 +39,10 @@ func (h *VenueHandler) List(c *fiber.Ctx) error {
 	city := c.Query("city")
 
 	if city != "" {
-		venues, err := h.venueRepo.FindByCity(c.Context(), city)
+		lat := c.QueryFloat("lat", 0)
+		lng := c.QueryFloat("lng", 0)
+		limit := c.QueryInt("limit", 10)
+		venues, err := h.venueRepo.FindByCity(c.Context(), city, lat, lng, limit)
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "mekanlar listelenemedi"})
 		}
@@ -94,6 +97,117 @@ func (h *VenueHandler) ListByCategory(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"data": venues, "count": len(venues)})
 }
 
+// PlacePreview godoc
+// GET /api/v1/venues/place-preview?place_id=ChIJ...  (Guide + Admin)
+// GET /api/v1/venues/place-preview?lat=41.0&lng=29.0 (place_id yoksa koordinatla)
+// Mekan adı, şehir ve semt bilgilerini döner.
+func (h *VenueHandler) PlacePreview(c *fiber.Ctx) error {
+	if h.placesService == nil {
+		return c.Status(fiber.StatusServiceUnavailable).JSON(fiber.Map{
+			"error": "places servisi kullanılamıyor",
+		})
+	}
+
+	placeID := c.Query("place_id")
+
+	// ChIJ place_id varsa Place Details API'yi kullan
+	if strings.HasPrefix(placeID, "ChIJ") {
+		components, err := h.placesService.GetAddressComponents(placeID)
+		if err != nil || components == nil {
+			return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{
+				"error": "mekan bilgileri alınamadı",
+			})
+		}
+		return c.JSON(fiber.Map{
+			"name":     components.Name,
+			"city":     components.City,
+			"district": components.District,
+		})
+	}
+
+	// ChIJ yoksa: ad + koordinatla place_id bul, ardından adres detaylarını çek
+	latStr := c.Query("lat")
+	lngStr := c.Query("lng")
+	if latStr == "" || lngStr == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "place_id (ChIJ formatı) veya lat+lng parametresi gereklidir",
+		})
+	}
+	lat := c.QueryFloat("lat", 0)
+	lng := c.QueryFloat("lng", 0)
+	name := c.Query("name") // URL'den parse edilen mekan adı
+
+	if name == "" {
+		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{
+			"error": "mekan adı bulunamadı, il/ilçe bilgisi çekilemiyor",
+		})
+	}
+
+	resolved := h.placesService.ResolvePlaceID(name, lat, lng)
+	if resolved == "" {
+		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{
+			"error": "mekan bulunamadı",
+		})
+	}
+
+	components, err := h.placesService.GetAddressComponents(resolved)
+	if err != nil || components == nil {
+		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{
+			"error": "mekan adres bilgileri alınamadı",
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"name":     components.Name,
+		"city":     components.City,
+		"district": components.District,
+	})
+}
+
+// ListNearby godoc
+// GET /api/v1/venues/nearby?lat=41.0&lng=29.0&radius=10000&limit=10
+func (h *VenueHandler) ListNearby(c *fiber.Ctx) error {
+	latStr := c.Query("lat")
+	lngStr := c.Query("lng")
+	if latStr == "" || lngStr == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "lat ve lng parametreleri zorunludur",
+		})
+	}
+	lat := c.QueryFloat("lat", 0)
+	lng := c.QueryFloat("lng", 0)
+	radius := c.QueryFloat("radius", 10000)
+	limit := c.QueryInt("limit", 10)
+
+	venues, err := h.venueRepo.FindNearbyApproved(c.Context(), lat, lng, radius, limit)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "mekanlar listelenemedi"})
+	}
+	return c.JSON(fiber.Map{"data": venues, "count": len(venues)})
+}
+
+// ListPopular godoc
+// GET /api/v1/venues/popular?lat=41.0&lng=29.0&radius=10000&limit=10
+func (h *VenueHandler) ListPopular(c *fiber.Ctx) error {
+	latStr := c.Query("lat")
+	lngStr := c.Query("lng")
+	if latStr == "" || lngStr == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "lat ve lng parametreleri zorunludur",
+		})
+	}
+	lat := c.QueryFloat("lat", 0)
+	lng := c.QueryFloat("lng", 0)
+	radius := c.QueryFloat("radius", 10000)
+	limit := c.QueryInt("limit", 10)
+
+	venues, err := h.venueRepo.FindPopular(c.Context(), lat, lng, radius, limit)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "mekanlar listelenemedi"})
+	}
+	return c.JSON(fiber.Map{"data": venues, "count": len(venues)})
+}
+
 // Detail godoc
 // GET /api/v1/venues/:id
 func (h *VenueHandler) Detail(c *fiber.Ctx) error {
@@ -120,6 +234,7 @@ func (h *VenueHandler) Create(c *fiber.Ctx) error {
 		Name             string   `json:"name"`
 		Address          string   `json:"address"`
 		City             string   `json:"city"`
+		District         string   `json:"district"`
 		Latitude         float64  `json:"latitude"`
 		Longitude        float64  `json:"longitude"`
 		GooglePlaceID    *string  `json:"google_place_id"`
@@ -133,9 +248,9 @@ func (h *VenueHandler) Create(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "geçersiz istek gövdesi"})
 	}
 
-	if req.Name == "" || req.Address == "" || req.City == "" {
+	if req.Name == "" || req.City == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "ad, adres ve şehir zorunludur",
+			"error": "ad ve şehir zorunludur",
 		})
 	}
 	if req.Latitude < -90 || req.Latitude > 90 || req.Longitude < -180 || req.Longitude > 180 {
@@ -169,10 +284,31 @@ func (h *VenueHandler) Create(c *fiber.Ctx) error {
 		}
 	}
 
+	// ChIJ place_id varsa city/district/name'i Places API'den otomatik doldur.
+	// Flutter zaten preview'da gösterip teyit ettirmiş olacak; bu backend güvencesidir.
+	city := req.City
+	district := req.District
+	if googlePlaceID != nil && strings.HasPrefix(*googlePlaceID, "ChIJ") && h.placesService != nil {
+		if components, err := h.placesService.GetAddressComponents(*googlePlaceID); err == nil && components != nil {
+			if components.City != "" {
+				city = components.City
+			}
+			if components.District != "" {
+				district = components.District
+			}
+		}
+	}
+
+	// address alanı yoksa district'i fallback olarak kullan
+	address := req.Address
+	if address == "" {
+		address = district
+	}
+
 	venue := &models.Venue{
 		Name:             req.Name,
-		Address:          req.Address,
-		City:             req.City,
+		Address:          address,
+		City:             city,
 		Latitude:         req.Latitude,
 		Longitude:        req.Longitude,
 		GooglePlaceID:    googlePlaceID,
@@ -180,6 +316,9 @@ func (h *VenueHandler) Create(c *fiber.Ctx) error {
 		AddedBy:          userID,
 		FoodHalalMode:    req.FoodHalalMode,
 		ExcludedProducts: req.ExcludedProducts,
+	}
+	if district != "" {
+		venue.District = &district
 	}
 
 	if err := h.venueRepo.Create(c.Context(), venue); err != nil {
@@ -339,6 +478,7 @@ func (h *VenueHandler) Update(c *fiber.Ctx) error {
 		Name             *string   `json:"name"`
 		Address          *string   `json:"address"`
 		City             *string   `json:"city"`
+		District         *string   `json:"district"`
 		Latitude         *float64  `json:"latitude"`
 		Longitude        *float64  `json:"longitude"`
 		GooglePlaceID    *string   `json:"google_place_id"`
@@ -378,7 +518,19 @@ func (h *VenueHandler) Update(c *fiber.Ctx) error {
 		}
 	}
 
-	if err := h.venueRepo.UpdateVenue(c.Context(), venueID, req.Name, req.Address, req.City,
+	// ChIJ place_id varsa city/district'i Places API'den otomatik doldur
+	if googlePlaceID != nil && strings.HasPrefix(*googlePlaceID, "ChIJ") && h.placesService != nil {
+		if components, err := h.placesService.GetAddressComponents(*googlePlaceID); err == nil && components != nil {
+			if components.City != "" {
+				req.City = &components.City
+			}
+			if components.District != "" {
+				req.District = &components.District
+			}
+		}
+	}
+
+	if err := h.venueRepo.UpdateVenue(c.Context(), venueID, req.Name, req.Address, req.City, req.District,
 		req.Latitude, req.Longitude, req.Notes, googlePlaceID); err != nil {
 		return fiber.ErrInternalServerError
 	}
