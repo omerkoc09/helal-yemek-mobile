@@ -1,15 +1,34 @@
 # Caiz mi? — Proje İlerleme Durumu
 
-> Son güncelleme: 2026-03-28
+> Son güncelleme: 2026-04-02
 Mevcut Durum Notu: Proje genel hatlarıyla Faz 5'e (Test & Yayın) geçmiş gibi görünse de, Faz 1-4 arasındaki bazı özelliklerde (MVP çekirdeği) mimari değişiklikler, UX revizyonları ve bug fix'ler yapılmaktadır. Bir modülü düzenlerken, eski kodun kusursuz olduğunu varsayma; refactoring (kod iyileştirme) ve mantık değişiklikleri yapmak serbesttir ve gereklidir.
 ---
 
 ## Düzgün Çalışmayan Kısımlar
+kullanıcı harita üzerinde kendi işaretlediği bir konumun linkini mekan olarak eklediğinde en azından koordinatları parse edebilmeliyiz.
 
+search kısmında places api kullanılmalı mı?
 
 ## Revize Edilecek Özellikler:
 
 1. rehberin ekklediği mekanın bilgilerini belli süre geçtikten sonra (3 ay, 6 ay) güncellemesi için bildirim atılır. Güncellemezse mekan uygulamada askıya alınır.
+
+2. **Mekan ekleme akışı — Place Details API entegrasyonu** (Onaylandı, uygulanmayı bekliyor)
+
+   **Senaryo A — Google Maps kaydı olan mekanlar:**
+   - Kullanıcı Google Maps linkini yapıştırır → backend `parseMapsLink` ile `place_id` çıkarır
+   - `place_id` başarıyla alınırsa Place Details API çağrılır (`name`, `address_components`)
+   - Konum adımında "preview card" gösterilir: mekan adı + şehir + semt + koordinat
+   - Kullanıcı teyit eder; onaylarsa bilgiler state'e yazılır
+   - Info adımında mekan adı pre-filled gelir (düzenlenebilir)
+   - Şehir/semt elle dropdown'dan seçilmez; API'den otomatik doldurulur
+   - Dikkat: kısa linklerden (`maps.app.goo.gl`) `place_id` çıkarılamazsa (koordinat-only link) preview gösterilmez, kullanıcı bilgileri elle girer
+
+   **Senaryo B — Google Maps kaydı olmayan mekanlar:**
+   - "Google Maps'te kayıtlı değil" seçildiğinde harita seçici açılır (mevcut akış korunur)
+   - Bu durumda şehir/semt dropdown'ları zorunlu hale gelir (elle doldurulur)
+   - Mekan adı info adımında elle girilir
+   - Backend'e `google_place_id` gönderilmez
 
 ## Öncelikli Olarak Yapılması Gerekenler
 
