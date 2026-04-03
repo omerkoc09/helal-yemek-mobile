@@ -25,9 +25,9 @@ class AddVenueState {
   final double? latitude;
   final double? longitude;
   final String? googlePlaceId; // Linkten parse edilen place_id
+  final String? googlePhotoUrl; // Google Places API'den çekilen dış mekan fotoğrafı URL'si
   final List<int> selectedCriteriaIds;
   final String? notes;
-  final List<String> photoPaths; // Yerel dosya yolları
 
   // Yemek kategorileri
   final Map<int, List<int>> selectedFoodItemIds; // kategori ID → seçili item ID listesi
@@ -50,9 +50,9 @@ class AddVenueState {
     this.latitude,
     this.longitude,
     this.googlePlaceId,
+    this.googlePhotoUrl,
     this.selectedCriteriaIds = const [],
     this.notes,
-    this.photoPaths = const [],
     this.selectedFoodItemIds = const {},
     this.foodHalalMode = 'selected',
     this.excludedProducts = const [],
@@ -74,9 +74,9 @@ class AddVenueState {
     double? latitude,
     double? longitude,
     String? googlePlaceId,
+    String? googlePhotoUrl,
     List<int>? selectedCriteriaIds,
     String? notes,
-    List<String>? photoPaths,
     Map<int, List<int>>? selectedFoodItemIds,
     String? foodHalalMode,
     List<String>? excludedProducts,
@@ -97,9 +97,9 @@ class AddVenueState {
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
       googlePlaceId: googlePlaceId ?? this.googlePlaceId,
+      googlePhotoUrl: googlePhotoUrl ?? this.googlePhotoUrl,
       selectedCriteriaIds: selectedCriteriaIds ?? this.selectedCriteriaIds,
       notes: notes ?? this.notes,
-      photoPaths: photoPaths ?? this.photoPaths,
       selectedFoodItemIds: selectedFoodItemIds ?? this.selectedFoodItemIds,
       foodHalalMode: foodHalalMode ?? this.foodHalalMode,
       excludedProducts: excludedProducts ?? this.excludedProducts,
@@ -239,6 +239,7 @@ class AddVenueNotifier extends Notifier<AddVenueState> {
       final fetchedName = (data['name'] as String? ?? '').trim();
       final fetchedCity = (data['city'] as String? ?? '').trim();
       final fetchedDistrict = (data['district'] as String? ?? '').trim();
+      final fetchedPhotoUrl = (data['photo_url'] as String? ?? '').trim();
 
       state = state.copyWith(
         // Eğer state'te zaten bir isim varsa (URL'den geldiyse) koru,
@@ -248,6 +249,7 @@ class AddVenueNotifier extends Notifier<AddVenueState> {
             : (fetchedName.isNotEmpty ? fetchedName : state.name),
         city: fetchedCity.isNotEmpty ? fetchedCity : state.city,
         district: fetchedDistrict.isNotEmpty ? fetchedDistrict : state.district,
+        googlePhotoUrl: fetchedPhotoUrl.isNotEmpty ? fetchedPhotoUrl : null,
         isLoadingPlaceDetails: false,
       );
     } catch (_) {
@@ -266,16 +268,6 @@ class AddVenueNotifier extends Notifier<AddVenueState> {
   }
 
   void setNotes(String? notes) => state = state.copyWith(notes: notes);
-
-  void addPhoto(String path) {
-    state = state.copyWith(photoPaths: [...state.photoPaths, path]);
-  }
-
-  void removePhoto(String path) {
-    state = state.copyWith(
-      photoPaths: state.photoPaths.where((p) => p != path).toList(),
-    );
-  }
 
   // ─── Food Methods ───
 
@@ -414,6 +406,7 @@ class AddVenueNotifier extends Notifier<AddVenueState> {
           'latitude': state.latitude,
           'longitude': state.longitude,
           if (state.googlePlaceId != null) 'google_place_id': state.googlePlaceId,
+          if (state.googlePhotoUrl != null) 'google_photo_url': state.googlePhotoUrl,
           'criteria_ids': state.selectedCriteriaIds,
           'notes': state.notes?.trim(),
           'food_halal_mode': state.foodHalalMode,
@@ -427,19 +420,6 @@ class AddVenueNotifier extends Notifier<AddVenueState> {
       final venueData = response.data is Map<String, dynamic>
           ? response.data as Map<String, dynamic>
           : (response.data['data'] as Map<String, dynamic>);
-      final venueId = venueData['id'] as String;
-
-      // 2. Fotoğrafları yükle
-      for (final path in state.photoPaths) {
-        final formData = FormData.fromMap({
-          'photo': await MultipartFile.fromFile(path),
-        });
-        await apiClient.upload(
-          ApiEndpoints.venuePhotos(venueId),
-          formData: formData,
-        );
-      }
-
       state = state.copyWith(isLoading: false, isSuccess: true, currentStep: 5);
     } catch (e) {
       state = state.copyWith(

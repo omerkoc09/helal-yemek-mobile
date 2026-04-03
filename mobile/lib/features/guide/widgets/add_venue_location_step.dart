@@ -203,6 +203,19 @@ class _AddVenueLocationStepState extends ConsumerState<AddVenueLocationStep> {
               ),
             ],
           ),
+          if (state.googlePhotoUrl != null) ...[
+            const SizedBox(height: 10),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.network(
+                state.googlePhotoUrl!,
+                height: 140,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+              ),
+            ),
+          ],
           if (hasInfo) ...[
             const SizedBox(height: 10),
             if (state.name.isNotEmpty) _infoRow('Mekan', state.name),

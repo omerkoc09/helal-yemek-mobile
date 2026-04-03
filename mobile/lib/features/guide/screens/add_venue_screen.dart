@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:image_picker/image_picker.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../providers/guide_provider.dart';
 import '../widgets/add_venue_details_step.dart';
 import '../widgets/add_venue_food_step.dart';
 import '../widgets/add_venue_location_step.dart';
-import '../widgets/photo_widgets.dart';
 import '../widgets/step_indicator.dart';
 
 class AddVenueScreen extends ConsumerStatefulWidget {
@@ -138,7 +136,7 @@ class _AddVenueScreenState extends ConsumerState<AddVenueScreen> {
     );
   }
 
-  // ─── Adım 4: Not + Fotoğraf ───
+  // ─── Adım 4: Not ───
 
   Widget _buildNotesPhotoStep(AddVenueState state) {
     return SingleChildScrollView(
@@ -147,7 +145,7 @@ class _AddVenueScreenState extends ConsumerState<AddVenueScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Not & Fotoğraflar',
+            'Not',
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
@@ -155,7 +153,7 @@ class _AddVenueScreenState extends ConsumerState<AddVenueScreen> {
           ),
           const SizedBox(height: 8),
           const Text(
-            'İsteğe bağlı olarak not ekleyin ve fotoğraf yükleyin.',
+            'İsteğe bağlı olarak not ekleyin.',
             style: TextStyle(color: AppTheme.textSecondary),
           ),
           const SizedBox(height: 24),
@@ -171,68 +169,9 @@ class _AddVenueScreenState extends ConsumerState<AddVenueScreen> {
             onChanged: (value) =>
                 ref.read(addVenueProvider.notifier).setNotes(value),
           ),
-          const SizedBox(height: 24),
-          const Text(
-            'Fotoğraflar (isteğe bağlı)',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: [
-              ...state.photoPaths.map((path) => PhotoThumbnail(
-                    path: path,
-                    onRemove: () =>
-                        ref.read(addVenueProvider.notifier).removePhoto(path),
-                  )),
-              if (state.photoPaths.length < 5)
-                AddPhotoButton(onTap: _pickPhoto),
-            ],
-          ),
         ],
       ),
     );
-  }
-
-  Future<void> _pickPhoto() async {
-    final source = await showModalBottomSheet<ImageSource>(
-      context: context,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.camera_alt),
-              title: const Text('Kamera'),
-              onTap: () => Navigator.pop(context, ImageSource.camera),
-            ),
-            ListTile(
-              leading: const Icon(Icons.photo_library),
-              title: const Text('Galeri'),
-              onTap: () => Navigator.pop(context, ImageSource.gallery),
-            ),
-          ],
-        ),
-      ),
-    );
-
-    if (source == null) return;
-
-    final picker = ImagePicker();
-    final image = await picker.pickImage(
-      source: source,
-      maxWidth: 1920,
-      maxHeight: 1080,
-      imageQuality: 80,
-    );
-
-    if (image != null) {
-      ref.read(addVenueProvider.notifier).addPhoto(image.path);
-    }
   }
 
   // ─── Başarılı ───
@@ -363,7 +302,7 @@ class _AddVenueScreenState extends ConsumerState<AddVenueScreen> {
 
   Future<void> _showExitConfirmation(BuildContext context) async {
     final state = ref.read(addVenueProvider);
-    if (state.name.isEmpty && state.photoPaths.isEmpty) {
+    if (state.name.isEmpty) {
       context.pop();
       return;
     }
