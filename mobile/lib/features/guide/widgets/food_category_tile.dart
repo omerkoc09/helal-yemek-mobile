@@ -59,19 +59,6 @@ class _FoodCategoryTileState extends State<FoodCategoryTile> {
         tilePadding: const EdgeInsets.symmetric(horizontal: 16),
         childrenPadding:
             const EdgeInsets.symmetric(horizontal: 16).copyWith(bottom: 12),
-        leading: ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: Image.asset(
-            'assets/images/categories/${widget.category.key}.png',
-            width: 40,
-            height: 40,
-            fit: BoxFit.cover,
-            errorBuilder: (_, _, _) => Icon(
-              Icons.restaurant_outlined,
-              color: selectedCount > 0 ? AppTheme.primary : AppTheme.textSecondary,
-            ),
-          ),
-        ),
         title: Row(
           children: [
             Expanded(

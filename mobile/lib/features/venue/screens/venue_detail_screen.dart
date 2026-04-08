@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/auth/auth_provider.dart';
+import '../../../core/models/venue.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/map_launcher.dart';
 import '../../../shared/widgets/error_retry_widget.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/star_rating_widget.dart';
 import '../../favorites/providers/favorites_provider.dart';
+import '../../guide/providers/guide_provider.dart';
 import '../providers/venue_detail_provider.dart';
 import '../widgets/add_review_sheet.dart';
 import '../widgets/halal_criteria_chip.dart';
@@ -26,6 +28,7 @@ class VenueDetailScreen extends ConsumerWidget {
     final reviewsAsync = ref.watch(venueReviewsProvider(venueId));
     final favState = ref.watch(favoritesProvider);
     final authState = ref.watch(authProvider);
+    final categoriesAsync = ref.watch(foodCategoriesProvider);
 
     return venueAsync.when(
       loading: () => const Scaffold(body: LoadingIndicator()),
@@ -156,7 +159,7 @@ class VenueDetailScreen extends ConsumerWidget {
                           ),
                         ),
                         const SizedBox(height: 8),
-                        if (venue.foodHalalMode == 'all')
+                        if (venue.foodHalalMode == 'all') ...[
                           Container(
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 12, vertical: 6),
@@ -185,8 +188,15 @@ class VenueDetailScreen extends ConsumerWidget {
                                 ),
                               ],
                             ),
-                          )
-                        else if (venue.foodHalalMode == 'except') ...[
+                          ),
+                          if (venue.foodItems.isNotEmpty) ...[
+                            const SizedBox(height: 8),
+                            _FoodCategoryDropdowns(
+                              foodItems: venue.foodItems,
+                              categoriesAsync: categoriesAsync,
+                            ),
+                          ],
+                        ] else if (venue.foodHalalMode == 'except') ...[
                           // "Caiz olmayan malzemeler" başlığı
                           Container(
                             padding: const EdgeInsets.symmetric(
@@ -242,29 +252,10 @@ class VenueDetailScreen extends ConsumerWidget {
                                   .toList(),
                             ),
                           ],
-                        ] else
-                          Wrap(
-                            spacing: 6,
-                            runSpacing: 6,
-                            children: venue.foodItems
-                                .map(
-                                  (item) => Chip(
-                                    label: Text(
-                                      item.labelTr,
-                                      style: const TextStyle(fontSize: 12),
-                                    ),
-                                    materialTapTargetSize:
-                                        MaterialTapTargetSize.shrinkWrap,
-                                    visualDensity: VisualDensity.compact,
-                                    backgroundColor: AppTheme.primary
-                                        .withValues(alpha: 0.08),
-                                    side: BorderSide(
-                                      color: AppTheme.primary
-                                          .withValues(alpha: 0.2),
-                                    ),
-                                  ),
-                                )
-                                .toList(),
+                        ] else if (venue.foodItems.isNotEmpty)
+                          _FoodCategoryDropdowns(
+                            foodItems: venue.foodItems,
+                            categoriesAsync: categoriesAsync,
                           ),
                         const SizedBox(height: 16),
                       ],
@@ -381,6 +372,74 @@ class VenueDetailScreen extends ConsumerWidget {
           ),
         );
       },
+    );
+  }
+}
+
+class _FoodCategoryDropdowns extends StatelessWidget {
+  final List<FoodItem> foodItems;
+  final AsyncValue<List<FoodCategory>> categoriesAsync;
+
+  const _FoodCategoryDropdowns({
+    required this.foodItems,
+    required this.categoriesAsync,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    // Kategori id -> label eşlemesi
+    final categoryLabels = categoriesAsync.maybeWhen(
+      data: (cats) => {for (final c in cats) c.id: c.labelTr},
+      orElse: () => <int, String>{},
+    );
+
+    // Yemekleri kategoriye göre grupla
+    final grouped = <int, List<FoodItem>>{};
+    for (final item in foodItems) {
+      grouped.putIfAbsent(item.categoryId, () => []).add(item);
+    }
+
+    return Column(
+      children: grouped.entries.map((entry) {
+        final catLabel = categoryLabels[entry.key] ?? 'Kategori ${entry.key}';
+        return Theme(
+          data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+          child: ExpansionTile(
+            tilePadding: EdgeInsets.zero,
+            childrenPadding: const EdgeInsets.only(bottom: 8),
+            title: Text(
+              catLabel,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: AppTheme.textSecondary,
+              ),
+            ),
+            iconColor: AppTheme.textSecondary,
+            collapsedIconColor: AppTheme.textSecondary,
+            children: [
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: entry.value.map((item) {
+                  return Chip(
+                    label: Text(
+                      item.labelTr,
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    visualDensity: VisualDensity.compact,
+                    backgroundColor: AppTheme.primary.withValues(alpha: 0.08),
+                    side: BorderSide(
+                      color: AppTheme.primary.withValues(alpha: 0.2),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
     );
   }
 }

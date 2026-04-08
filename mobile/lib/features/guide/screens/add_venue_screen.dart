@@ -61,11 +61,11 @@ class _AddVenueScreenState extends ConsumerState<AddVenueScreen> {
         children: [
           StepIndicator(currentStep: state.currentStep),
           Expanded(
-            child: state.currentStep == 5
+            child: state.currentStep == 4
                 ? _buildSuccessStep()
                 : _buildStepContent(state),
           ),
-          if (state.currentStep < 5)
+          if (state.currentStep < 4)
             _buildNavigationBar(state, notifier),
         ],
       ),
@@ -76,37 +76,33 @@ class _AddVenueScreenState extends ConsumerState<AddVenueScreen> {
     return switch (state.currentStep) {
       0 => const AddVenueLocationStep(), // link girişi
       1 => const AddVenueDetailsStep(),  // ad + il/ilçe + konum doğrulama
-      2 => _buildCriteriaStep(),
-      3 => _buildNotesPhotoStep(state),
-      4 => const AddVenueFoodStep(),
+      2 => _buildCriteriaAndNotesStep(state), // helal kriterleri + not
+      3 => const AddVenueFoodStep(),
       _ => const SizedBox.shrink(),
     };
   }
 
-  // ─── Adım 2: Helal Kriterleri ───
+  // ─── Adım 2: Helal Kriterleri + Not ───
 
-  Widget _buildCriteriaStep() {
+  Widget _buildCriteriaAndNotesStep(AddVenueState state) {
     final criteriaAsync = ref.watch(halalCriteriaProvider);
-    final state = ref.watch(addVenueProvider);
 
-    return Padding(
+    return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Helal Kriterleri
           const Text(
             'Helal Kriterleri',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           const Text(
             'Bu mekan için geçerli olan helal kriterlerini seçin.',
             style: TextStyle(color: AppTheme.textSecondary),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
           criteriaAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (_, _) => const Text('Kriterler yüklenemedi.'),
@@ -123,51 +119,93 @@ class _AddVenueScreenState extends ConsumerState<AddVenueScreen> {
                         ref.read(addVenueProvider.notifier).toggleCriteria(c.id),
                     selectedColor: AppTheme.primary.withValues(alpha: 0.2),
                     checkmarkColor: AppTheme.primary,
-                    avatar: isSelected
-                        ? null
-                        : const Icon(Icons.add, size: 18),
+                    avatar: isSelected ? null : const Icon(Icons.add, size: 18),
                   );
                 }).toList(),
               );
             },
           ),
-        ],
-      ),
-    );
-  }
 
-  // ─── Adım 4: Not ───
+          const SizedBox(height: 28),
+          const Divider(),
+          const SizedBox(height: 20),
 
-  Widget _buildNotesPhotoStep(AddVenueState state) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Not',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
+          // Not
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppTheme.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.sticky_note_2_outlined,
+                  color: AppTheme.primary,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Not',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  Text(
+                    'İsteğe bağlı',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: AppTheme.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.grey.shade50,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.shade200),
+            ),
+            child: TextField(
+              controller: _notesController,
+              decoration: InputDecoration(
+                hintText:
+                    'Mekan hakkında eklemek istediğiniz bilgiler...',
+                hintStyle: TextStyle(
+                  color: AppTheme.textSecondary.withValues(alpha: 0.6),
+                  fontSize: 14,
+                ),
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.all(16),
+              ),
+              maxLines: 4,
+              style: const TextStyle(fontSize: 14, height: 1.5),
+              onChanged: (value) =>
+                  ref.read(addVenueProvider.notifier).setNotes(value),
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
-            'İsteğe bağlı olarak not ekleyin.',
-            style: TextStyle(color: AppTheme.textSecondary),
-          ),
-          const SizedBox(height: 24),
-          TextField(
-            controller: _notesController,
-            decoration: const InputDecoration(
-              labelText: 'Not (isteğe bağlı)',
-              hintText: 'Mekan hakkında eklemek istediğiniz bilgiler...',
-              alignLabelWithHint: true,
-              prefixIcon: Icon(Icons.note_outlined),
-            ),
-            maxLines: 4,
-            onChanged: (value) =>
-                ref.read(addVenueProvider.notifier).setNotes(value),
+          Row(
+            children: [
+              Icon(
+                Icons.info_outline,
+                size: 13,
+                color: AppTheme.textSecondary.withValues(alpha: 0.7),
+              ),
+              const SizedBox(width: 4),
+              Text(
+                'Ziyaretçilere yardımcı olabilecek ek bilgiler ekleyebilirsiniz.',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: AppTheme.textSecondary.withValues(alpha: 0.7),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -243,7 +281,6 @@ class _AddVenueScreenState extends ConsumerState<AddVenueScreen> {
       1 => state.canProceedStep1,
       2 => state.canProceedStep2,
       3 => state.canProceedStep3,
-      4 => state.canProceedStep4,
       _ => false,
     };
 
@@ -275,7 +312,7 @@ class _AddVenueScreenState extends ConsumerState<AddVenueScreen> {
               child: ElevatedButton(
                 onPressed: canProceed
                     ? () {
-                        if (state.currentStep == 4) {
+                        if (state.currentStep == 3) {
                           notifier.submit();
                         } else {
                           notifier.nextStep();
@@ -291,7 +328,7 @@ class _AddVenueScreenState extends ConsumerState<AddVenueScreen> {
                           color: Colors.white,
                         ),
                       )
-                    : Text(state.currentStep == 4 ? 'Gönder' : 'Devam'),
+                    : Text(state.currentStep == 3 ? 'Gönder' : 'Devam'),
               ),
             ),
           ],

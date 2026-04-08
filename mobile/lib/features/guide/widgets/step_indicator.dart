@@ -13,7 +13,7 @@ class StepIndicator extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       color: Colors.white,
       child: Row(
-        children: List.generate(6, (index) {
+        children: List.generate(5, (index) {
           final isActive = index == currentStep;
           final isCompleted = index < currentStep;
 

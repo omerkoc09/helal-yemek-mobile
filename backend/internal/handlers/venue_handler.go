@@ -118,10 +118,12 @@ func (h *VenueHandler) PlacePreview(c *fiber.Ctx) error {
 				"error": "mekan bilgileri alınamadı",
 			})
 		}
+		photoURL := h.placesService.BuildPhotoURL(components.PhotoReference, 800)
 		return c.JSON(fiber.Map{
-			"name":     components.Name,
-			"city":     components.City,
-			"district": components.District,
+			"name":      components.Name,
+			"city":      components.City,
+			"district":  components.District,
+			"photo_url": photoURL,
 		})
 	}
 
@@ -157,10 +159,12 @@ func (h *VenueHandler) PlacePreview(c *fiber.Ctx) error {
 		})
 	}
 
+	photoURL := h.placesService.BuildPhotoURL(components.PhotoReference, 800)
 	return c.JSON(fiber.Map{
-		"name":     components.Name,
-		"city":     components.City,
-		"district": components.District,
+		"name":      components.Name,
+		"city":      components.City,
+		"district":  components.District,
+		"photo_url": photoURL,
 	})
 }
 
@@ -238,6 +242,7 @@ func (h *VenueHandler) Create(c *fiber.Ctx) error {
 		Latitude         float64  `json:"latitude"`
 		Longitude        float64  `json:"longitude"`
 		GooglePlaceID    *string  `json:"google_place_id"`
+		GooglePhotoURL   string   `json:"google_photo_url"`
 		Notes            *string  `json:"notes"`
 		CriteriaIDs      []int    `json:"criteria_ids"`
 		FoodItemIDs      []int    `json:"food_item_ids"`
@@ -356,7 +361,21 @@ func (h *VenueHandler) Create(c *fiber.Ctx) error {
 	if venue.FoodHalalMode != "except" {
 		venue.ExcludedProducts = []string{}
 	}
+
 	venue.Photos = []models.VenuePhoto{}
+	if req.GooglePhotoURL != "" && h.storageService != nil {
+		if storedURL, err := h.storageService.DownloadAndStore(c.Context(), req.GooglePhotoURL); err == nil {
+			photo := &models.VenuePhoto{
+				VenueID:    venue.ID,
+				URL:        storedURL,
+				UploadedBy: userID,
+				IsPrimary:  true,
+			}
+			if err := h.venueRepo.AddPhoto(c.Context(), photo); err == nil {
+				venue.Photos = []models.VenuePhoto{*photo}
+			}
+		}
+	}
 
 	return c.Status(fiber.StatusCreated).JSON(venue)
 }

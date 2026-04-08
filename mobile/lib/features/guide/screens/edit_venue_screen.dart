@@ -9,6 +9,7 @@ import '../../../shared/widgets/error_retry_widget.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../providers/guide_provider.dart';
 import '../widgets/full_map_picker.dart';
+import '../widgets/location_selected_card.dart';
 
 class EditVenueScreen extends ConsumerStatefulWidget {
   final String venueId;
@@ -25,8 +26,6 @@ class _EditVenueScreenState extends ConsumerState<EditVenueScreen> {
   final _cityController = TextEditingController();
   final _notesController = TextEditingController();
   final _mapsLinkController = TextEditingController();
-  GoogleMapController? _mapController;
-  LatLng? _selectedLocation;
   bool _initialized = false;
 
   @override
@@ -45,7 +44,6 @@ class _EditVenueScreenState extends ConsumerState<EditVenueScreen> {
     _cityController.dispose();
     _notesController.dispose();
     _mapsLinkController.dispose();
-    _mapController?.dispose();
     super.dispose();
   }
 
@@ -56,9 +54,6 @@ class _EditVenueScreenState extends ConsumerState<EditVenueScreen> {
     _addressController.text = state.address;
     _cityController.text = state.city;
     _notesController.text = state.notes ?? '';
-    if (state.latitude != null && state.longitude != null) {
-      _selectedLocation = LatLng(state.latitude!, state.longitude!);
-    }
   }
 
   @override
@@ -281,25 +276,14 @@ class _EditVenueScreenState extends ConsumerState<EditVenueScreen> {
           onChanged: _onMapsLinkChanged,
           keyboardType: TextInputType.url,
         ),
-        if (hasCoordinates) ...[
-          const SizedBox(height: 12),
-          SizedBox(
-            height: 180,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: _buildMiniMap(state),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Center(
-            child: TextButton.icon(
-              onPressed: _openFullMapPicker,
-              icon: const Icon(Icons.fullscreen, size: 18),
-              label: const Text('Haritada Düzenle'),
-            ),
-          ),
-        ] else ...[
-          const SizedBox(height: 12),
+        const SizedBox(height: 12),
+        if (hasCoordinates)
+          LocationSelectedCard(
+            latitude: state.latitude!,
+            longitude: state.longitude!,
+            onEdit: _openFullMapPicker,
+          )
+        else
           SizedBox(
             width: double.infinity,
             child: OutlinedButton.icon(
@@ -308,71 +292,14 @@ class _EditVenueScreenState extends ConsumerState<EditVenueScreen> {
               label: const Text('Haritada Seç'),
             ),
           ),
-        ],
       ],
-    );
-  }
-
-  Widget _buildMiniMap(EditVenueState state) {
-    final target = LatLng(state.latitude!, state.longitude!);
-
-    if (_selectedLocation == null ||
-        _selectedLocation!.latitude != target.latitude ||
-        _selectedLocation!.longitude != target.longitude) {
-      _selectedLocation = target;
-    }
-
-    return GoogleMap(
-      initialCameraPosition: CameraPosition(
-        target: _selectedLocation!,
-        zoom: 16,
-      ),
-      onMapCreated: (controller) {
-        _mapController = controller;
-        _mapController?.animateCamera(
-          CameraUpdate.newLatLng(_selectedLocation!),
-        );
-      },
-      onTap: (position) {
-        setState(() => _selectedLocation = position);
-        ref.read(editVenueProvider.notifier).setCoordinates(
-              latitude: position.latitude,
-              longitude: position.longitude,
-            );
-      },
-      markers: {
-        Marker(
-          markerId: const MarkerId('selected'),
-          position: _selectedLocation!,
-          icon: BitmapDescriptor.defaultMarkerWithHue(
-            BitmapDescriptor.hueGreen,
-          ),
-        ),
-      },
-      cloudMapId: 'ef50e8cf036dd5b69eab1187',
-      myLocationEnabled: false,
-      myLocationButtonEnabled: false,
-      zoomControlsEnabled: false,
-      scrollGesturesEnabled: true,
-      zoomGesturesEnabled: true,
-      rotateGesturesEnabled: false,
-      tiltGesturesEnabled: false,
     );
   }
 
   void _onMapsLinkChanged(String link) {
     if (link.trim().isEmpty) return;
 
-    ref.read(editVenueProvider.notifier).parseMapsLink(link).then((success) {
-      if (success && mounted) {
-        final state = ref.read(editVenueProvider);
-        final target = LatLng(state.latitude!, state.longitude!);
-        setState(() => _selectedLocation = target);
-        _mapController?.animateCamera(
-          CameraUpdate.newLatLngZoom(target, 16),
-        );
-      }
-    });
+    ref.read(editVenueProvider.notifier).parseMapsLink(link);
   }
 
   Future<void> _pasteFromClipboard() async {
@@ -384,16 +311,16 @@ class _EditVenueScreenState extends ConsumerState<EditVenueScreen> {
   }
 
   void _openFullMapPicker() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      builder: (context) => SizedBox(
-        height: MediaQuery.of(context).size.height * 0.75,
-        child: FullMapPicker(
-          initialLocation: _selectedLocation,
+    final state = ref.read(editVenueProvider);
+    final initial = state.latitude != null && state.longitude != null
+        ? LatLng(state.latitude!, state.longitude!)
+        : null;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (context) => FullMapPicker(
+          initialLocation: initial,
           onLocationSelected: (position) {
-            setState(() => _selectedLocation = position);
             ref.read(editVenueProvider.notifier).setCoordinates(
                   latitude: position.latitude,
                   longitude: position.longitude,
@@ -533,43 +460,62 @@ class _EditVenueScreenState extends ConsumerState<EditVenueScreen> {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: categories.map((category) {
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8, bottom: 4),
-                        child: Text(
-                          category.labelTr,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: AppTheme.textSecondary,
-                          ),
+                  final selectedInCategory = category.items
+                      .where((i) => state.selectedFoodItemIds.contains(i.id))
+                      .length;
+                  final subtitle = selectedInCategory > 0
+                      ? '$selectedInCategory seçili'
+                      : 'Hiçbiri seçilmedi';
+                  return Theme(
+                    data: Theme.of(context)
+                        .copyWith(dividerColor: Colors.transparent),
+                    child: ExpansionTile(
+                      tilePadding: EdgeInsets.zero,
+                      childrenPadding: const EdgeInsets.only(bottom: 8),
+                      title: Text(
+                        category.labelTr,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                      Wrap(
-                        spacing: 6,
-                        runSpacing: 6,
-                        children: category.items.map((item) {
-                          final isSelected =
-                              state.selectedFoodItemIds.contains(item.id);
-                          return FilterChip(
-                            label: Text(
-                              item.labelTr,
-                              style: const TextStyle(fontSize: 12),
-                            ),
-                            selected: isSelected,
-                            onSelected: (_) => notifier.toggleFoodItem(item.id),
-                            selectedColor:
-                                AppTheme.primary.withValues(alpha: 0.2),
-                            checkmarkColor: AppTheme.primary,
-                            materialTapTargetSize:
-                                MaterialTapTargetSize.shrinkWrap,
-                            visualDensity: VisualDensity.compact,
-                          );
-                        }).toList(),
+                      subtitle: Text(
+                        subtitle,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: selectedInCategory > 0
+                              ? AppTheme.primary
+                              : AppTheme.textSecondary,
+                        ),
                       ),
-                    ],
+                      iconColor: AppTheme.textSecondary,
+                      collapsedIconColor: AppTheme.textSecondary,
+                      children: [
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: category.items.map((item) {
+                            final isSelected =
+                                state.selectedFoodItemIds.contains(item.id);
+                            return FilterChip(
+                              label: Text(
+                                item.labelTr,
+                                style: const TextStyle(fontSize: 12),
+                              ),
+                              selected: isSelected,
+                              onSelected: (_) =>
+                                  notifier.toggleFoodItem(item.id),
+                              selectedColor:
+                                  AppTheme.primary.withValues(alpha: 0.2),
+                              checkmarkColor: AppTheme.primary,
+                              materialTapTargetSize:
+                                  MaterialTapTargetSize.shrinkWrap,
+                              visualDensity: VisualDensity.compact,
+                            );
+                          }).toList(),
+                        ),
+                      ],
+                    ),
                   );
                 }).toList(),
               );

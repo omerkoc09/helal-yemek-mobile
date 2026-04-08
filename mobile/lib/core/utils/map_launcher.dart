@@ -11,9 +11,11 @@ class MapLauncher {
     final Uri url;
 
     if (googlePlaceId != null && googlePlaceId.isNotEmpty) {
-      // place_id varsa birebir mekan eşleşmesi
+      // place_id varsa destination olarak mekan adını kullan — koordinat yerine
+      // mekan adı + place_id kombinasyonu Google Maps'te doğrudan mekanı gösterir
+      final destination = Uri.encodeComponent(label ?? '$latitude,$longitude');
       url = Uri.parse(
-        'https://www.google.com/maps/dir/?api=1&destination=$latitude,$longitude&destination_place_id=$googlePlaceId',
+        'https://www.google.com/maps/dir/?api=1&destination=$destination&destination_place_id=$googlePlaceId',
       );
     } else {
       // place_id yoksa kullanıcının işaretlediği koordinat — isim araması birden

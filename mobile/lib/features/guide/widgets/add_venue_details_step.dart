@@ -6,6 +6,7 @@ import '../../../core/data/turkey_locations.dart';
 import '../../../core/theme/app_theme.dart';
 import '../providers/guide_provider.dart';
 import 'full_map_picker.dart';
+import 'location_selected_card.dart';
 
 class AddVenueDetailsStep extends ConsumerStatefulWidget {
   const AddVenueDetailsStep({super.key});
@@ -17,23 +18,17 @@ class AddVenueDetailsStep extends ConsumerStatefulWidget {
 
 class _AddVenueDetailsStepState extends ConsumerState<AddVenueDetailsStep> {
   final _nameController = TextEditingController();
-  GoogleMapController? _mapController;
-  LatLng? _selectedLocation;
 
   @override
   void initState() {
     super.initState();
     final state = ref.read(addVenueProvider);
     _nameController.text = state.name;
-    if (state.latitude != null && state.longitude != null) {
-      _selectedLocation = LatLng(state.latitude!, state.longitude!);
-    }
   }
 
   @override
   void dispose() {
     _nameController.dispose();
-    _mapController?.dispose();
     super.dispose();
   }
 
@@ -42,16 +37,6 @@ class _AddVenueDetailsStepState extends ConsumerState<AddVenueDetailsStep> {
     final state = ref.watch(addVenueProvider);
     final notifier = ref.read(addVenueProvider.notifier);
     final hasCoordinates = state.latitude != null && state.longitude != null;
-
-    // _selectedLocation'ı state ile senkronize tut
-    if (hasCoordinates) {
-      final target = LatLng(state.latitude!, state.longitude!);
-      if (_selectedLocation == null ||
-          _selectedLocation!.latitude != target.latitude ||
-          _selectedLocation!.longitude != target.longitude) {
-        _selectedLocation = target;
-      }
-    }
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
@@ -111,29 +96,20 @@ class _AddVenueDetailsStepState extends ConsumerState<AddVenueDetailsStep> {
           ),
           const SizedBox(height: 24),
 
-          // Konum başlığı
           const Text(
             'Konum',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 8),
 
-          if (hasCoordinates) ...[
-            const Text(
-              'Pin\'in konumunu kontrol edin. Yanlışsa haritaya dokunarak düzeltebilirsiniz.',
-              style: TextStyle(color: AppTheme.textSecondary, fontSize: 12),
-            ),
-            const SizedBox(height: 12),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: SizedBox(
-                height: 220,
-                child: _buildMiniMap(),
-              ),
-            ),
-          ] else ...[
-            _buildMapPickerCard(),
-          ],
+          if (hasCoordinates)
+            LocationSelectedCard(
+              latitude: state.latitude!,
+              longitude: state.longitude!,
+              onEdit: _openFullMapPicker,
+            )
+          else
+            _buildLocationPickerCard(),
 
           const SizedBox(height: 24),
         ],
@@ -141,7 +117,7 @@ class _AddVenueDetailsStepState extends ConsumerState<AddVenueDetailsStep> {
     );
   }
 
-  Widget _buildMapPickerCard() {
+  Widget _buildLocationPickerCard() {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -203,8 +179,7 @@ class _AddVenueDetailsStepState extends ConsumerState<AddVenueDetailsStep> {
         enabled: enabled,
       ),
       items: items
-          .map((item) =>
-              DropdownMenuItem(value: item, child: Text(item)))
+          .map((item) => DropdownMenuItem(value: item, child: Text(item)))
           .toList(),
       onChanged: enabled ? onChanged : null,
       isExpanded: true,
@@ -212,58 +187,17 @@ class _AddVenueDetailsStepState extends ConsumerState<AddVenueDetailsStep> {
     );
   }
 
-  Widget _buildMiniMap() {
-    return GoogleMap(
-      initialCameraPosition: CameraPosition(
-        target: _selectedLocation!,
-        zoom: 16,
-      ),
-      onMapCreated: (controller) {
-        _mapController = controller;
-        _mapController?.animateCamera(
-          CameraUpdate.newLatLng(_selectedLocation!),
-        );
-      },
-      onTap: _onMapTap,
-      markers: {
-        Marker(
-          markerId: const MarkerId('selected'),
-          position: _selectedLocation!,
-          icon: BitmapDescriptor.defaultMarkerWithHue(
-              BitmapDescriptor.hueGreen),
-        ),
-      },
-      cloudMapId: 'ef50e8cf036dd5b69eab1187',
-      myLocationEnabled: false,
-      myLocationButtonEnabled: false,
-      zoomControlsEnabled: false,
-      scrollGesturesEnabled: true,
-      zoomGesturesEnabled: true,
-      rotateGesturesEnabled: false,
-      tiltGesturesEnabled: false,
-    );
-  }
-
-  void _onMapTap(LatLng position) {
-    setState(() => _selectedLocation = position);
-    ref.read(addVenueProvider.notifier).setCoordinates(
-          latitude: position.latitude,
-          longitude: position.longitude,
-        );
-    _mapController?.animateCamera(CameraUpdate.newLatLng(position));
-  }
-
   void _openFullMapPicker() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      builder: (context) => SizedBox(
-        height: MediaQuery.of(context).size.height * 0.75,
-        child: FullMapPicker(
-          initialLocation: _selectedLocation,
+    final state = ref.read(addVenueProvider);
+    final initial = state.latitude != null && state.longitude != null
+        ? LatLng(state.latitude!, state.longitude!)
+        : null;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (context) => FullMapPicker(
+          initialLocation: initial,
           onLocationSelected: (position) {
-            setState(() => _selectedLocation = position);
             ref.read(addVenueProvider.notifier).setCoordinates(
                   latitude: position.latitude,
                   longitude: position.longitude,

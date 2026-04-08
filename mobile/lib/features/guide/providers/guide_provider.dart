@@ -1,4 +1,3 @@
-import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/api/api_endpoints.dart';
@@ -117,11 +116,10 @@ class AddVenueState {
       district.isNotEmpty &&
       latitude != null &&
       longitude != null;
+  // Step 2 (helal kriterleri + not) — kriter seçimi zorunlu, not opsiyonel
   bool get canProceedStep2 => selectedCriteriaIds.isNotEmpty;
-  // Step 3 (not + fotoğraf) opsiyonel, her zaman geçilebilir
-  bool get canProceedStep3 => true;
-  // Step 4 (yemek kategorileri) — tüm modlarda yemek seçimi zorunlu
-  bool get canProceedStep4 {
+  // Step 3 (yemek kategorileri) — tüm modlarda yemek seçimi zorunlu
+  bool get canProceedStep3 {
     final hasFoodItems =
         selectedFoodItemIds.values.any((items) => items.isNotEmpty);
     switch (foodHalalMode) {
@@ -373,7 +371,7 @@ class AddVenueNotifier extends Notifier<AddVenueState> {
   }
 
   void nextStep() {
-    if (state.currentStep < 5) {
+    if (state.currentStep < 4) {
       state = state.copyWith(currentStep: state.currentStep + 1);
     }
   }
@@ -385,7 +383,7 @@ class AddVenueNotifier extends Notifier<AddVenueState> {
   }
 
   void goToStep(int step) {
-    if (step >= 0 && step <= 5) {
+    if (step >= 0 && step <= 4) {
       state = state.copyWith(currentStep: step);
     }
   }
@@ -396,7 +394,7 @@ class AddVenueNotifier extends Notifier<AddVenueState> {
       final apiClient = ref.read(apiClientProvider);
 
       // 1. Mekan oluştur
-      final response = await apiClient.post(
+      await apiClient.post(
         ApiEndpoints.venues,
         data: {
           'name': state.name.trim(),
@@ -417,10 +415,7 @@ class AddVenueNotifier extends Notifier<AddVenueState> {
         },
       );
 
-      final venueData = response.data is Map<String, dynamic>
-          ? response.data as Map<String, dynamic>
-          : (response.data['data'] as Map<String, dynamic>);
-      state = state.copyWith(isLoading: false, isSuccess: true, currentStep: 5);
+      state = state.copyWith(isLoading: false, isSuccess: true, currentStep: 4);
     } catch (e) {
       state = state.copyWith(
         isLoading: false,

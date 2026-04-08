@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/auth/auth_provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../venue/widgets/venue_card.dart';
 import '../../venue/widgets/venue_horizontal_card.dart';
@@ -40,6 +41,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(homeProvider);
+    final isGuide = ref.watch(authProvider).isGuide;
     final query = _searchController.text;
 
     return Scaffold(
@@ -79,6 +81,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         onDismiss: () => _focusNode.unfocus(),
                       ),
                   ],
+                  if (isGuide && !_isFocused)
+                    Positioned(
+                      right: 16,
+                      bottom: 16,
+                      child: FloatingActionButton(
+                        onPressed: () => context.push('/add-venue'),
+                        backgroundColor: AppTheme.primary,
+                        shape: const CircleBorder(),
+                        child: const Icon(Icons.add_location_alt, color: Colors.white, size: 26),
+                      ),
+                    ),
                 ],
               ),
             ),

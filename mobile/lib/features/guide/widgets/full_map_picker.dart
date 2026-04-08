@@ -57,37 +57,28 @@ class _FullMapPickerState extends State<FullMapPicker> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              const Expanded(
-                child: Text(
-                  'Haritada Konum Seç',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Haritada Konum Seç'),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(24),
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Text(
+              'Mekanın konumuna dokunarak pin bırakın.',
+              style: TextStyle(
+                color: AppTheme.textSecondary,
+                fontSize: 13,
               ),
-              IconButton(
-                icon: const Icon(Icons.close),
-                onPressed: () => Navigator.pop(context),
-              ),
-            ],
+            ),
           ),
         ),
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16),
-          child: Text(
-            'Mekanın konumuna dokunarak pin bırakın.',
-            style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
-          ),
-        ),
-        const SizedBox(height: 12),
-        Expanded(
-          child: _loading
-              ? const Center(child: CircularProgressIndicator())
-              : GoogleMap(
+      ),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : Stack(
+              children: [
+                GoogleMap(
                   initialCameraPosition: CameraPosition(
                     target: _initialPos,
                     zoom: 15,
@@ -110,22 +101,19 @@ class _FullMapPickerState extends State<FullMapPicker> {
                   myLocationButtonEnabled: true,
                   zoomControlsEnabled: false,
                 ),
-        ),
-        SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _picked != null
-                    ? () => widget.onLocationSelected(_picked!)
-                    : null,
-                child: const Text('Bu Konumu Seç'),
-              ),
+              ],
             ),
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: ElevatedButton(
+            onPressed: _picked != null
+                ? () => widget.onLocationSelected(_picked!)
+                : null,
+            child: const Text('Bu Konumu Seç'),
           ),
         ),
-      ],
+      ),
     );
   }
 }

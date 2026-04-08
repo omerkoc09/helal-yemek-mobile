@@ -101,9 +101,10 @@ func (s *PlacesService) ResolvePlaceID(name string, lat, lng float64) string {
 
 // AddressComponents — Place Details API'den dönen adres ve isim bilgileri.
 type AddressComponents struct {
-	Name     string // mekan adı (display_name)
-	City     string // locality
-	District string // sublocality_level_1
+	Name           string // mekan adı (display_name)
+	City           string // locality
+	District       string // sublocality_level_1
+	PhotoReference string // ilk fotoğrafın referans kodu (boş olabilir)
 }
 
 // placeDetailsResponse — Google Place Details API yanıtı.
@@ -114,11 +115,14 @@ type placeDetailsResponse struct {
 			LongName string   `json:"long_name"`
 			Types    []string `json:"types"`
 		} `json:"address_components"`
+		Photos []struct {
+			PhotoReference string `json:"photo_reference"`
+		} `json:"photos"`
 	} `json:"result"`
 	Status string `json:"status"`
 }
 
-// GetAddressComponents — place_id üzerinden mekan adı, şehir ve semt bilgilerini çeker.
+// GetAddressComponents — place_id üzerinden mekan adı, şehir, semt ve ilk fotoğraf referansını çeker.
 // Yalnızca "ChIJ" prefix'li geçerli place_id'lerle çalışır.
 // Hata durumunda nil döner (sessiz fail).
 func (s *PlacesService) GetAddressComponents(placeID string) (*AddressComponents, error) {
@@ -129,7 +133,7 @@ func (s *PlacesService) GetAddressComponents(placeID string) (*AddressComponents
 	endpoint := "https://maps.googleapis.com/maps/api/place/details/json"
 	params := url.Values{
 		"place_id": {placeID},
-		"fields":   {"name,address_components"},
+		"fields":   {"name,address_components,photos"},
 		"key":      {s.apiKey},
 	}
 
@@ -178,7 +182,26 @@ func (s *PlacesService) GetAddressComponents(placeID string) (*AddressComponents
 		}
 	}
 
+	// İlk fotoğrafın referansını al (varsa)
+	if len(result.Result.Photos) > 0 {
+		components.PhotoReference = result.Result.Photos[0].PhotoReference
+	}
+
 	return components, nil
+}
+
+// BuildPhotoURL — photo_reference üzerinden Google Places Photo API URL'si oluşturur.
+// maxWidth piksel cinsinden maksimum genişliktir (örn: 800).
+func (s *PlacesService) BuildPhotoURL(photoReference string, maxWidth int) string {
+	if s.apiKey == "" || photoReference == "" {
+		return ""
+	}
+	params := url.Values{
+		"photo_reference": {photoReference},
+		"maxwidth":        {fmt.Sprintf("%d", maxWidth)},
+		"key":             {s.apiKey},
+	}
+	return "https://maps.googleapis.com/maps/api/place/photo?" + params.Encode()
 }
 
 // geocodeResponse — Google Geocoding API yanıtı.
