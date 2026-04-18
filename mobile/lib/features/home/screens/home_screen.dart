@@ -87,9 +87,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       bottom: 16,
                       child: FloatingActionButton(
                         onPressed: () => context.push('/add-venue'),
-                        backgroundColor: AppTheme.primary,
                         shape: const CircleBorder(),
-                        child: const Icon(Icons.add_location_alt, color: Colors.white, size: 26),
+                        child: const Icon(Icons.add_location_alt, size: 26),
                       ),
                     ),
                 ],
@@ -336,11 +335,11 @@ class _Section extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: const TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w700,
-                  color: AppTheme.textPrimary,
-                ),
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.textPrimary,
+                    ),
               ),
               const Spacer(),
               GestureDetector(

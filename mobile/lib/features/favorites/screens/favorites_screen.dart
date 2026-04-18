@@ -28,7 +28,6 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
     final state = ref.watch(favoritesProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Favorilerim')),
       body: _buildBody(state),
     );
   }

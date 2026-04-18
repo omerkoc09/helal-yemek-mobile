@@ -10,7 +10,7 @@ class VenueStatusBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isApproved = status == 'approved';
-    final color = isApproved ? AppTheme.primary : AppTheme.pinPending;
+    final color = isApproved ? AppTheme.pinApproved : AppTheme.pinPending;
     final icon = isApproved ? Icons.check_circle : Icons.help_outline;
     final label = isApproved ? 'Onaylandı' : 'Onay Bekliyor';
 

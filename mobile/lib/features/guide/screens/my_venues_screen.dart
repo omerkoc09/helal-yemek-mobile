@@ -250,7 +250,7 @@ class _StatusBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (label, color, icon) = switch (status) {
-      'approved' => ('Onaylandı', AppTheme.primary, Icons.check_circle),
+      'approved' => ('Onaylandı', AppTheme.pinApproved, Icons.check_circle),
       'rejected' => ('Reddedildi', AppTheme.error, Icons.cancel),
       _ => ('Onay Bekliyor', AppTheme.pinPending, Icons.hourglass_empty),
     };

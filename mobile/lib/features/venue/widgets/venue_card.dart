@@ -17,7 +17,7 @@ class VenueCard extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       child: InkWell(
         onTap: () => context.push('/venue/${venue.id}'),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppTheme.radiusCard),
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Row(
@@ -25,7 +25,7 @@ class VenueCard extends StatelessWidget {
             children: [
               // Fotoğraf
               ClipRRect(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(14),
                 child: SizedBox(
                   width: 80,
                   height: 80,
@@ -60,7 +60,7 @@ class VenueCard extends StatelessWidget {
                         ),
                         if (venue.isApproved)
                           const Icon(Icons.verified,
-                              size: 18, color: AppTheme.primary),
+                              size: 18, color: AppTheme.pinApproved),
                       ],
                     ),
                     const SizedBox(height: 4),

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../venue/widgets/venue_card.dart';
@@ -27,7 +26,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     final searchState = ref.watch(searchProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Ara')),
       body: Column(
         children: [
           // Arama kutusu

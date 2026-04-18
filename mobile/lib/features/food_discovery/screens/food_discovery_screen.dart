@@ -14,21 +14,18 @@ class FoodDiscoveryScreen extends ConsumerWidget {
     final state = ref.watch(foodDiscoveryProvider);
     final notifier = ref.read(foodDiscoveryProvider.notifier);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          state.selectedCategoryLabel ?? 'Mutfaklar',
-        ),
-        leading: state.selectedCategoryId != null
-            ? IconButton(
-                icon: const Icon(Icons.arrow_back),
-                onPressed: () => notifier.clearSelection(),
-              )
-            : null,
+    return PopScope(
+      canPop: state.selectedCategoryId == null,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && state.selectedCategoryId != null) {
+          notifier.clearSelection();
+        }
+      },
+      child: Scaffold(
+        body: state.selectedCategoryId == null
+            ? _buildCategoryGrid(ref)
+            : _buildVenueList(state, notifier),
       ),
-      body: state.selectedCategoryId == null
-          ? _buildCategoryGrid(ref)
-          : _buildVenueList(state),
     );
   }
 
@@ -68,7 +65,19 @@ class FoodDiscoveryScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildVenueList(FoodDiscoveryState state) {
+  Widget _buildVenueList(FoodDiscoveryState state, FoodDiscoveryNotifier notifier) {
+    return Column(
+      children: [
+        _CategoryHeader(
+          label: state.selectedCategoryLabel ?? '',
+          onBack: notifier.clearSelection,
+        ),
+        Expanded(child: _buildVenueListBody(state)),
+      ],
+    );
+  }
+
+  Widget _buildVenueListBody(FoodDiscoveryState state) {
     if (state.isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -107,6 +116,42 @@ class FoodDiscoveryScreen extends ConsumerWidget {
     );
   }
 
+}
+
+class _CategoryHeader extends StatelessWidget {
+  final String label;
+  final VoidCallback onBack;
+
+  const _CategoryHeader({required this.label, required this.onBack});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(8, 12, 16, 8),
+      child: Row(
+        children: [
+          IconButton(
+            icon: const Icon(Icons.arrow_back),
+            color: AppTheme.textPrimary,
+            onPressed: onBack,
+          ),
+          const SizedBox(width: 4),
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+                color: AppTheme.textPrimary,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _CategoryCard extends StatelessWidget {
