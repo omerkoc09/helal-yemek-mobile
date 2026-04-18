@@ -7,8 +7,10 @@ import '../../../core/theme/app_theme.dart';
 import '../../venue/widgets/venue_card.dart';
 import '../../venue/widgets/venue_horizontal_card.dart';
 import '../providers/home_provider.dart';
+import '../providers/venue_filter_provider.dart';
 import '../widgets/category_grid.dart';
 import '../widgets/category_slider.dart';
+import '../widgets/sort_bottom_sheet.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -38,6 +40,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     super.dispose();
   }
 
+  Future<void> _handleSortFromHome() async {
+    final locationAvailable = !ref.read(homeProvider).locationDenied;
+    final selected = await showVenueSortBottomSheet(
+      context,
+      current: VenueSortOption.none,
+      locationAvailable: locationAvailable,
+    );
+    if (selected != null && mounted) {
+      ref.read(venueFilterProvider.notifier).setSort(selected);
+      if (mounted) context.push('/venues/filtered');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(homeProvider);
@@ -62,6 +77,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ref.read(homeProvider.notifier).clearSearch();
               },
             ),
+            if (!_isFocused)
+              _FilterActionsRow(
+                onSort: _handleSortFromHome,
+                onFilter: () => context.push('/venues/filter'),
+              ),
             Expanded(
               child: Stack(
                 children: [
@@ -467,6 +487,39 @@ class _LocationBanner extends ConsumerWidget {
                 color: AppTheme.primary,
                 fontWeight: FontWeight.w700,
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FilterActionsRow extends StatelessWidget {
+  final VoidCallback onSort;
+  final VoidCallback onFilter;
+
+  const _FilterActionsRow({required this.onSort, required this.onFilter});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: OutlinedButton.icon(
+              onPressed: onSort,
+              icon: const Icon(Icons.sort),
+              label: const Text('Sırala'),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: OutlinedButton.icon(
+              onPressed: onFilter,
+              icon: const Icon(Icons.tune),
+              label: const Text('Filtrele'),
             ),
           ),
         ],

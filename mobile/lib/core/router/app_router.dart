@@ -25,6 +25,9 @@ import '../../features/admin/screens/audit_log_screen.dart';
 import '../../features/admin/screens/users_screen.dart';
 import '../../features/home/screens/home_screen.dart';
 import '../../features/home/screens/all_venues_screen.dart' as home;
+import '../../features/home/screens/venue_filter_screen.dart';
+import '../../features/home/screens/venue_cuisines_screen.dart';
+import '../../features/home/screens/venue_results_screen.dart';
 import '../../shared/widgets/app_header.dart';
 
 // Route isimleri
@@ -54,6 +57,9 @@ class AppRoutes {
   static const String adminAllVenues = '/admin/all-venues';
   static const String adminAuditLog = '/admin/audit-log';
   static const String adminUsers = '/admin/users';
+  static const String venueFilter = '/venues/filter';
+  static const String venueFilterCuisines = '/venues/filter/cuisines';
+  static const String venueFiltered = '/venues/filtered';
 }
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -156,6 +162,20 @@ final routerProvider = Provider<GoRouter>((ref) {
                     : home.AllVenuesType.nearby,
           );
         },
+      ),
+
+      // Filtre / sıralama akışı
+      GoRoute(
+        path: AppRoutes.venueFilter,
+        builder: (context, state) => const VenueFilterScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.venueFilterCuisines,
+        builder: (context, state) => const VenueCuisinesScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.venueFiltered,
+        builder: (context, state) => const VenueResultsScreen(),
       ),
 
       // Detay sayfaları
