@@ -80,7 +80,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             if (!_isFocused)
               _FilterActionsRow(
                 onSort: _handleSortFromHome,
-                onFilter: () => context.push('/venues/filter'),
+                onFilter: () => context.push('/venues/filter?fromHome=true'),
               ),
             Expanded(
               child: Stack(
@@ -503,6 +503,12 @@ class _FilterActionsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final style = OutlinedButton.styleFrom(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      minimumSize: const Size(0, 39),
+      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      visualDensity: VisualDensity.compact,
+    );
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
       child: Row(
@@ -510,6 +516,7 @@ class _FilterActionsRow extends StatelessWidget {
           Expanded(
             child: OutlinedButton.icon(
               onPressed: onSort,
+              style: style,
               icon: const Icon(Icons.sort),
               label: const Text('Sırala'),
             ),
@@ -518,6 +525,7 @@ class _FilterActionsRow extends StatelessWidget {
           Expanded(
             child: OutlinedButton.icon(
               onPressed: onFilter,
+              style: style,
               icon: const Icon(Icons.tune),
               label: const Text('Filtrele'),
             ),

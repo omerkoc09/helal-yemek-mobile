@@ -167,7 +167,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       // Filtre / sıralama akışı
       GoRoute(
         path: AppRoutes.venueFilter,
-        builder: (context, state) => const VenueFilterScreen(),
+        builder: (context, state) {
+          final fromHome = state.uri.queryParameters['fromHome'] == 'true';
+          return VenueFilterScreen(fromHome: fromHome);
+        },
       ),
       GoRoute(
         path: AppRoutes.venueFilterCuisines,

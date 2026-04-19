@@ -6,7 +6,8 @@ import '../../../core/theme/app_theme.dart';
 import '../providers/venue_filter_provider.dart';
 
 class VenueFilterScreen extends ConsumerWidget {
-  const VenueFilterScreen({super.key});
+  final bool fromHome;
+  const VenueFilterScreen({super.key, this.fromHome = false});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -111,7 +112,9 @@ class VenueFilterScreen extends ConsumerWidget {
             width: double.infinity,
             child: ElevatedButton(
               onPressed: () {
-                if (GoRouter.of(context).canPop()) {
+                if (fromHome) {
+                  context.pushReplacement('/venues/filtered');
+                } else if (GoRouter.of(context).canPop()) {
                   context.pop();
                 } else {
                   context.push('/venues/filtered');
