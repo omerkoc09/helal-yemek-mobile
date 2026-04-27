@@ -41,6 +41,7 @@ func main() {
 	guideRepo := repository.NewGuideRepo(pool)
 	auditRepo := repository.NewAuditRepo(pool)
 	referralRepo := repository.NewReferralRepo(pool)
+	venueReportRepo := repository.NewVenueReportRepo(pool)
 
 	// Service katmanı
 	authService := services.NewAuthService(userRepo, cfg.JWTSecret, cfg.GoogleClientID)
@@ -55,6 +56,7 @@ func main() {
 	correctionHandler := handlers.NewCorrectionHandler(correctionRepo, auditRepo)
 	guideHandler := handlers.NewGuideHandler(guideRepo, venueRepo, referralRepo)
 	adminHandler := handlers.NewAdminHandler(venueRepo, guideRepo, userRepo, auditRepo, referralRepo)
+	venueReportHandler := handlers.NewVenueReportHandler(venueReportRepo)
 
 	// Fiber uygulaması
 	app := fiber.New(fiber.Config{
@@ -159,6 +161,12 @@ func main() {
 	fav.Post("/:venueId", favoriteHandler.Add)
 	fav.Delete("/:venueId", favoriteHandler.Remove)
 
+	// Venue report endpoint'leri
+	api.Post("/venues/:id/reports",
+		middleware.Auth(cfg.JWTSecret),
+		venueReportHandler.Create,
+	)
+
 	// Correction endpoint'leri (Guide)
 	api.Post("/venues/:id/corrections",
 		middleware.Auth(cfg.JWTSecret),
@@ -200,6 +208,10 @@ func main() {
 	admin.Get("/applications", adminHandler.ListApplications)
 	admin.Put("/applications/:id/approve", adminHandler.ApproveApplication)
 	admin.Put("/applications/:id/reject", adminHandler.RejectApplication)
+
+	// Venue reports
+	admin.Get("/venue-reports", venueReportHandler.AdminList)
+	admin.Put("/venue-reports/:id/resolve", venueReportHandler.AdminResolve)
 
 	// Audit log + kullanıcılar
 	admin.Get("/audit-logs", adminHandler.ListAuditLogs)
