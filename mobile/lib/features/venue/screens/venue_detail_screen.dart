@@ -13,6 +13,7 @@ import '../../guide/providers/guide_provider.dart';
 import '../providers/venue_detail_provider.dart';
 import '../widgets/add_review_sheet.dart';
 import '../widgets/halal_criteria_chip.dart';
+import '../widgets/report_venue_sheet.dart';
 import '../widgets/venue_status_badge.dart';
 import '../widgets/review_card.dart';
 import '../widgets/venue_photo_gallery.dart';
@@ -49,34 +50,105 @@ class VenueDetailScreen extends ConsumerWidget {
               SliverAppBar(
                 expandedHeight: 250,
                 pinned: true,
+                backgroundColor: Colors.white,
+                leading: Padding(
+                  padding: const EdgeInsets.all(8),
+                  child: Container(
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(color: Colors.black26, blurRadius: 4),
+                      ],
+                    ),
+                    child: IconButton(
+                      padding: EdgeInsets.zero,
+                      iconSize: 20,
+                      icon: const Icon(Icons.arrow_back, color: Colors.black),
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                  ),
+                ),
                 flexibleSpace: FlexibleSpaceBar(
                   title: Text(
                     venue.name,
-                    style: const TextStyle(fontSize: 16),
+                    style: const TextStyle(
+                      fontSize: 16,
+                      color: Colors.white,
+                      shadows: [
+                        Shadow(color: Colors.black54, blurRadius: 4),
+                      ],
+                    ),
                   ),
-                  background: VenuePhotoGallery(photos: venue.photos),
+                  background: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      VenuePhotoGallery(photos: venue.photos),
+                      DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.transparent,
+                              Colors.black.withValues(alpha: 0.65),
+                            ],
+                            stops: const [0.5, 1.0],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 actions: [
                   if (authState.isAuthenticated)
-                    IconButton(
-                      icon: Icon(
-                        isFav ? Icons.favorite : Icons.favorite_border,
-                        color: isFav ? AppTheme.error : null,
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                      child: Container(
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(color: Colors.black26, blurRadius: 4),
+                          ],
+                        ),
+                        child: IconButton(
+                          padding: EdgeInsets.zero,
+                          iconSize: 20,
+                          icon: Icon(
+                            isFav ? Icons.favorite : Icons.favorite_border,
+                            color: isFav ? AppTheme.error : Colors.black,
+                          ),
+                          tooltip: isFav ? 'Favoriden Çıkar' : 'Favoriye Ekle',
+                          onPressed: () => ref
+                              .read(favoritesProvider.notifier)
+                              .toggleFavorite(venue),
+                        ),
                       ),
-                      tooltip: isFav ? 'Favoriden Çıkar' : 'Favoriye Ekle',
-                      onPressed: () => ref
-                          .read(favoritesProvider.notifier)
-                          .toggleFavorite(venue),
                     ),
-                  IconButton(
-                    icon: const Icon(Icons.directions),
-                    tooltip: 'Yol Tarifi',
-                    onPressed: () => MapLauncher.openDirections(
-                      latitude: venue.latitude,
-                      longitude: venue.longitude,
-                      label: venue.name,
-                      address: '${venue.address}, ${venue.city}',
-                      googlePlaceId: venue.googlePlaceId,
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                    child: Container(
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(color: Colors.black26, blurRadius: 4),
+                        ],
+                      ),
+                      child: IconButton(
+                        padding: EdgeInsets.zero,
+                        iconSize: 20,
+                        icon: const Icon(Icons.directions, color: Colors.black),
+                        tooltip: 'Yol Tarifi',
+                        onPressed: () => MapLauncher.openDirections(
+                          latitude: venue.latitude,
+                          longitude: venue.longitude,
+                          label: venue.name,
+                          address: '${venue.address}, ${venue.city}',
+                          googlePlaceId: venue.googlePlaceId,
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -89,13 +161,52 @@ class VenueDetailScreen extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Durum badge'leri
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
+                      Row(
                         children: [
-                          VenueStatusBadge(status: venue.status),
-                          if (venue.verifiedAt != null)
-                            _VerifiedAtBadge(date: venue.verifiedAt!),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              VenueStatusBadge(status: venue.status),
+                              if (venue.verifiedAt != null)
+                                _VerifiedAtBadge(date: venue.verifiedAt!),
+                            ],
+                          ),
+                          const Spacer(),
+                          if (authState.isAuthenticated)
+                            TextButton.icon(
+                              onPressed: () => showReportVenueSheet(
+                                context,
+                                venueId: venueId,
+                              ),
+                              icon: const Icon(
+                                Icons.warning_amber_rounded,
+                                size: 14,
+                                color: Colors.amber,
+                              ),
+                              label: const Text(
+                                'Bildir',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.amber,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              style: TextButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 10, vertical: 5),
+                                minimumSize: Size.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                backgroundColor:
+                                    Colors.amber.withValues(alpha: 0.12),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20),
+                                  side: BorderSide(
+                                    color: Colors.amber.withValues(alpha: 0.4),
+                                  ),
+                                ),
+                              ),
+                            ),
                         ],
                       ),
                       const SizedBox(height: 16),
