@@ -19,6 +19,9 @@ class ApiEndpoints {
 
   // Reviews
   static String venueReviews(String venueId) => '/venues/$venueId/reviews';
+
+  // Reports
+  static String venueReports(String venueId) => '/venues/$venueId/reports';
   static String venueReview(String venueId, String reviewId) =>
       '/venues/$venueId/reviews/$reviewId';
 
@@ -42,7 +45,10 @@ class ApiEndpoints {
       '/admin/applications/$id/approve';
   static String adminRejectApplication(String id) =>
       '/admin/applications/$id/reject';
-static const String adminAuditLogs = '/admin/audit-logs';
+  static const String adminAuditLogs = '/admin/audit-logs';
+  static const String adminVenueReports = '/admin/venue-reports';
+  static String adminResolveVenueReport(String id) =>
+      '/admin/venue-reports/$id/resolve';
   static const String adminUsers = '/admin/users';
   static String adminUser(String id) => '/admin/users/$id';
 

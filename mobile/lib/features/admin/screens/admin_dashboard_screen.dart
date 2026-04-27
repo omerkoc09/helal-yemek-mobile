@@ -95,6 +95,13 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                     subtitle: 'Tüm admin işlem geçmişi',
                     onTap: () => context.push(AppRoutes.adminAuditLog),
                   ),
+                  const SizedBox(height: 8),
+                  _QuickAccessTile(
+                    icon: Icons.report_problem_outlined,
+                    label: 'Mekan Şikayetleri',
+                    subtitle: 'Kullanıcıların bildirdiği sorunlar',
+                    onTap: () => context.push(AppRoutes.adminVenueReports),
+                  ),
                 ],
               ),
             ),
