@@ -19,6 +19,7 @@ _Venue _$VenueFromJson(Map<String, dynamic> json) => _Venue(
   status: json['status'] as String? ?? 'pending',
   rejectionNote: json['rejection_note'] as String?,
   addedBy: json['added_by'] as String,
+  addedByName: json['added_by_name'] as String?,
   approvedBy: json['approved_by'] as String?,
   verifiedAt: json['verified_at'] == null
       ? null
@@ -69,6 +70,7 @@ Map<String, dynamic> _$VenueToJson(_Venue instance) => <String, dynamic>{
   'status': instance.status,
   'rejection_note': instance.rejectionNote,
   'added_by': instance.addedBy,
+  'added_by_name': instance.addedByName,
   'approved_by': instance.approvedBy,
   'verified_at': instance.verifiedAt?.toIso8601String(),
   'food_halal_mode': instance.foodHalalMode,

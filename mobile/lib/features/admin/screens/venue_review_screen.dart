@@ -226,6 +226,22 @@ class VenueReviewScreen extends ConsumerWidget {
                               const SizedBox(height: 16),
                             ],
 
+                            // Ekleyen / Eklenme tarihi
+                            const Divider(height: 32),
+                            _InfoRow(
+                              icon: Icons.person_outline,
+                              label: 'Ekleyen',
+                              value: venue.addedByName ?? venue.addedBy,
+                            ),
+                            const SizedBox(height: 8),
+                            if (venue.createdAt != null)
+                              _InfoRow(
+                                icon: Icons.calendar_today_outlined,
+                                label: 'Eklenme tarihi',
+                                value: _formatDate(venue.createdAt!),
+                              ),
+                            const Divider(height: 32),
+
                             // Notlar
                             if (venue.notes != null &&
                                 venue.notes!.isNotEmpty) ...[
@@ -313,3 +329,40 @@ class VenueReviewScreen extends ConsumerWidget {
     );
   }
 }
+
+class _InfoRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+
+  const _InfoRow({required this.icon, required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: AppTheme.textSecondary),
+        const SizedBox(width: 6),
+        Text(
+          '$label: ',
+          style: const TextStyle(
+            fontSize: 13,
+            color: AppTheme.textSecondary,
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+String _formatDate(DateTime dt) =>
+    '${dt.day.toString().padLeft(2, '0')}.${dt.month.toString().padLeft(2, '0')}.${dt.year}  '
+    '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+

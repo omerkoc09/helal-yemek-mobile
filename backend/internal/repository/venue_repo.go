@@ -28,16 +28,17 @@ func (r *VenueRepo) FindByID(ctx context.Context, id string) (*models.Venue, err
 			ST_X(v.location::geometry) AS longitude,
 			v.google_place_id,
 			v.notes, v.status,
-			v.added_by, v.verified_at,
+			v.added_by, u.name AS added_by_name, v.verified_at,
 			v.created_at, v.updated_at,
 			v.rejection_note, v.approved_by,
 			v.food_halal_mode, v.excluded_products,
 			COALESCE(AVG(rv.rating), 0)::float8 AS average_rating,
 			COUNT(rv.id)::int AS review_count
 		FROM venues v
+		LEFT JOIN users u ON u.id = v.added_by
 		LEFT JOIN reviews rv ON rv.venue_id = v.id
 		WHERE v.id = $1 AND v.deleted_at IS NULL
-		GROUP BY v.id`
+		GROUP BY v.id, u.name`
 
 	v := &models.Venue{}
 
@@ -46,7 +47,7 @@ func (r *VenueRepo) FindByID(ctx context.Context, id string) (*models.Venue, err
 		&v.Latitude, &v.Longitude,
 		&v.GooglePlaceID,
 		&v.Notes, &v.Status,
-		&v.AddedBy, &v.VerifiedAt,
+		&v.AddedBy, &v.AddedByName, &v.VerifiedAt,
 		&v.CreatedAt, &v.UpdatedAt,
 		&v.RejectionNote, &v.ApprovedBy,
 		&v.FoodHalalMode, &v.ExcludedProducts,

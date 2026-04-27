@@ -18,6 +18,7 @@ abstract class Venue with _$Venue {
     @Default('pending') String status,
     @JsonKey(name: 'rejection_note') String? rejectionNote,
     @JsonKey(name: 'added_by') required String addedBy,
+    @JsonKey(name: 'added_by_name') String? addedByName,
     @JsonKey(name: 'approved_by') String? approvedBy,
     @JsonKey(name: 'verified_at') DateTime? verifiedAt,
     @JsonKey(name: 'food_halal_mode') @Default('selected') String foodHalalMode,

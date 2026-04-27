@@ -58,6 +58,7 @@ type Venue struct {
 	Status           VenueStatus     `json:"status"`
 	RejectionNote    *string         `json:"rejection_note,omitempty"`
 	AddedBy          string          `json:"added_by"`
+	AddedByName      *string         `json:"added_by_name,omitempty"`
 	ApprovedBy       *string         `json:"approved_by,omitempty"`
 	VerifiedAt       *time.Time      `json:"verified_at,omitempty"`
 	Distance         *float64        `json:"distance,omitempty"` // metre cinsinden, yakın mekan sorgusunda dolar
