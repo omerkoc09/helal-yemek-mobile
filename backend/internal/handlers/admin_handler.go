@@ -15,6 +15,7 @@ type AdminHandler struct {
 	userRepo               *repository.UserRepo
 	auditRepo              *repository.AuditRepo
 	referralRepo           *repository.ReferralRepo
+	verifLogRepo           *repository.VerificationLogRepo
 	verificationPeriodDays int
 }
 
@@ -24,6 +25,7 @@ func NewAdminHandler(
 	userRepo *repository.UserRepo,
 	auditRepo *repository.AuditRepo,
 	referralRepo *repository.ReferralRepo,
+	verifLogRepo *repository.VerificationLogRepo,
 	verificationPeriodDays int,
 ) *AdminHandler {
 	return &AdminHandler{
@@ -32,6 +34,7 @@ func NewAdminHandler(
 		userRepo:               userRepo,
 		auditRepo:              auditRepo,
 		referralRepo:           referralRepo,
+		verifLogRepo:           verifLogRepo,
 		verificationPeriodDays: verificationPeriodDays,
 	}
 }
@@ -339,4 +342,52 @@ func (h *AdminHandler) DeleteUser(c *fiber.Ctx) error {
 
 	h.writeAuditLog(c, "delete_user", "user", id, nil)
 	return c.JSON(fiber.Map{"status": "deleted"})
+}
+
+// GET /admin/verification-logs?tab=verified|suspended|upcoming
+func (h *AdminHandler) VerificationLogs(c *fiber.Ctx) error {
+	tab := c.Query("tab", "verified")
+	switch tab {
+	case "verified":
+		page := max(c.QueryInt("page", 1), 1)
+		logs, err := h.verifLogRepo.ListVerified(c.Context(), 50, (page-1)*50)
+		if err != nil {
+			return fiber.ErrInternalServerError
+		}
+		return c.JSON(fiber.Map{"data": logs})
+	case "suspended":
+		logs, err := h.verifLogRepo.ListSuspended(c.Context())
+		if err != nil {
+			return fiber.ErrInternalServerError
+		}
+		return c.JSON(fiber.Map{"data": logs})
+	case "upcoming":
+		logs, err := h.verifLogRepo.ListUpcoming(c.Context(), 30)
+		if err != nil {
+			return fiber.ErrInternalServerError
+		}
+		return c.JSON(fiber.Map{"data": logs})
+	default:
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "geçersiz tab parametresi"})
+	}
+}
+
+// PUT /admin/venues/:id/reactivate
+func (h *AdminHandler) ReactivateVenue(c *fiber.Ctx) error {
+	id := c.Params("id")
+	adminID, err := getUserID(c)
+	if err != nil {
+		return err
+	}
+
+	if err := h.venueRepo.ReactivateVenue(c.Context(), id, h.verificationPeriodDays); err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			return fiber.ErrNotFound
+		}
+		return fiber.ErrInternalServerError
+	}
+
+	h.writeAuditLog(c, "reactivate_venue", "venue", id, nil)
+	_ = adminID
+	return c.JSON(fiber.Map{"status": "reactivated"})
 }
