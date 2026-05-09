@@ -24,6 +24,7 @@ import '../../features/admin/screens/all_venues_screen.dart';
 import '../../features/admin/screens/audit_log_screen.dart';
 import '../../features/admin/screens/users_screen.dart';
 import '../../features/admin/screens/venue_reports_screen.dart';
+import '../../features/admin/screens/verification_logs_screen.dart';
 import '../../features/home/screens/home_screen.dart';
 import '../../features/home/screens/all_venues_screen.dart' as home;
 import '../../features/home/screens/venue_filter_screen.dart';
@@ -60,6 +61,7 @@ class AppRoutes {
   static const String adminAuditLog = '/admin/audit-log';
   static const String adminUsers = '/admin/users';
   static const String adminVenueReports = '/admin/venue-reports';
+  static const String adminVerificationLogs = '/admin/verification-logs';
   static const String venueFilter = '/venues/filter';
   static const String venueFilterCuisines = '/venues/filter/cuisines';
   static const String venueFiltered = '/venues/filtered';
@@ -259,6 +261,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.adminVenueReports,
         builder: (context, state) => const VenueReportsScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.adminVerificationLogs,
+        builder: (context, state) => const VerificationLogsScreen(),
       ),
 
       // Notifications

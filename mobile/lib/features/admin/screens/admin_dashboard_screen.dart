@@ -102,6 +102,13 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                     subtitle: 'Kullanıcıların bildirdiği sorunlar',
                     onTap: () => context.push(AppRoutes.adminVenueReports),
                   ),
+                  const SizedBox(height: 8),
+                  _QuickAccessTile(
+                    icon: Icons.verified_user_outlined,
+                    label: 'Doğrulama Logları',
+                    subtitle: 'Mekan doğrulama ve askı geçmişi',
+                    onTap: () => context.push(AppRoutes.adminVerificationLogs),
+                  ),
                 ],
               ),
             ),
