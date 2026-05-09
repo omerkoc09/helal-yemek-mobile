@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/api/api_endpoints.dart';
 import '../../../core/auth/auth_provider.dart';
 import '../../../core/models/venue.dart';
 import '../../../core/theme/app_theme.dart';
@@ -477,6 +478,15 @@ class VenueDetailScreen extends ConsumerWidget {
                 },
               ),
 
+              // Rehber doğrulama butonu
+              SliverToBoxAdapter(
+                child: _VerifyVenueButton(
+                  venueId: venue.id,
+                  addedBy: venue.addedBy,
+                  status: venue.status,
+                ),
+              ),
+
               // Alt boşluk
               const SliverToBoxAdapter(child: SizedBox(height: 32)),
             ],
@@ -607,6 +617,96 @@ class _VerifiedAtBadge extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _VerifyVenueButton extends ConsumerStatefulWidget {
+  final String venueId;
+  final String addedBy;
+  final String status;
+
+  const _VerifyVenueButton({
+    required this.venueId,
+    required this.addedBy,
+    required this.status,
+  });
+
+  @override
+  ConsumerState<_VerifyVenueButton> createState() => _VerifyVenueButtonState();
+}
+
+class _VerifyVenueButtonState extends ConsumerState<_VerifyVenueButton> {
+  bool _isLoading = false;
+
+  Future<void> _verify() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Mekan Doğrulama'),
+        content: const Text(
+          'Bu mekanın hâlâ helal kriterlerini karşıladığını onaylıyor musunuz?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('İptal'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Doğrula'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _isLoading = true);
+    try {
+      final api = ref.read(apiClientProvider);
+      await api.put(ApiEndpoints.venueVerify(widget.venueId), data: {});
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Mekan başarıyla doğrulandı'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Doğrulama başarısız, tekrar deneyin')),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final currentUserId = ref.watch(authProvider).user?.id;
+    final isOwner = currentUserId == widget.addedBy;
+    final isVerifiable = widget.status == 'approved' || widget.status == 'suspended';
+
+    if (!isOwner || !isVerifiable) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: SizedBox(
+        width: double.infinity,
+        child: ElevatedButton.icon(
+          onPressed: _isLoading ? null : _verify,
+          icon: _isLoading
+              ? const SizedBox(width: 16, height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2))
+              : const Icon(Icons.verified_outlined),
+          label: const Text('Helal Kriterlerini Doğrula'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppTheme.primary,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 14),
+          ),
+        ),
       ),
     );
   }
