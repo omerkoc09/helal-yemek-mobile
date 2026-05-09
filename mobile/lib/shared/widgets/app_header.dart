@@ -4,7 +4,9 @@ import 'package:go_router/go_router.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 
+import '../../core/auth/auth_provider.dart';
 import '../../core/theme/app_theme.dart';
+import '../../features/notifications/providers/notification_provider.dart';
 
 /// Uygulamanın tüm sayfalarında üstte sabit duran header.
 /// Logo | Konum | Favoriler
@@ -73,6 +75,40 @@ class AppHeader extends ConsumerWidget implements PreferredSizeWidget {
             ),
           ),
           const SizedBox(width: 8),
+          // Bildirim ikonu (sadece giriş yapan kullanıcılara)
+          Consumer(builder: (context, ref, _) {
+            final isLoggedIn = ref.watch(authProvider).isAuthenticated;
+            if (!isLoggedIn) return const SizedBox.shrink();
+            final unread = ref.watch(
+              notificationProvider.select((s) => s.unreadCount),
+            );
+            return Stack(
+              clipBehavior: Clip.none,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.notifications_none, color: Colors.white),
+                  onPressed: () => context.push('/notifications'),
+                ),
+                if (unread > 0)
+                  Positioned(
+                    right: 6,
+                    top: 6,
+                    child: Container(
+                      padding: const EdgeInsets.all(3),
+                      decoration: const BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Text(
+                        unread > 99 ? '99+' : '$unread',
+                        style: const TextStyle(color: Colors.white, fontSize: 9),
+                      ),
+                    ),
+                  ),
+              ],
+            );
+          }),
+          const SizedBox(width: 4),
           // Favoriler
           IconButton(
             icon: const Icon(Icons.favorite_border, color: Colors.white),
