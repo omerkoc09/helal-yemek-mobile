@@ -10,11 +10,12 @@ import (
 )
 
 type AdminHandler struct {
-	venueRepo    *repository.VenueRepo
-	guideRepo    *repository.GuideRepo
-	userRepo     *repository.UserRepo
-	auditRepo    *repository.AuditRepo
-	referralRepo *repository.ReferralRepo
+	venueRepo              *repository.VenueRepo
+	guideRepo              *repository.GuideRepo
+	userRepo               *repository.UserRepo
+	auditRepo              *repository.AuditRepo
+	referralRepo           *repository.ReferralRepo
+	verificationPeriodDays int
 }
 
 func NewAdminHandler(
@@ -23,13 +24,15 @@ func NewAdminHandler(
 	userRepo *repository.UserRepo,
 	auditRepo *repository.AuditRepo,
 	referralRepo *repository.ReferralRepo,
+	verificationPeriodDays int,
 ) *AdminHandler {
 	return &AdminHandler{
-		venueRepo:    venueRepo,
-		guideRepo:    guideRepo,
-		userRepo:     userRepo,
-		auditRepo:    auditRepo,
-		referralRepo: referralRepo,
+		venueRepo:              venueRepo,
+		guideRepo:              guideRepo,
+		userRepo:               userRepo,
+		auditRepo:              auditRepo,
+		referralRepo:           referralRepo,
+		verificationPeriodDays: verificationPeriodDays,
 	}
 }
 
@@ -109,7 +112,7 @@ func (h *AdminHandler) UpdateVenue(c *fiber.Ctx) error {
 		var statusErr error
 		switch *req.Status {
 		case "approved":
-			statusErr = h.venueRepo.Approve(c.Context(), venueID, adminID)
+			statusErr = h.venueRepo.Approve(c.Context(), venueID, adminID, h.verificationPeriodDays)
 		case "rejected":
 			statusErr = h.venueRepo.Reject(c.Context(), venueID, adminID, nil)
 		case "pending":
@@ -146,7 +149,7 @@ func (h *AdminHandler) ApproveVenue(c *fiber.Ctx) error {
 		return err
 	}
 
-	if err := h.venueRepo.Approve(c.Context(), id, adminID); err != nil {
+	if err := h.venueRepo.Approve(c.Context(), id, adminID, h.verificationPeriodDays); err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
 			return fiber.ErrNotFound
 		}

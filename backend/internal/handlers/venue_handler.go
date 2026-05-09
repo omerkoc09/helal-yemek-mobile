@@ -12,13 +12,14 @@ import (
 )
 
 type VenueHandler struct {
-	venueRepo      *repository.VenueRepo
-	storageService *services.StorageService
-	placesService  *services.PlacesService
+	venueRepo              *repository.VenueRepo
+	storageService         *services.StorageService
+	placesService          *services.PlacesService
+	verificationPeriodDays int
 }
 
-func NewVenueHandler(venueRepo *repository.VenueRepo, storageService *services.StorageService, placesService *services.PlacesService) *VenueHandler {
-	return &VenueHandler{venueRepo: venueRepo, storageService: storageService, placesService: placesService}
+func NewVenueHandler(venueRepo *repository.VenueRepo, storageService *services.StorageService, placesService *services.PlacesService, verificationPeriodDays int) *VenueHandler {
+	return &VenueHandler{venueRepo: venueRepo, storageService: storageService, placesService: placesService, verificationPeriodDays: verificationPeriodDays}
 }
 
 // List godoc
@@ -333,7 +334,7 @@ func (h *VenueHandler) Create(c *fiber.Ctx) error {
 	// Admin eklediği mekanlar otomatik onaylı olsun
 	role := getUserRole(c)
 	if role == "admin" {
-		_ = h.venueRepo.Approve(c.Context(), venue.ID, userID)
+		_ = h.venueRepo.Approve(c.Context(), venue.ID, userID, h.verificationPeriodDays)
 		venue.Status = "approved"
 	}
 

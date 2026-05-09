@@ -6,18 +6,20 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/omerkoc/caiz-mi/internal/models"
 )
 
-// Approve — mekanı onaylar: status=approved, approved_by, verified_at güncellenir.
-func (r *VenueRepo) Approve(ctx context.Context, id, adminID string) error {
+// Approve — mekanı onaylar ve ilk doğrulama süresini başlatır.
+func (r *VenueRepo) Approve(ctx context.Context, id, adminID string, periodDays int) error {
 	result, err := r.db.Exec(ctx,
 		`UPDATE venues
 		 SET status = 'approved',
 		     approved_by = $1,
 		     verified_at = NOW(),
+		     verification_due_at = NOW() + ($3 * INTERVAL '1 day'),
 		     updated_at = NOW()
 		 WHERE id = $2 AND status IN ('pending', 'rejected') AND deleted_at IS NULL`,
-		adminID, id,
+		adminID, id, periodDays,
 	)
 	if err != nil {
 		return fmt.Errorf("mekan onaylama başarısız: %w", err)
@@ -62,6 +64,68 @@ func (r *VenueRepo) Reject(ctx context.Context, id, adminID string, note *string
 	)
 	if err != nil {
 		return fmt.Errorf("mekan reddetme başarısız: %w", err)
+	}
+	if result.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+// SuspendForVerification — doğrulama yapılmadığı için mekânı askıya alır.
+func (r *VenueRepo) SuspendForVerification(ctx context.Context, id string) error {
+	result, err := r.db.Exec(ctx,
+		`UPDATE venues
+		 SET status = 'suspended',
+		     updated_at = NOW()
+		 WHERE id = $1 AND status = 'approved' AND deleted_at IS NULL`,
+		id,
+	)
+	if err != nil {
+		return fmt.Errorf("mekan askıya alma başarısız: %w", err)
+	}
+	if result.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+// VerifyByGuide — rehberin kendi mekanını doğrulaması.
+// Sadece mekan sahibi guide çağırabilir.
+func (r *VenueRepo) VerifyByGuide(ctx context.Context, venueID, guideID string, periodDays int) error {
+	result, err := r.db.Exec(ctx,
+		`UPDATE venues
+		 SET verified_at = NOW(),
+		     verification_due_at = NOW() + ($3 * INTERVAL '1 day'),
+		     status = 'approved',
+		     updated_at = NOW()
+		 WHERE id = $1
+		   AND added_by = $2
+		   AND status IN ('approved', 'suspended')
+		   AND deleted_at IS NULL`,
+		venueID, guideID, periodDays,
+	)
+	if err != nil {
+		return fmt.Errorf("mekan doğrulama başarısız: %w", err)
+	}
+	if result.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+// ReactivateVenue — admin'in suspended mekânı manuel olarak yeniden açması.
+func (r *VenueRepo) ReactivateVenue(ctx context.Context, id string, periodDays int) error {
+	result, err := r.db.Exec(ctx,
+		`UPDATE venues
+		 SET status = 'approved',
+		     verified_at = NOW(),
+		     verification_due_at = NOW() + ($2 * INTERVAL '1 day'),
+		     updated_at = NOW()
+		 WHERE id = $1 AND status = 'suspended' AND deleted_at IS NULL`,
+		id, periodDays,
+	)
+	if err != nil {
+		return fmt.Errorf("mekan yeniden aktive edilemedi: %w", err)
 	}
 	if result.RowsAffected() == 0 {
 		return ErrNotFound
@@ -146,4 +210,64 @@ func (r *VenueRepo) ConfirmVenue(ctx context.Context, venueID, guideID string) e
 	}
 
 	return tx.Commit(ctx)
+}
+
+// FindDueForWarning — verilen gün sayısı içinde süresi dolacak ve henüz bugün bildirilmemiş mekanlar.
+func (r *VenueRepo) FindDueForWarning(ctx context.Context, withinDays int) ([]*models.VenueForScheduler, error) {
+	rows, err := r.db.Query(ctx,
+		`SELECT v.id, v.name, v.added_by, u.email, u.name, v.verification_due_at
+		 FROM venues v
+		 JOIN users u ON u.id = v.added_by
+		 WHERE v.status = 'approved'
+		   AND v.verification_due_at < NOW() + ($1 * INTERVAL '1 day')
+		   AND v.verification_due_at > NOW()
+		   AND (v.last_notified_at IS NULL OR v.last_notified_at < NOW() - INTERVAL '1 day')`,
+		withinDays,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("uyarı listesi alınamadı: %w", err)
+	}
+	defer rows.Close()
+	return scanVenuesForScheduler(rows)
+}
+
+// FindDueForSuspension — süresi dolmuş approved mekanlar.
+func (r *VenueRepo) FindDueForSuspension(ctx context.Context) ([]*models.VenueForScheduler, error) {
+	rows, err := r.db.Query(ctx,
+		`SELECT v.id, v.name, v.added_by, u.email, u.name, v.verification_due_at
+		 FROM venues v
+		 JOIN users u ON u.id = v.added_by
+		 WHERE v.status = 'approved'
+		   AND v.verification_due_at < NOW()`,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("askıya alınacaklar listesi alınamadı: %w", err)
+	}
+	defer rows.Close()
+	return scanVenuesForScheduler(rows)
+}
+
+// UpdateLastNotified — spam önleme: son bildirim zamanını günceller.
+func (r *VenueRepo) UpdateLastNotified(ctx context.Context, id string) error {
+	_, err := r.db.Exec(ctx,
+		`UPDATE venues SET last_notified_at = NOW() WHERE id = $1`,
+		id,
+	)
+	return err
+}
+
+func scanVenuesForScheduler(rows interface {
+	Next() bool
+	Scan(...any) error
+	Err() error
+}) ([]*models.VenueForScheduler, error) {
+	var result []*models.VenueForScheduler
+	for rows.Next() {
+		v := &models.VenueForScheduler{}
+		if err := rows.Scan(&v.ID, &v.Name, &v.AddedBy, &v.GuideEmail, &v.GuideName, &v.VerificationDueAt); err != nil {
+			return nil, err
+		}
+		result = append(result, v)
+	}
+	return result, rows.Err()
 }
