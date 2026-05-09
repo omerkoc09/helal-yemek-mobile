@@ -30,6 +30,7 @@ import '../../features/home/screens/venue_filter_screen.dart';
 import '../../features/home/screens/venue_cuisines_screen.dart';
 import '../../features/home/screens/venue_results_screen.dart';
 import '../../shared/widgets/app_header.dart';
+import '../../features/notifications/screens/notifications_screen.dart';
 
 // Route isimleri
 class AppRoutes {
@@ -62,6 +63,7 @@ class AppRoutes {
   static const String venueFilter = '/venues/filter';
   static const String venueFilterCuisines = '/venues/filter/cuisines';
   static const String venueFiltered = '/venues/filtered';
+  static const String notifications = '/notifications';
 }
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -257,6 +259,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.adminVenueReports,
         builder: (context, state) => const VenueReportsScreen(),
+      ),
+
+      // Notifications
+      GoRoute(
+        path: AppRoutes.notifications,
+        builder: (context, state) => const NotificationsScreen(),
       ),
     ],
   );
