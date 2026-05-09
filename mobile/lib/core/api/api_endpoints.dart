@@ -62,6 +62,19 @@ class ApiEndpoints {
       '/venues/by-category/$categoryId';
   static String foodCategoryItems(String id) => '/food-categories/$id/items';
 
+  // Notifications
+  static const String notifications = '/notifications';
+  static const String notificationsUnreadCount = '/notifications/unread-count';
+  static const String notificationsReadAll = '/notifications/read-all';
+  static String notificationRead(String id) => '/notifications/$id/read';
+
+  // Venue verify
+  static String venueVerify(String id) => '/venues/$id/verify';
+
+  // Admin verification logs
+  static const String adminVerificationLogs = '/admin/verification-logs';
+  static String adminReactivateVenue(String id) => '/admin/venues/$id/reactivate';
+
   // Misc
   static const String criteria = '/criteria';
   static const String placePreview = '/venues/place-preview';
