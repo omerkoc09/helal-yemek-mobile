@@ -5,9 +5,10 @@ import "time"
 type VenueStatus string
 
 const (
-	VenueStatusPending  VenueStatus = "pending"
-	VenueStatusApproved VenueStatus = "approved"
-	VenueStatusRejected VenueStatus = "rejected"
+	VenueStatusPending   VenueStatus = "pending"
+	VenueStatusApproved  VenueStatus = "approved"
+	VenueStatusRejected  VenueStatus = "rejected"
+	VenueStatusSuspended VenueStatus = "suspended"
 )
 
 type HalalCriteria struct {
@@ -60,8 +61,10 @@ type Venue struct {
 	AddedBy          string          `json:"added_by"`
 	AddedByName      *string         `json:"added_by_name,omitempty"`
 	ApprovedBy       *string         `json:"approved_by,omitempty"`
-	VerifiedAt       *time.Time      `json:"verified_at,omitempty"`
-	Distance         *float64        `json:"distance,omitempty"` // metre cinsinden, yakın mekan sorgusunda dolar
+	VerifiedAt          *time.Time      `json:"verified_at,omitempty"`
+	VerificationDueAt   *time.Time      `json:"verification_due_at,omitempty"`
+	LastNotifiedAt      *time.Time      `json:"last_notified_at,omitempty"`
+	Distance            *float64        `json:"distance,omitempty"` // metre cinsinden, yakın mekan sorgusunda dolar
 	FoodHalalMode    string          `json:"food_halal_mode"`
 	ExcludedProducts []string        `json:"excluded_products"`
 	Criteria         []HalalCriteria `json:"criteria"`
