@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 
 	"github.com/gofiber/fiber/v2"
@@ -42,21 +43,33 @@ func main() {
 	auditRepo := repository.NewAuditRepo(pool)
 	referralRepo := repository.NewReferralRepo(pool)
 	venueReportRepo := repository.NewVenueReportRepo(pool)
+	notifRepo    := repository.NewNotificationRepo(pool)
+	verifLogRepo := repository.NewVerificationLogRepo(pool)
 
 	// Service katmanı
 	authService := services.NewAuthService(userRepo, cfg.JWTSecret, cfg.GoogleClientID)
 	storageService := services.NewStorageService("./uploads", cfg.StorageURL+"/static")
 	placesService := services.NewPlacesService(cfg.GoogleMapsAPIKey)
 
+	var emailSvc services.EmailService
+	if cfg.SMTPUser != "" && cfg.SMTPPassword != "" {
+		emailSvc = services.NewSMTPEmailService(cfg.SMTPHost, cfg.SMTPPort, cfg.SMTPUser, cfg.SMTPPassword, cfg.SMTPFrom)
+	} else {
+		emailSvc = services.NewNoopEmailService()
+	}
+	notifService := services.NewNotificationService(notifRepo, emailSvc)
+	schedulerSvc := services.NewSchedulerService(venueRepo, verifLogRepo, notifService, cfg.SchedulerRunHour, cfg.VerificationWarningDays)
+
 	// Handler katmanı
 	authHandler := handlers.NewAuthHandler(authService)
-	venueHandler := handlers.NewVenueHandler(venueRepo, storageService, placesService)
+	venueHandler := handlers.NewVenueHandler(venueRepo, storageService, placesService, verifLogRepo, cfg.VerificationPeriodDays)
 	reviewHandler := handlers.NewReviewHandler(reviewRepo)
 	favoriteHandler := handlers.NewFavoriteHandler(favoriteRepo)
 	correctionHandler := handlers.NewCorrectionHandler(correctionRepo, auditRepo)
 	guideHandler := handlers.NewGuideHandler(guideRepo, venueRepo, referralRepo)
-	adminHandler := handlers.NewAdminHandler(venueRepo, guideRepo, userRepo, auditRepo, referralRepo)
+	adminHandler := handlers.NewAdminHandler(venueRepo, guideRepo, userRepo, auditRepo, referralRepo, verifLogRepo, cfg.VerificationPeriodDays)
 	venueReportHandler := handlers.NewVenueReportHandler(venueReportRepo)
+	notifHandler := handlers.NewNotificationHandler(notifRepo)
 
 	// Fiber uygulaması
 	app := fiber.New(fiber.Config{
@@ -139,6 +152,11 @@ func main() {
 		middleware.RequireRole("guide", "admin"),
 		venueHandler.ConfirmVenue,
 	)
+	api.Put("/venues/:id/verify",
+		middleware.Auth(cfg.JWTSecret),
+		middleware.RequireRole("guide", "admin"),
+		venueHandler.Verify,
+	)
 
 	// Review endpoint'leri
 	api.Get("/venues/:id/reviews", reviewHandler.List)
@@ -154,6 +172,13 @@ func main() {
 		middleware.Auth(cfg.JWTSecret),
 		reviewHandler.Delete,
 	)
+
+	// Notification endpoint'leri
+	notif := api.Group("/notifications", middleware.Auth(cfg.JWTSecret))
+	notif.Get("/", notifHandler.List)
+	notif.Get("/unread-count", notifHandler.UnreadCount)
+	notif.Put("/read-all", notifHandler.MarkAllRead)
+	notif.Put("/:id/read", notifHandler.MarkRead)
 
 	// Favorite endpoint'leri
 	fav := api.Group("/favorites", middleware.Auth(cfg.JWTSecret))
@@ -199,6 +224,8 @@ func main() {
 	admin.Delete("/venues/:id", adminHandler.DeleteVenue)
 	admin.Put("/venues/:id/approve", adminHandler.ApproveVenue)
 	admin.Put("/venues/:id/reject", adminHandler.RejectVenue)
+	admin.Get("/verification-logs", adminHandler.VerificationLogs)
+	admin.Put("/venues/:id/reactivate", adminHandler.ReactivateVenue)
 
 	// Corrections
 	admin.Get("/corrections", correctionHandler.ListPending)
@@ -218,6 +245,11 @@ func main() {
 	admin.Get("/users", adminHandler.ListUsers)
 	admin.Put("/users/:id", adminHandler.UpdateUser)
 	admin.Delete("/users/:id", adminHandler.DeleteUser)
+
+	// Verification scheduler'ı başlat
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go schedulerSvc.Start(ctx)
 
 	log.Printf("sunucu başlatılıyor: :%s", cfg.Port)
 	log.Fatal(app.Listen(":" + cfg.Port))
