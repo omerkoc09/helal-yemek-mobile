@@ -15,11 +15,24 @@ type VenueHandler struct {
 	venueRepo              *repository.VenueRepo
 	storageService         *services.StorageService
 	placesService          *services.PlacesService
+	verifLogRepo           *repository.VerificationLogRepo
 	verificationPeriodDays int
 }
 
-func NewVenueHandler(venueRepo *repository.VenueRepo, storageService *services.StorageService, placesService *services.PlacesService, verificationPeriodDays int) *VenueHandler {
-	return &VenueHandler{venueRepo: venueRepo, storageService: storageService, placesService: placesService, verificationPeriodDays: verificationPeriodDays}
+func NewVenueHandler(
+	venueRepo *repository.VenueRepo,
+	storageService *services.StorageService,
+	placesService *services.PlacesService,
+	verifLogRepo *repository.VerificationLogRepo,
+	verificationPeriodDays int,
+) *VenueHandler {
+	return &VenueHandler{
+		venueRepo:              venueRepo,
+		storageService:         storageService,
+		placesService:          placesService,
+		verifLogRepo:           verifLogRepo,
+		verificationPeriodDays: verificationPeriodDays,
+	}
 }
 
 // List godoc
@@ -639,4 +652,25 @@ func (h *VenueHandler) ListCriteria(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "kriterler listelenemedi"})
 	}
 	return c.JSON(criteria)
+}
+
+// PUT /api/v1/venues/:id/verify
+// Rehber kendi mekanının hâlâ helal olduğunu teyit eder.
+func (h *VenueHandler) Verify(c *fiber.Ctx) error {
+	venueID := c.Params("id")
+	guideID, err := getUserID(c)
+	if err != nil {
+		return err
+	}
+
+	if err := h.venueRepo.VerifyByGuide(c.Context(), venueID, guideID, h.verificationPeriodDays); err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			return fiber.ErrNotFound
+		}
+		return fiber.ErrInternalServerError
+	}
+
+	_ = h.verifLogRepo.Create(c.Context(), venueID, guideID, "verified")
+
+	return c.JSON(fiber.Map{"status": "verified"})
 }
