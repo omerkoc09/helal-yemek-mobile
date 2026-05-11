@@ -11,6 +11,7 @@ import (
 )
 
 var ErrNotFound = errors.New("kayıt bulunamadı")
+var ErrAlreadyExists = errors.New("kayıt zaten mevcut")
 
 type UserRepo struct {
 	db *pgxpool.Pool

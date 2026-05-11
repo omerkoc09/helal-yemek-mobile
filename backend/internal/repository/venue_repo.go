@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/omerkoc/caiz-mi/internal/models"
@@ -96,12 +97,20 @@ func (r *VenueRepo) Create(ctx context.Context, v *models.Venue) error {
 		v.ExcludedProducts = []string{}
 	}
 
-	return r.db.QueryRow(ctx, query,
+	err := r.db.QueryRow(ctx, query,
 		v.Name, v.Address, v.City, v.District,
 		v.Latitude, v.Longitude,
 		v.GooglePlaceID,
 		v.Notes, v.AddedBy, v.FoodHalalMode, v.ExcludedProducts,
 	).Scan(&v.ID, &v.Status, &v.CreatedAt, &v.UpdatedAt)
+	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			return ErrAlreadyExists
+		}
+		return err
+	}
+	return nil
 }
 
 // UpdateVenue — mekanın temel alanlarını günceller. nil olan alanlar değiştirilmez.

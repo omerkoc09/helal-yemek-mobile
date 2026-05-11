@@ -341,6 +341,9 @@ func (h *VenueHandler) Create(c *fiber.Ctx) error {
 	}
 
 	if err := h.venueRepo.Create(c.Context(), venue); err != nil {
+		if errors.Is(err, repository.ErrAlreadyExists) {
+			return c.Status(fiber.StatusConflict).JSON(fiber.Map{"error": "bu mekan zaten sisteme eklenmiş"})
+		}
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "mekan eklenemedi"})
 	}
 
