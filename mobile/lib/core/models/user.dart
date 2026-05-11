@@ -9,6 +9,8 @@ abstract class User with _$User {
     required String id,
     required String email,
     required String name,
+    String? surname,
+    String? phone,
     @JsonKey(name: 'avatar_url') String? avatarUrl,
     required String role,
     @Default('email') String provider,

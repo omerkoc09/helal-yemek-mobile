@@ -30,7 +30,7 @@ func NewAuthService(userRepo *repository.UserRepo, jwtSecret, googleClientID str
 }
 
 // Register — email/şifre ile yeni kullanıcı oluşturur.
-func (s *AuthService) Register(ctx context.Context, email, password, name string) (*jwtpkg.TokenPair, error) {
+func (s *AuthService) Register(ctx context.Context, email, password, name, surname, phone string) (*jwtpkg.TokenPair, error) {
 	email = strings.ToLower(strings.TrimSpace(email))
 
 	exists, err := s.userRepo.EmailExists(ctx, email)
@@ -50,11 +50,15 @@ func (s *AuthService) Register(ctx context.Context, email, password, name string
 		return nil, err
 	}
 	hashStr := string(hash)
+	surnameStr := strings.TrimSpace(surname)
+	phoneStr := strings.TrimSpace(phone)
 
 	user := &models.User{
 		Email:        email,
 		PasswordHash: &hashStr,
 		Name:         strings.TrimSpace(name),
+		Surname:      &surnameStr,
+		Phone:        &phoneStr,
 		Role:         models.RoleTraveler,
 		Provider:     "email",
 	}
@@ -192,8 +196,8 @@ func (s *AuthService) GetUser(ctx context.Context, userID string) (*models.User,
 }
 
 // UpdateProfile — kullanıcının kendi profilini günceller.
-func (s *AuthService) UpdateProfile(ctx context.Context, userID string, name *string) (*models.User, error) {
-	if err := s.userRepo.Update(ctx, userID, name, nil, nil, nil); err != nil {
+func (s *AuthService) UpdateProfile(ctx context.Context, userID string, name, surname, phone *string) (*models.User, error) {
+	if err := s.userRepo.Update(ctx, userID, name, surname, phone, nil, nil, nil); err != nil {
 		return nil, err
 	}
 	return s.userRepo.FindByID(ctx, userID)

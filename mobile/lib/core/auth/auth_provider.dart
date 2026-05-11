@@ -99,6 +99,8 @@ class AuthNotifier extends Notifier<AuthState> {
 
   Future<void> register({
     required String name,
+    required String surname,
+    required String phone,
     required String email,
     required String password,
   }) async {
@@ -106,7 +108,13 @@ class AuthNotifier extends Notifier<AuthState> {
     try {
       final response = await _apiClient.post(
         ApiEndpoints.register,
-        data: {'name': name, 'email': email, 'password': password},
+        data: {
+          'name': name,
+          'surname': surname,
+          'phone': phone,
+          'email': email,
+          'password': password,
+        },
       );
       await _handleAuthResponse(response.data as Map<String, dynamic>);
     } catch (e) {

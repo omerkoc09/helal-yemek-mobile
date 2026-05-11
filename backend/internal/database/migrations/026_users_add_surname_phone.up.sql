@@ -1,0 +1,7 @@
+ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS surname VARCHAR(100),
+    ADD COLUMN IF NOT EXISTS phone  VARCHAR(20);
+
+CREATE UNIQUE INDEX IF NOT EXISTS users_phone_unique
+    ON users (phone)
+    WHERE phone IS NOT NULL;

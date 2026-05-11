@@ -293,6 +293,8 @@ func (h *AdminHandler) UpdateUser(c *fiber.Ctx) error {
 
 	var req struct {
 		Name     *string      `json:"name"`
+		Surname  *string      `json:"surname"`
+		Phone    *string      `json:"phone"`
 		Email    *string      `json:"email"`
 		Role     *models.Role `json:"role"`
 		IsActive *bool        `json:"is_active"`
@@ -302,7 +304,7 @@ func (h *AdminHandler) UpdateUser(c *fiber.Ctx) error {
 		return fiber.ErrBadRequest
 	}
 
-	if err := h.userRepo.Update(c.Context(), id, req.Name, req.Email, req.Role, req.IsActive); err != nil {
+	if err := h.userRepo.Update(c.Context(), id, req.Name, req.Surname, req.Phone, req.Email, req.Role, req.IsActive); err != nil {
 		log.Printf("[ADMIN] UpdateUser repo error for id=%s: %v", id, err)
 		if errors.Is(err, repository.ErrNotFound) {
 			return fiber.ErrNotFound

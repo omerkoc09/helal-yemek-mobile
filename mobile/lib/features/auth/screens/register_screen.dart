@@ -15,6 +15,8 @@ class RegisterScreen extends ConsumerStatefulWidget {
 class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
+  final _surnameController = TextEditingController();
+  final _phoneController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
@@ -22,6 +24,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   @override
   void dispose() {
     _nameController.dispose();
+    _surnameController.dispose();
+    _phoneController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
@@ -31,6 +35,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     if (!_formKey.currentState!.validate()) return;
     ref.read(authProvider.notifier).register(
           name: _nameController.text.trim(),
+          surname: _surnameController.text.trim(),
+          phone: _phoneController.text.trim(),
           email: _emailController.text.trim(),
           password: _passwordController.text,
         );
@@ -76,23 +82,85 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   ),
                   const SizedBox(height: 40),
 
-                  // Name field
-                  _buildLabel('Full Name'),
+                  // Ad + Soyad row
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildLabel('Ad'),
+                            const SizedBox(height: 8),
+                            TextFormField(
+                              controller: _nameController,
+                              textCapitalization: TextCapitalization.words,
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return 'Ad gerekli';
+                                }
+                                if (value.trim().length < 2) {
+                                  return 'En az 2 karakter';
+                                }
+                                return null;
+                              },
+                              decoration: _inputDecoration(
+                                hint: 'Adınız',
+                                icon: Icons.person_outlined,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildLabel('Soyad'),
+                            const SizedBox(height: 8),
+                            TextFormField(
+                              controller: _surnameController,
+                              textCapitalization: TextCapitalization.words,
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return 'Soyad gerekli';
+                                }
+                                if (value.trim().length < 2) {
+                                  return 'En az 2 karakter';
+                                }
+                                return null;
+                              },
+                              decoration: _inputDecoration(
+                                hint: 'Soyadınız',
+                                icon: Icons.person_outlined,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Phone field
+                  _buildLabel('Telefon'),
                   const SizedBox(height: 8),
                   TextFormField(
-                    controller: _nameController,
+                    controller: _phoneController,
+                    keyboardType: TextInputType.phone,
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
-                        return 'İsim gerekli';
+                        return 'Telefon numarası gerekli';
                       }
-                      if (value.trim().length < 2) {
-                        return 'İsim en az 2 karakter olmalı';
+                      if (value.trim().length < 10) {
+                        return 'Geçerli bir telefon numarası girin';
                       }
                       return null;
                     },
                     decoration: _inputDecoration(
-                      hint: 'Your full name',
-                      icon: Icons.person_outlined,
+                      hint: '+90 5XX XXX XX XX',
+                      icon: Icons.phone_outlined,
                     ),
                   ),
                   const SizedBox(height: 20),

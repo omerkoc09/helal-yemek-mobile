@@ -10,13 +10,13 @@ import (
 
 // AuthServiceInterface — AuthService'in handler'ın ihtiyaç duyduğu metotları.
 type AuthServiceInterface interface {
-	Register(ctx context.Context, email, password, name string) (*jwtpkg.TokenPair, error)
+	Register(ctx context.Context, email, password, name, surname, phone string) (*jwtpkg.TokenPair, error)
 	Login(ctx context.Context, email, password string) (*jwtpkg.TokenPair, error)
 	LoginWithGoogle(ctx context.Context, idToken string) (*jwtpkg.TokenPair, error)
 	LoginWithApple(ctx context.Context, identityToken, name string) (*jwtpkg.TokenPair, error)
 	RefreshTokens(ctx context.Context, refreshToken string) (*jwtpkg.TokenPair, error)
 	GetUser(ctx context.Context, userID string) (*models.User, error)
-	UpdateProfile(ctx context.Context, userID string, name *string) (*models.User, error)
+	UpdateProfile(ctx context.Context, userID string, name, surname, phone *string) (*models.User, error)
 }
 
 type AuthHandler struct {
@@ -34,15 +34,17 @@ func (h *AuthHandler) Register(c *fiber.Ctx) error {
 		Email    string `json:"email"`
 		Password string `json:"password"`
 		Name     string `json:"name"`
+		Surname  string `json:"surname"`
+		Phone    string `json:"phone"`
 	}
 	if err := c.BodyParser(&req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "geçersiz istek"})
 	}
-	if req.Email == "" || req.Password == "" || req.Name == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "email, şifre ve ad zorunludur"})
+	if req.Email == "" || req.Password == "" || req.Name == "" || req.Surname == "" || req.Phone == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "email, şifre, ad, soyad ve telefon zorunludur"})
 	}
 
-	tokens, err := h.authService.Register(c.Context(), req.Email, req.Password, req.Name)
+	tokens, err := h.authService.Register(c.Context(), req.Email, req.Password, req.Name, req.Surname, req.Phone)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 	}
@@ -145,16 +147,15 @@ func (h *AuthHandler) UpdateProfile(c *fiber.Ctx) error {
 	}
 
 	var req struct {
-		Name string `json:"name"`
+		Name    *string `json:"name"`
+		Surname *string `json:"surname"`
+		Phone   *string `json:"phone"`
 	}
 	if err := c.BodyParser(&req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "geçersiz istek"})
 	}
-	if req.Name == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "ad zorunludur"})
-	}
 
-	user, err := h.authService.UpdateProfile(c.Context(), userID, &req.Name)
+	user, err := h.authService.UpdateProfile(c.Context(), userID, req.Name, req.Surname, req.Phone)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "profil güncellenemedi"})
 	}

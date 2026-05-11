@@ -23,21 +23,21 @@ func NewUserRepo(db *pgxpool.Pool) *UserRepo {
 
 func (r *UserRepo) Create(ctx context.Context, u *models.User) error {
 	query := `
-		INSERT INTO users (email, password_hash, name, role, provider, provider_id, avatar_url)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		INSERT INTO users (email, password_hash, name, surname, phone, role, provider, provider_id, avatar_url)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 		RETURNING id, created_at, updated_at`
 	return r.db.QueryRow(ctx, query,
-		u.Email, u.PasswordHash, u.Name, u.Role, u.Provider, u.ProviderID, u.AvatarURL,
+		u.Email, u.PasswordHash, u.Name, u.Surname, u.Phone, u.Role, u.Provider, u.ProviderID, u.AvatarURL,
 	).Scan(&u.ID, &u.CreatedAt, &u.UpdatedAt)
 }
 
 func (r *UserRepo) FindByEmail(ctx context.Context, email string) (*models.User, error) {
 	u := &models.User{}
 	query := `
-		SELECT id, email, password_hash, name, avatar_url, role, provider, provider_id, is_active, created_at, updated_at
+		SELECT id, email, password_hash, name, surname, phone, avatar_url, role, provider, provider_id, is_active, created_at, updated_at
 		FROM users WHERE email = $1`
 	err := r.db.QueryRow(ctx, query, email).Scan(
-		&u.ID, &u.Email, &u.PasswordHash, &u.Name, &u.AvatarURL,
+		&u.ID, &u.Email, &u.PasswordHash, &u.Name, &u.Surname, &u.Phone, &u.AvatarURL,
 		&u.Role, &u.Provider, &u.ProviderID, &u.IsActive, &u.CreatedAt, &u.UpdatedAt,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -49,10 +49,10 @@ func (r *UserRepo) FindByEmail(ctx context.Context, email string) (*models.User,
 func (r *UserRepo) FindByProviderID(ctx context.Context, provider, providerID string) (*models.User, error) {
 	u := &models.User{}
 	query := `
-		SELECT id, email, password_hash, name, avatar_url, role, provider, provider_id, is_active, created_at, updated_at
+		SELECT id, email, password_hash, name, surname, phone, avatar_url, role, provider, provider_id, is_active, created_at, updated_at
 		FROM users WHERE provider = $1 AND provider_id = $2`
 	err := r.db.QueryRow(ctx, query, provider, providerID).Scan(
-		&u.ID, &u.Email, &u.PasswordHash, &u.Name, &u.AvatarURL,
+		&u.ID, &u.Email, &u.PasswordHash, &u.Name, &u.Surname, &u.Phone, &u.AvatarURL,
 		&u.Role, &u.Provider, &u.ProviderID, &u.IsActive, &u.CreatedAt, &u.UpdatedAt,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -64,10 +64,10 @@ func (r *UserRepo) FindByProviderID(ctx context.Context, provider, providerID st
 func (r *UserRepo) FindByID(ctx context.Context, id string) (*models.User, error) {
 	u := &models.User{}
 	query := `
-		SELECT id, email, password_hash, name, avatar_url, role, provider, provider_id, is_active, created_at, updated_at
+		SELECT id, email, password_hash, name, surname, phone, avatar_url, role, provider, provider_id, is_active, created_at, updated_at
 		FROM users WHERE id = $1`
 	err := r.db.QueryRow(ctx, query, id).Scan(
-		&u.ID, &u.Email, &u.PasswordHash, &u.Name, &u.AvatarURL,
+		&u.ID, &u.Email, &u.PasswordHash, &u.Name, &u.Surname, &u.Phone, &u.AvatarURL,
 		&u.Role, &u.Provider, &u.ProviderID, &u.IsActive, &u.CreatedAt, &u.UpdatedAt,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -101,8 +101,7 @@ func (r *UserRepo) UpdateRole(ctx context.Context, id string, role models.Role) 
 }
 
 // Update — kullanıcının temel bilgilerini günceller. nil olan alanlar değiştirilmez.
-func (r *UserRepo) Update(ctx context.Context, id string, name, email *string, role *models.Role, isActive *bool) error {
-	// pgx v5: custom type (*models.Role) yerine *string kullan
+func (r *UserRepo) Update(ctx context.Context, id string, name, surname, phone, email *string, role *models.Role, isActive *bool) error {
 	var roleStr *string
 	if role != nil {
 		s := string(*role)
@@ -112,12 +111,14 @@ func (r *UserRepo) Update(ctx context.Context, id string, name, email *string, r
 	query := `
 		UPDATE users SET
 			name      = COALESCE($2, name),
-			email     = COALESCE($3, email),
-			role      = COALESCE($4, role),
-			is_active = COALESCE($5, is_active),
+			surname   = COALESCE($3, surname),
+			phone     = COALESCE($4, phone),
+			email     = COALESCE($5, email),
+			role      = COALESCE($6, role),
+			is_active = COALESCE($7, is_active),
 			updated_at = NOW()
 		WHERE id = $1`
-	result, err := r.db.Exec(ctx, query, id, name, email, roleStr, isActive)
+	result, err := r.db.Exec(ctx, query, id, name, surname, phone, email, roleStr, isActive)
 	if err != nil {
 		return fmt.Errorf("kullanıcı güncellemesi başarısız: %w", err)
 	}
@@ -142,7 +143,7 @@ func (r *UserRepo) Delete(ctx context.Context, id string) error {
 // List — tüm kullanıcıları döndürür (admin kullanımı).
 func (r *UserRepo) List(ctx context.Context) ([]models.User, error) {
 	rows, err := r.db.Query(ctx,
-		`SELECT id, email, name, avatar_url, role, provider, is_active, created_at, updated_at
+		`SELECT id, email, name, surname, phone, avatar_url, role, provider, is_active, created_at, updated_at
 		 FROM users
 		 ORDER BY created_at DESC`,
 	)
@@ -155,7 +156,7 @@ func (r *UserRepo) List(ctx context.Context) ([]models.User, error) {
 	for rows.Next() {
 		u := models.User{}
 		if err := rows.Scan(
-			&u.ID, &u.Email, &u.Name, &u.AvatarURL,
+			&u.ID, &u.Email, &u.Name, &u.Surname, &u.Phone, &u.AvatarURL,
 			&u.Role, &u.Provider, &u.IsActive, &u.CreatedAt, &u.UpdatedAt,
 		); err != nil {
 			return nil, err
