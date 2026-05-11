@@ -54,7 +54,15 @@ func (r *VerificationLogRepo) ListSuspended(ctx context.Context) ([]*models.Veri
 // ListUpcoming — yaklaşan süresi bitenler (sonraki X gün içinde)
 func (r *VerificationLogRepo) ListUpcoming(ctx context.Context, withinDays int) ([]*models.VerificationLog, error) {
 	rows, err := r.db.Query(ctx,
-		`SELECT vl.id, vl.venue_id, v.name, vl.guide_id, u.name, v.city, vl.action, vl.created_at
+		`SELECT
+		   COALESCE(vl.id::text, ''),
+		   v.id::text,
+		   v.name,
+		   COALESCE(vl.guide_id::text, ''),
+		   u.name,
+		   v.city,
+		   COALESCE(vl.action, ''),
+		   COALESCE(vl.created_at, v.updated_at)
 		 FROM venues v
 		 JOIN users u ON u.id = v.added_by
 		 LEFT JOIN LATERAL (
