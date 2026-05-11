@@ -1,1 +1,6 @@
 .worktrees/
+
+# Credentials & secrets
+backend/.env
+mobile/ios/Runner/GoogleService-Info.plist
+mobile/android/app/google-services.json
