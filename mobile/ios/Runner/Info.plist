@@ -70,6 +70,9 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<!-- Google Sign-In: iOS OAuth Client ID (GoogleService-Info.plist → CLIENT_ID) -->
+	<key>GIDClientID</key>
+	<string>500559335180-fo1d23d3ut1h1ldu6p5bh9bt1m0g623b.apps.googleusercontent.com</string>
 	<!-- Google Sign-In: REVERSED_CLIENT_ID değerini GoogleService-Info.plist'ten al -->
 	<key>CFBundleURLTypes</key>
 	<array>
@@ -78,12 +81,12 @@
 			<string>Editor</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>REVERSED_CLIENT_ID_BURAYA</string>
+				<string>com.googleusercontent.apps.500559335180-fo1d23d3ut1h1ldu6p5bh9bt1m0g623b</string>
 			</array>
 		</dict>
 	</array>
 	<!-- Google Sign-In: Firebase Console → Authentication → Google → Web SDK configuration → Web client ID -->
 	<key>GIDServerClientID</key>
-	<string>WEB_CLIENT_ID_BURAYA</string>
+	<string>500559335180-i9slqnpp5m93bb7q9susdpmqrr5vck16.apps.googleusercontent.com</string>
 </dict>
 </plist>

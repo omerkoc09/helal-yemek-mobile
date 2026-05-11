@@ -100,16 +100,26 @@ func (s *AuthService) LoginWithGoogle(ctx context.Context, idToken string) (*jwt
 
 	user, err := s.userRepo.FindByProviderID(ctx, "google", providerID)
 	if errors.Is(err, repository.ErrNotFound) {
-		user = &models.User{
-			Email:      email,
-			Name:       name,
-			AvatarURL:  &picture,
-			Role:       models.RoleTraveler,
-			Provider:   "google",
-			ProviderID: &providerID,
-		}
-		if err := s.userRepo.Create(ctx, user); err != nil {
-			return nil, err
+		// Aynı email ile daha önce kaydolmuş hesap var mı kontrol et
+		existing, emailErr := s.userRepo.FindByEmail(ctx, email)
+		if emailErr == nil {
+			// Mevcut hesapla giriş yap
+			user = existing
+		} else if errors.Is(emailErr, repository.ErrNotFound) {
+			// Hiç hesap yok, yeni oluştur
+			user = &models.User{
+				Email:      email,
+				Name:       name,
+				AvatarURL:  &picture,
+				Role:       models.RoleTraveler,
+				Provider:   "google",
+				ProviderID: &providerID,
+			}
+			if err := s.userRepo.Create(ctx, user); err != nil {
+				return nil, err
+			}
+		} else {
+			return nil, emailErr
 		}
 	} else if err != nil {
 		return nil, err
