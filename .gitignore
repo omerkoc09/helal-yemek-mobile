@@ -1,5 +1,8 @@
 .worktrees/
 
+# Superpowers plans & specs
+docs/superpowers/
+
 # Credentials & secrets
 backend/.env
 mobile/ios/Runner/GoogleService-Info.plist
