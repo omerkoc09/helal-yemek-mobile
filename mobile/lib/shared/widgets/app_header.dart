@@ -7,6 +7,7 @@ import 'package:geocoding/geocoding.dart';
 import '../../core/auth/auth_provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../features/notifications/providers/notification_provider.dart';
+import 'notification_badge_label.dart';
 
 /// Uygulamanın tüm sayfalarında üstte sabit duran header.
 /// Logo | Konum | Favoriler
@@ -18,7 +19,7 @@ class AppHeader extends ConsumerWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final locationAsync = ref.watch(_locationLabelProvider);
+    final locationAsync = ref.watch(locationLabelProvider);
 
     return AppBar(
       backgroundColor: AppTheme.primary,
@@ -100,7 +101,7 @@ class AppHeader extends ConsumerWidget implements PreferredSizeWidget {
                         shape: BoxShape.circle,
                       ),
                       child: Text(
-                        unread > 99 ? '99+' : '$unread',
+                        notificationBadgeLabel(unread),
                         style: const TextStyle(color: Colors.white, fontSize: 9),
                       ),
                     ),
@@ -148,7 +149,7 @@ class _Logo extends StatelessWidget {
 
 /// Kullanıcının mevcut konumunu semt/şehir olarak döndürür.
 /// Konum servisi kapalıysa veya izin yoksa hata fırlatır.
-final _locationLabelProvider = FutureProvider<String>((ref) async {
+final locationLabelProvider = FutureProvider<String>((ref) async {
   final permission = await Geolocator.checkPermission();
   if (permission == LocationPermission.denied ||
       permission == LocationPermission.deniedForever) {

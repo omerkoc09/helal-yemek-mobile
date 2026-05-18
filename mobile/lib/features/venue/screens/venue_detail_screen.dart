@@ -18,6 +18,7 @@ import '../widgets/report_venue_sheet.dart';
 import '../widgets/venue_status_badge.dart';
 import '../widgets/review_card.dart';
 import '../widgets/venue_photo_gallery.dart';
+import '../widgets/verify_button_visibility.dart';
 
 class VenueDetailScreen extends ConsumerWidget {
   final String venueId;
@@ -666,6 +667,7 @@ class _VerifyVenueButtonState extends ConsumerState<_VerifyVenueButton> {
       final api = ref.read(apiClientProvider);
       await api.put(ApiEndpoints.venueVerify(widget.venueId), data: {});
       if (!mounted) return;
+      ref.invalidate(venueDetailProvider(widget.venueId));
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Mekan başarıyla doğrulandı'),
@@ -685,10 +687,9 @@ class _VerifyVenueButtonState extends ConsumerState<_VerifyVenueButton> {
   @override
   Widget build(BuildContext context) {
     final currentUserId = ref.watch(authProvider).user?.id;
-    final isOwner = currentUserId == widget.addedBy;
-    final isVerifiable = widget.status == 'approved' || widget.status == 'suspended';
-
-    if (!isOwner || !isVerifiable) return const SizedBox.shrink();
+    if (!shouldShowVerifyButton(currentUserId, widget.addedBy, widget.status)) {
+      return const SizedBox.shrink();
+    }
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),

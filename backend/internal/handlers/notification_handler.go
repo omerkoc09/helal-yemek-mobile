@@ -1,17 +1,25 @@
 package handlers
 
 import (
+	"context"
+
 	"github.com/gofiber/fiber/v2"
 
 	"github.com/omerkoc/caiz-mi/internal/models"
-	"github.com/omerkoc/caiz-mi/internal/repository"
 )
 
-type NotificationHandler struct {
-	notifRepo *repository.NotificationRepo
+type NotificationStore interface {
+	ListByUserID(ctx context.Context, userID string, limit, offset int) ([]*models.Notification, error)
+	UnreadCount(ctx context.Context, userID string) (int, error)
+	MarkRead(ctx context.Context, id, userID string) error
+	MarkAllRead(ctx context.Context, userID string) error
 }
 
-func NewNotificationHandler(notifRepo *repository.NotificationRepo) *NotificationHandler {
+type NotificationHandler struct {
+	notifRepo NotificationStore
+}
+
+func NewNotificationHandler(notifRepo NotificationStore) *NotificationHandler {
 	return &NotificationHandler{notifRepo: notifRepo}
 }
 

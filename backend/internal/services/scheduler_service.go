@@ -48,7 +48,10 @@ func (s *SchedulerService) Start(ctx context.Context) {
 }
 
 func (s *SchedulerService) nextRunTime() time.Time {
-	now := time.Now()
+	return s.nextRunTimeFrom(time.Now())
+}
+
+func (s *SchedulerService) nextRunTimeFrom(now time.Time) time.Time {
 	next := time.Date(now.Year(), now.Month(), now.Day(), s.runHour, 0, 0, 0, now.Location())
 	if now.After(next) {
 		next = next.Add(24 * time.Hour)
