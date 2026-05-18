@@ -24,7 +24,8 @@ class AddVenueState {
   final double? latitude;
   final double? longitude;
   final String? googlePlaceId; // Linkten parse edilen place_id
-  final String? googlePhotoUrl; // Google Places API'den çekilen dış mekan fotoğrafı URL'si
+  final List<String> googlePhotoUrls; // Google Places API'den gelen fotoğraf seçenekleri
+  final String? selectedPhotoUrl; // Rehberin seçtiği fotoğraf URL'si
   final List<int> selectedCriteriaIds;
   final String? notes;
 
@@ -49,7 +50,8 @@ class AddVenueState {
     this.latitude,
     this.longitude,
     this.googlePlaceId,
-    this.googlePhotoUrl,
+    this.googlePhotoUrls = const [],
+    this.selectedPhotoUrl,
     this.selectedCriteriaIds = const [],
     this.notes,
     this.selectedFoodItemIds = const {},
@@ -73,7 +75,8 @@ class AddVenueState {
     double? latitude,
     double? longitude,
     String? googlePlaceId,
-    String? googlePhotoUrl,
+    List<String>? googlePhotoUrls,
+    String? selectedPhotoUrl,
     List<int>? selectedCriteriaIds,
     String? notes,
     Map<int, List<int>>? selectedFoodItemIds,
@@ -96,7 +99,8 @@ class AddVenueState {
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
       googlePlaceId: googlePlaceId ?? this.googlePlaceId,
-      googlePhotoUrl: googlePhotoUrl ?? this.googlePhotoUrl,
+      googlePhotoUrls: googlePhotoUrls ?? this.googlePhotoUrls,
+      selectedPhotoUrl: selectedPhotoUrl ?? this.selectedPhotoUrl,
       selectedCriteriaIds: selectedCriteriaIds ?? this.selectedCriteriaIds,
       notes: notes ?? this.notes,
       selectedFoodItemIds: selectedFoodItemIds ?? this.selectedFoodItemIds,
@@ -237,7 +241,10 @@ class AddVenueNotifier extends Notifier<AddVenueState> {
       final fetchedName = (data['name'] as String? ?? '').trim();
       final fetchedCity = (data['city'] as String? ?? '').trim();
       final fetchedDistrict = (data['district'] as String? ?? '').trim();
-      final fetchedPhotoUrl = (data['photo_url'] as String? ?? '').trim();
+      final fetchedPhotoUrls = (data['photo_urls'] as List<dynamic>? ?? [])
+          .map((e) => e as String)
+          .where((url) => url.isNotEmpty)
+          .toList();
 
       state = state.copyWith(
         // Eğer state'te zaten bir isim varsa (URL'den geldiyse) koru,
@@ -247,13 +254,16 @@ class AddVenueNotifier extends Notifier<AddVenueState> {
             : (fetchedName.isNotEmpty ? fetchedName : state.name),
         city: fetchedCity.isNotEmpty ? fetchedCity : state.city,
         district: fetchedDistrict.isNotEmpty ? fetchedDistrict : state.district,
-        googlePhotoUrl: fetchedPhotoUrl.isNotEmpty ? fetchedPhotoUrl : null,
+        googlePhotoUrls: fetchedPhotoUrls,
+        selectedPhotoUrl: fetchedPhotoUrls.isNotEmpty ? fetchedPhotoUrls.first : null,
         isLoadingPlaceDetails: false,
       );
     } catch (_) {
       state = state.copyWith(isLoadingPlaceDetails: false);
     }
   }
+
+  void selectPhoto(String url) => state = state.copyWith(selectedPhotoUrl: url);
 
   void toggleCriteria(int criteriaId) {
     final ids = List<int>.from(state.selectedCriteriaIds);
@@ -404,7 +414,7 @@ class AddVenueNotifier extends Notifier<AddVenueState> {
           'latitude': state.latitude,
           'longitude': state.longitude,
           if (state.googlePlaceId != null) 'google_place_id': state.googlePlaceId,
-          if (state.googlePhotoUrl != null) 'google_photo_url': state.googlePhotoUrl,
+          if (state.selectedPhotoUrl != null) 'google_photo_url': state.selectedPhotoUrl,
           'criteria_ids': state.selectedCriteriaIds,
           'notes': state.notes?.trim(),
           'food_halal_mode': state.foodHalalMode,

@@ -101,10 +101,10 @@ func (s *PlacesService) ResolvePlaceID(name string, lat, lng float64) string {
 
 // AddressComponents — Place Details API'den dönen adres ve isim bilgileri.
 type AddressComponents struct {
-	Name           string // mekan adı (display_name)
-	City           string // locality
-	District       string // sublocality_level_1
-	PhotoReference string // ilk fotoğrafın referans kodu (boş olabilir)
+	Name            string   // mekan adı (display_name)
+	City            string   // locality
+	District        string   // sublocality_level_1
+	PhotoReferences []string // ilk 5 fotoğrafın referans kodları (boş olabilir)
 }
 
 // placeDetailsResponse — Google Place Details API yanıtı.
@@ -182,9 +182,12 @@ func (s *PlacesService) GetAddressComponents(placeID string) (*AddressComponents
 		}
 	}
 
-	// İlk fotoğrafın referansını al (varsa)
-	if len(result.Result.Photos) > 0 {
-		components.PhotoReference = result.Result.Photos[0].PhotoReference
+	// İlk 5 fotoğrafın referanslarını al
+	for i, p := range result.Result.Photos {
+		if i >= 5 {
+			break
+		}
+		components.PhotoReferences = append(components.PhotoReferences, p.PhotoReference)
 	}
 
 	return components, nil
@@ -202,6 +205,17 @@ func (s *PlacesService) BuildPhotoURL(photoReference string, maxWidth int) strin
 		"key":             {s.apiKey},
 	}
 	return "https://maps.googleapis.com/maps/api/place/photo?" + params.Encode()
+}
+
+// BuildPhotoURLs — birden fazla photo_reference için URL listesi oluşturur.
+func (s *PlacesService) BuildPhotoURLs(photoReferences []string, maxWidth int) []string {
+	urls := make([]string, 0, len(photoReferences))
+	for _, ref := range photoReferences {
+		if u := s.BuildPhotoURL(ref, maxWidth); u != "" {
+			urls = append(urls, u)
+		}
+	}
+	return urls
 }
 
 // geocodeResponse — Google Geocoding API yanıtı.

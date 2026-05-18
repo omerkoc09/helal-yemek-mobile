@@ -132,12 +132,12 @@ func (h *VenueHandler) PlacePreview(c *fiber.Ctx) error {
 				"error": "mekan bilgileri alınamadı",
 			})
 		}
-		photoURL := h.placesService.BuildPhotoURL(components.PhotoReference, 800)
+		photoURLs := h.placesService.BuildPhotoURLs(components.PhotoReferences, 800)
 		return c.JSON(fiber.Map{
-			"name":      components.Name,
-			"city":      components.City,
-			"district":  components.District,
-			"photo_url": photoURL,
+			"name":       components.Name,
+			"city":       components.City,
+			"district":   components.District,
+			"photo_urls": photoURLs,
 		})
 	}
 
@@ -173,12 +173,12 @@ func (h *VenueHandler) PlacePreview(c *fiber.Ctx) error {
 		})
 	}
 
-	photoURL := h.placesService.BuildPhotoURL(components.PhotoReference, 800)
+	photoURLs := h.placesService.BuildPhotoURLs(components.PhotoReferences, 800)
 	return c.JSON(fiber.Map{
-		"name":      components.Name,
-		"city":      components.City,
-		"district":  components.District,
-		"photo_url": photoURL,
+		"name":       components.Name,
+		"city":       components.City,
+		"district":   components.District,
+		"photo_urls": photoURLs,
 	})
 }
 

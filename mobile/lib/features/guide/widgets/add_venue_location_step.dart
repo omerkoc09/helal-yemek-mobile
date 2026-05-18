@@ -203,16 +203,70 @@ class _AddVenueLocationStepState extends ConsumerState<AddVenueLocationStep> {
               ),
             ],
           ),
-          if (state.googlePhotoUrl != null) ...[
+          if (state.googlePhotoUrls.isNotEmpty) ...[
             const SizedBox(height: 10),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: Image.network(
-                state.googlePhotoUrl!,
-                height: 140,
-                width: double.infinity,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+            const Text(
+              'Fotoğraf seçin:',
+              style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+            ),
+            const SizedBox(height: 6),
+            SizedBox(
+              height: 90,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: state.googlePhotoUrls.length,
+                separatorBuilder: (context, idx) => const SizedBox(width: 8),
+                itemBuilder: (context, index) {
+                  final url = state.googlePhotoUrls[index];
+                  final isSelected = state.selectedPhotoUrl == url;
+                  return GestureDetector(
+                    onTap: () =>
+                        ref.read(addVenueProvider.notifier).selectPhoto(url),
+                    child: Container(
+                      width: 90,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: isSelected
+                              ? AppTheme.primary
+                              : Colors.transparent,
+                          width: 2.5,
+                        ),
+                      ),
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.network(
+                              url,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, _) =>
+                                  const SizedBox.shrink(),
+                            ),
+                          ),
+                          if (isSelected)
+                            Positioned(
+                              top: 4,
+                              right: 4,
+                              child: Container(
+                                padding: const EdgeInsets.all(2),
+                                decoration: const BoxDecoration(
+                                  color: AppTheme.primary,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.check,
+                                  size: 12,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
           ],
