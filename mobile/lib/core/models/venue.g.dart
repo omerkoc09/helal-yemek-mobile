@@ -24,6 +24,9 @@ _Venue _$VenueFromJson(Map<String, dynamic> json) => _Venue(
   verifiedAt: json['verified_at'] == null
       ? null
       : DateTime.parse(json['verified_at'] as String),
+  verificationDueAt: json['verification_due_at'] == null
+      ? null
+      : DateTime.parse(json['verification_due_at'] as String),
   foodHalalMode: json['food_halal_mode'] as String? ?? 'selected',
   excludedProducts:
       (json['excluded_products'] as List<dynamic>?)
@@ -73,6 +76,7 @@ Map<String, dynamic> _$VenueToJson(_Venue instance) => <String, dynamic>{
   'added_by_name': instance.addedByName,
   'approved_by': instance.approvedBy,
   'verified_at': instance.verifiedAt?.toIso8601String(),
+  'verification_due_at': instance.verificationDueAt?.toIso8601String(),
   'food_halal_mode': instance.foodHalalMode,
   'excluded_products': instance.excludedProducts,
   'criteria': instance.criteria,

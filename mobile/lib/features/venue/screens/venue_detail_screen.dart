@@ -485,6 +485,7 @@ class VenueDetailScreen extends ConsumerWidget {
                   venueId: venue.id,
                   addedBy: venue.addedBy,
                   status: venue.status,
+                  verificationDueAt: venue.verificationDueAt,
                 ),
               ),
 
@@ -627,11 +628,13 @@ class _VerifyVenueButton extends ConsumerStatefulWidget {
   final String venueId;
   final String addedBy;
   final String status;
+  final DateTime? verificationDueAt;
 
   const _VerifyVenueButton({
     required this.venueId,
     required this.addedBy,
     required this.status,
+    this.verificationDueAt,
   });
 
   @override
@@ -687,7 +690,8 @@ class _VerifyVenueButtonState extends ConsumerState<_VerifyVenueButton> {
   @override
   Widget build(BuildContext context) {
     final currentUserId = ref.watch(authProvider).user?.id;
-    if (!shouldShowVerifyButton(currentUserId, widget.addedBy, widget.status)) {
+    if (!shouldShowVerifyButton(currentUserId, widget.addedBy, widget.status,
+        verificationDueAt: widget.verificationDueAt)) {
       return const SizedBox.shrink();
     }
 

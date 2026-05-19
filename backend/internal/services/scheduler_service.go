@@ -59,6 +59,11 @@ func (s *SchedulerService) nextRunTimeFrom(now time.Time) time.Time {
 	return next
 }
 
+// RunNow — test ve manuel tetikleme için döngüyü hemen çalıştırır.
+func (s *SchedulerService) RunNow(ctx context.Context) {
+	s.runVerificationCycle(ctx)
+}
+
 func (s *SchedulerService) runVerificationCycle(ctx context.Context) {
 	// Faz 1: Uyarı
 	warnings, err := s.venueRepo.FindDueForWarning(ctx, s.warningDays)

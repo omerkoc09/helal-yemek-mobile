@@ -21,6 +21,7 @@ abstract class Venue with _$Venue {
     @JsonKey(name: 'added_by_name') String? addedByName,
     @JsonKey(name: 'approved_by') String? approvedBy,
     @JsonKey(name: 'verified_at') DateTime? verifiedAt,
+    @JsonKey(name: 'verification_due_at') DateTime? verificationDueAt,
     @JsonKey(name: 'food_halal_mode') @Default('selected') String foodHalalMode,
     @JsonKey(name: 'excluded_products') @Default([]) List<String> excludedProducts,
     @Default([]) List<HalalCriteria> criteria,

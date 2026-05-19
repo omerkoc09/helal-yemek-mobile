@@ -42,7 +42,8 @@ class NotificationNotifier extends Notifier<NotificationState> {
       final items = (res.data['data'] as List)
           .map((e) => AppNotification.fromJson(e as Map<String, dynamic>))
           .toList();
-      state = state.copyWith(notifications: items, isLoading: false);
+      final unread = items.where((n) => !n.isRead).length;
+      state = state.copyWith(notifications: items, unreadCount: unread, isLoading: false);
     } catch (e) {
       state = state.copyWith(isLoading: false, error: 'Bildirimler yüklenemedi');
     }

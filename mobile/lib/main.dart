@@ -5,6 +5,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'core/auth/auth_provider.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
+import 'features/notifications/providers/notification_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -33,6 +34,12 @@ class _CaizMiAppState extends ConsumerState<CaizMiApp> {
   @override
   Widget build(BuildContext context) {
     final router = ref.watch(routerProvider);
+
+    ref.listen<AuthState>(authProvider, (previous, next) {
+      if (next.isAuthenticated && previous?.isAuthenticated != true) {
+        ref.read(notificationProvider.notifier).fetchUnreadCount();
+      }
+    });
 
     return MaterialApp.router(
       title: 'Caiz mi?',

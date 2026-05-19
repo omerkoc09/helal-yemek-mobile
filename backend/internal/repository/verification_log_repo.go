@@ -41,14 +41,34 @@ func (r *VerificationLogRepo) ListVerified(ctx context.Context, limit, offset in
 
 // ListSuspended — askıdaki mekanlar
 func (r *VerificationLogRepo) ListSuspended(ctx context.Context) ([]*models.VerificationLog, error) {
-	return r.queryLogs(ctx,
-		`SELECT vl.id, vl.venue_id, v.name, vl.guide_id, u.name, v.city, vl.action, vl.created_at
-		 FROM venue_verification_logs vl
-		 JOIN venues v ON v.id = vl.venue_id
-		 JOIN users u ON u.id = vl.guide_id
+	rows, err := r.db.Query(ctx,
+		`SELECT
+		   COALESCE(vl.id::text, ''),
+		   v.id::text,
+		   v.name,
+		   COALESCE(vl.guide_id::text, ''),
+		   u.name,
+		   v.city,
+		   COALESCE(vl.action, ''),
+		   COALESCE(vl.created_at, v.updated_at)
+		 FROM venues v
+		 JOIN users u ON u.id = v.added_by
+		 LEFT JOIN LATERAL (
+		   SELECT id, guide_id, action, created_at
+		   FROM venue_verification_logs
+		   WHERE venue_id = v.id
+		   ORDER BY created_at DESC
+		   LIMIT 1
+		 ) vl ON true
 		 WHERE v.status = 'suspended'
-		 ORDER BY vl.created_at DESC`,
+		   AND v.deleted_at IS NULL
+		 ORDER BY v.updated_at DESC`,
 	)
+	if err != nil {
+		return nil, fmt.Errorf("askıdaki mekanlar listelenemedi: %w", err)
+	}
+	defer rows.Close()
+	return scanLogs(rows)
 }
 
 // ListUpcoming — yaklaşan süresi bitenler (sonraki X gün içinde)
