@@ -34,4 +34,15 @@ class TokenStorage {
     final token = await getAccessToken();
     return token != null && token.isNotEmpty;
   }
+
+  static const _onboardingSeenKey = 'onboarding_seen';
+
+  Future<bool> hasSeenOnboarding() async {
+    final value = await _storage.read(key: _onboardingSeenKey);
+    return value == 'true';
+  }
+
+  Future<void> markOnboardingSeen() async {
+    await _storage.write(key: _onboardingSeenKey, value: 'true');
+  }
 }

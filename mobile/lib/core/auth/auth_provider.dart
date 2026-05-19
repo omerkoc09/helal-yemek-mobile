@@ -26,12 +26,14 @@ class AuthState {
   final User? user;
   final bool isLoading;
   final String? error;
+  final bool hasSeenOnboarding;
 
   const AuthState({
     this.status = AuthStatus.unknown,
     this.user,
     this.isLoading = false,
     this.error,
+    this.hasSeenOnboarding = true,
   });
 
   AuthState copyWith({
@@ -39,12 +41,14 @@ class AuthState {
     User? user,
     bool? isLoading,
     String? error,
+    bool? hasSeenOnboarding,
   }) {
     return AuthState(
       status: status ?? this.status,
       user: user ?? this.user,
       isLoading: isLoading ?? this.isLoading,
       error: error,
+      hasSeenOnboarding: hasSeenOnboarding ?? this.hasSeenOnboarding,
     );
   }
 
@@ -62,9 +66,18 @@ class AuthNotifier extends Notifier<AuthState> {
   TokenStorage get _tokenStorage => ref.read(tokenStorageProvider);
 
   Future<void> checkAuthStatus() async {
-    final hasTokens = await _tokenStorage.hasTokens();
+    final results = await Future.wait([
+      _tokenStorage.hasTokens(),
+      _tokenStorage.hasSeenOnboarding(),
+    ]);
+    final hasTokens = results[0];
+    final seenOnboarding = results[1];
+
     if (!hasTokens) {
-      state = state.copyWith(status: AuthStatus.unauthenticated);
+      state = state.copyWith(
+        status: AuthStatus.unauthenticated,
+        hasSeenOnboarding: seenOnboarding,
+      );
       return;
     }
 
@@ -74,11 +87,20 @@ class AuthNotifier extends Notifier<AuthState> {
       state = state.copyWith(
         status: AuthStatus.authenticated,
         user: user,
+        hasSeenOnboarding: seenOnboarding,
       );
     } catch (_) {
       await _tokenStorage.clearTokens();
-      state = state.copyWith(status: AuthStatus.unauthenticated);
+      state = state.copyWith(
+        status: AuthStatus.unauthenticated,
+        hasSeenOnboarding: seenOnboarding,
+      );
     }
+  }
+
+  Future<void> markOnboardingSeen() async {
+    await _tokenStorage.markOnboardingSeen();
+    state = state.copyWith(hasSeenOnboarding: true);
   }
 
   Future<void> login({required String email, required String password}) async {

@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../auth/auth_provider.dart';
+import '../../features/auth/screens/auth_gate_screen.dart';
+import '../../features/auth/screens/location_permission_screen.dart';
 import '../../features/auth/screens/login_screen.dart';
 import '../../features/auth/screens/register_screen.dart';
 import '../../features/favorites/screens/favorites_screen.dart';
@@ -38,6 +40,8 @@ class AppRoutes {
   AppRoutes._();
 
   static const String splash = '/';
+  static const String onboarding = '/onboarding';
+  static const String auth = '/auth';
   static const String login = '/login';
   static const String register = '/register';
   static const String home = '/home';
@@ -76,16 +80,20 @@ final routerProvider = Provider<GoRouter>((ref) {
     debugLogDiagnostics: true,
     redirect: (context, state) {
       final isAuthenticated = authState.isAuthenticated;
-      final isAuthRoute = state.matchedLocation == AppRoutes.login ||
-          state.matchedLocation == AppRoutes.register;
-      final isSplash = state.matchedLocation == AppRoutes.splash;
+      final loc = state.matchedLocation;
+      final isAuthRoute = loc == AppRoutes.auth ||
+          loc == AppRoutes.login ||
+          loc == AppRoutes.register ||
+          loc == AppRoutes.onboarding;
+      final isSplash = loc == AppRoutes.splash;
 
       if (authState.status == AuthStatus.unknown) {
         return isSplash ? null : AppRoutes.splash;
       }
 
       if (!isAuthenticated && !isAuthRoute) {
-        return AppRoutes.login;
+        if (!authState.hasSeenOnboarding) return AppRoutes.onboarding;
+        return AppRoutes.auth;
       }
 
       if (isAuthenticated && (isAuthRoute || isSplash)) {
@@ -113,7 +121,19 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const _SplashPlaceholder(),
       ),
 
-      // Auth
+      // Onboarding (ilk açılış — konum izni)
+      GoRoute(
+        path: AppRoutes.onboarding,
+        builder: (context, state) => const LocationPermissionScreen(),
+      ),
+
+      // Auth gate (Google / Facebook / daha fazla)
+      GoRoute(
+        path: AppRoutes.auth,
+        builder: (context, state) => const AuthGateScreen(),
+      ),
+
+      // Email ile giriş
       GoRoute(
         path: AppRoutes.login,
         builder: (context, state) => const LoginScreen(),
