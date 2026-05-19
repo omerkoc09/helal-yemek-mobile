@@ -7,31 +7,22 @@ Mevcut Durum Notu: Proje genel hatlarıyla Faz 5'e (Test & Yayın) geçmiş gibi
 ## Düzgün Çalışmayan Kısımlar
 kullanıcı harita üzerinde kendi işaretlediği bir konumun linkini mekan olarak eklediğinde en azından koordinatları parse edebilmeliyiz.
 
+
 search kısmında places api kullanılmalı mı?
 
+search de dondurma kategorisinde olmasına rağmen gelmeyen mekan var
+bunun sebebi aynı şehirdekileri gösteriyor sadece yani gizli bir şehir filter var olmalı mı filter da da aynı durum geçerli.?
+
 ## Revize Edilecek Özellikler:
+Design of the app:
+deteermine the app color palette and stick to it. Keep it simple and consistent app should feels clean and professional
 
-1. rehberin ekklediği mekanın bilgilerini belli süre geçtikten sonra (3 ay, 6 ay) güncellemesi için bildirim atılır. Güncellemezse mekan uygulamada askıya alınır.
+add cta button in the bottom navigation (for guides it can be adding new venue for travelers it can be map) so that it can be easily reachable.
 
-2. **Mekan ekleme akışı — Place Details API entegrasyonu** (Onaylandı, uygulanmayı bekliyor)
-
-   **Senaryo A — Google Maps kaydı olan mekanlar:**
-   - Kullanıcı Google Maps linkini yapıştırır → backend `parseMapsLink` ile `place_id` çıkarır
-   - `place_id` başarıyla alınırsa Place Details API çağrılır (`name`, `address_components`)
-   - Konum adımında "preview card" gösterilir: mekan adı + şehir + semt + koordinat
-   - Kullanıcı teyit eder; onaylarsa bilgiler state'e yazılır
-   - Info adımında mekan adı pre-filled gelir (düzenlenebilir)
-   - Şehir/semt elle dropdown'dan seçilmez; API'den otomatik doldurulur
-   - Dikkat: kısa linklerden (`maps.app.goo.gl`) `place_id` çıkarılamazsa (koordinat-only link) preview gösterilmez, kullanıcı bilgileri elle girer
-
-   **Senaryo B — Google Maps kaydı olmayan mekanlar:**
-   - "Google Maps'te kayıtlı değil" seçildiğinde harita seçici açılır (mevcut akış korunur)
-   - Bu durumda şehir/semt dropdown'ları zorunlu hale gelir (elle doldurulur)
-   - Mekan adı info adımında elle girilir
-   - Backend'e `google_place_id` gönderilmez
 
 ## Öncelikli Olarak Yapılması Gerekenler
 
+smpt env yi doldur.
 
 
 ## Tamamlanan İşler
