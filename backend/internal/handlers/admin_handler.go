@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"errors"
 	"log"
 
@@ -9,6 +10,10 @@ import (
 	"github.com/omerkoc/caiz-mi/internal/repository"
 )
 
+type SchedulerRunner interface {
+	RunNow(ctx context.Context)
+}
+
 type AdminHandler struct {
 	venueRepo              *repository.VenueRepo
 	guideRepo              *repository.GuideRepo
@@ -16,6 +21,7 @@ type AdminHandler struct {
 	auditRepo              *repository.AuditRepo
 	referralRepo           *repository.ReferralRepo
 	verifLogRepo           *repository.VerificationLogRepo
+	schedulerSvc           SchedulerRunner
 	verificationPeriodDays int
 }
 
@@ -26,6 +32,7 @@ func NewAdminHandler(
 	auditRepo *repository.AuditRepo,
 	referralRepo *repository.ReferralRepo,
 	verifLogRepo *repository.VerificationLogRepo,
+	schedulerSvc SchedulerRunner,
 	verificationPeriodDays int,
 ) *AdminHandler {
 	return &AdminHandler{
@@ -35,6 +42,7 @@ func NewAdminHandler(
 		auditRepo:              auditRepo,
 		referralRepo:           referralRepo,
 		verifLogRepo:           verifLogRepo,
+		schedulerSvc:           schedulerSvc,
 		verificationPeriodDays: verificationPeriodDays,
 	}
 }
@@ -369,9 +377,22 @@ func (h *AdminHandler) VerificationLogs(c *fiber.Ctx) error {
 			return fiber.ErrInternalServerError
 		}
 		return c.JSON(fiber.Map{"data": logs})
+	case "warnings":
+		page := max(c.QueryInt("page", 1), 1)
+		logs, err := h.verifLogRepo.ListWarningsSent(c.Context(), 50, (page-1)*50)
+		if err != nil {
+			return fiber.ErrInternalServerError
+		}
+		return c.JSON(fiber.Map{"data": logs})
 	default:
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "geçersiz tab parametresi"})
 	}
+}
+
+// POST /admin/scheduler/run — doğrulama döngüsünü manuel tetikler (test için).
+func (h *AdminHandler) RunSchedulerNow(c *fiber.Ctx) error {
+	go h.schedulerSvc.RunNow(context.Background())
+	return c.JSON(fiber.Map{"status": "started"})
 }
 
 // PUT /admin/venues/:id/reactivate

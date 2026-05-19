@@ -20,6 +20,7 @@ class _VerificationLogsScreenState extends ConsumerState<VerificationLogsScreen>
   List<dynamic> _verified = [];
   List<dynamic> _suspended = [];
   List<dynamic> _upcoming = [];
+  Set<String> _warnedVenueIds = {};
   bool _isLoading = true;
 
   @override
@@ -43,11 +44,17 @@ class _VerificationLogsScreenState extends ConsumerState<VerificationLogsScreen>
         api.get<Map<String, dynamic>>('${ApiEndpoints.adminVerificationLogs}?tab=verified'),
         api.get<Map<String, dynamic>>('${ApiEndpoints.adminVerificationLogs}?tab=suspended'),
         api.get<Map<String, dynamic>>('${ApiEndpoints.adminVerificationLogs}?tab=upcoming'),
+        api.get<Map<String, dynamic>>('${ApiEndpoints.adminVerificationLogs}?tab=warnings'),
       ]);
+      final warnings = (results[3].data?['data'] as List?) ?? [];
       setState(() {
         _verified  = (results[0].data?['data'] as List?) ?? [];
         _suspended = (results[1].data?['data'] as List?) ?? [];
         _upcoming  = (results[2].data?['data'] as List?) ?? [];
+        _warnedVenueIds = {
+          for (final w in warnings)
+            if (w['venue_id'] != null) w['venue_id'] as String,
+        };
         _isLoading = false;
       });
     } catch (_) {
@@ -91,7 +98,7 @@ class _VerificationLogsScreenState extends ConsumerState<VerificationLogsScreen>
               children: [
                 _LogList(items: _verified, actionLabel: null, onAction: null),
                 _LogList(items: _suspended, actionLabel: 'Aktive Et', onAction: _reactivate),
-                _LogList(items: _upcoming, actionLabel: null, onAction: null),
+                _LogList(items: _upcoming, actionLabel: null, onAction: null, warnedVenueIds: _warnedVenueIds),
               ],
             ),
     );
@@ -102,8 +109,14 @@ class _LogList extends StatelessWidget {
   final List<dynamic> items;
   final String? actionLabel;
   final void Function(String venueId)? onAction;
+  final Set<String> warnedVenueIds;
 
-  const _LogList({required this.items, this.actionLabel, this.onAction});
+  const _LogList({
+    required this.items,
+    this.actionLabel,
+    this.onAction,
+    this.warnedVenueIds = const {},
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -122,11 +135,36 @@ class _LogList extends StatelessWidget {
               ? DateTime.tryParse(item['created_at'] as String)
               : null;
 
+          final isWarned = warnedVenueIds.contains(venueId);
           return Card(
             margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
             child: ListTile(
-              title: Text(item['venue_name'] as String? ?? '-',
-                style: const TextStyle(fontWeight: FontWeight.w600)),
+              title: Row(
+                children: [
+                  Expanded(
+                    child: Text(item['venue_name'] as String? ?? '-',
+                      style: const TextStyle(fontWeight: FontWeight.w600)),
+                  ),
+                  if (isWarned)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.shade100,
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: Colors.orange.shade300),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.notifications_active, size: 11, color: Colors.orange.shade700),
+                          const SizedBox(width: 3),
+                          Text('Bildirim gönderildi',
+                            style: TextStyle(fontSize: 10, color: Colors.orange.shade700, fontWeight: FontWeight.w600)),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
               subtitle: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [

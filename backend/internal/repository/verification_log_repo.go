@@ -71,6 +71,20 @@ func (r *VerificationLogRepo) ListSuspended(ctx context.Context) ([]*models.Veri
 	return scanLogs(rows)
 }
 
+// ListWarningsSent — scheduler'ın gönderdiği uyarı bildirimleri
+func (r *VerificationLogRepo) ListWarningsSent(ctx context.Context, limit, offset int) ([]*models.VerificationLog, error) {
+	return r.queryLogs(ctx,
+		`SELECT vl.id, vl.venue_id, v.name, vl.guide_id, u.name, v.city, vl.action, vl.created_at
+		 FROM venue_verification_logs vl
+		 JOIN venues v ON v.id = vl.venue_id
+		 JOIN users u ON u.id = vl.guide_id
+		 WHERE vl.action = 'warning_sent'
+		 ORDER BY vl.created_at DESC
+		 LIMIT $1 OFFSET $2`,
+		limit, offset,
+	)
+}
+
 // ListUpcoming — yaklaşan süresi bitenler (sonraki X gün içinde)
 func (r *VerificationLogRepo) ListUpcoming(ctx context.Context, withinDays int) ([]*models.VerificationLog, error) {
 	rows, err := r.db.Query(ctx,

@@ -67,7 +67,7 @@ func main() {
 	favoriteHandler := handlers.NewFavoriteHandler(favoriteRepo)
 	correctionHandler := handlers.NewCorrectionHandler(correctionRepo, auditRepo)
 	guideHandler := handlers.NewGuideHandler(guideRepo, venueRepo, referralRepo)
-	adminHandler := handlers.NewAdminHandler(venueRepo, guideRepo, userRepo, auditRepo, referralRepo, verifLogRepo, cfg.VerificationPeriodDays)
+	adminHandler := handlers.NewAdminHandler(venueRepo, guideRepo, userRepo, auditRepo, referralRepo, verifLogRepo, schedulerSvc, cfg.VerificationPeriodDays)
 	venueReportHandler := handlers.NewVenueReportHandler(venueReportRepo)
 	notifHandler := handlers.NewNotificationHandler(notifRepo)
 
@@ -225,6 +225,7 @@ func main() {
 	admin.Put("/venues/:id/approve", adminHandler.ApproveVenue)
 	admin.Put("/venues/:id/reject", adminHandler.RejectVenue)
 	admin.Get("/verification-logs", adminHandler.VerificationLogs)
+	admin.Post("/scheduler/run", adminHandler.RunSchedulerNow)
 	admin.Put("/venues/:id/reactivate", adminHandler.ReactivateVenue)
 
 	// Corrections
