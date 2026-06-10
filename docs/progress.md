@@ -22,7 +22,7 @@ add cta button in the bottom navigation (for guides it can be adding new venue f
 
 ## Öncelikli Olarak Yapılması Gerekenler
 
-smpt env yi doldur.
+smtp env yi doldur.
 
 
 ## Tamamlanan İşler

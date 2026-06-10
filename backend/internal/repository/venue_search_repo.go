@@ -236,7 +236,7 @@ func (r *VenueRepo) FindNearbyApproved(ctx context.Context, lat, lng, radiusMete
 	}
 	query := fmt.Sprintf(`
 		SELECT
-			v.id, v.name, v.address, v.city,
+			v.id, v.name, v.address, v.city, v.district,
 			ST_Y(v.location::geometry) AS latitude,
 			ST_X(v.location::geometry) AS longitude,
 			v.google_place_id,
@@ -284,7 +284,7 @@ func (r *VenueRepo) FindPopular(ctx context.Context, lat, lng, radiusMeters floa
 	}
 	query := fmt.Sprintf(`
 		SELECT
-			v.id, v.name, v.address, v.city,
+			v.id, v.name, v.address, v.city, v.district,
 			ST_Y(v.location::geometry) AS latitude,
 			ST_X(v.location::geometry) AS longitude,
 			v.google_place_id,
@@ -329,7 +329,7 @@ func (r *VenueRepo) scanVenueRowsWithRatingAndPhotos(ctx context.Context, rows p
 	for rows.Next() {
 		v := models.Venue{}
 		err := rows.Scan(
-			&v.ID, &v.Name, &v.Address, &v.City,
+			&v.ID, &v.Name, &v.Address, &v.City, &v.District,
 			&v.Latitude, &v.Longitude,
 			&v.GooglePlaceID,
 			&v.Notes, &v.Status,

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/auth/auth_provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../venue/widgets/venue_card.dart';
 import '../../venue/widgets/venue_horizontal_card.dart';
@@ -56,7 +55,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(homeProvider);
-    final isGuide = ref.watch(authProvider).isGuide;
     final query = _searchController.text;
 
     return Scaffold(
@@ -101,16 +99,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         onDismiss: () => _focusNode.unfocus(),
                       ),
                   ],
-                  if (isGuide && !_isFocused)
-                    Positioned(
-                      right: 16,
-                      bottom: 16,
-                      child: FloatingActionButton(
-                        onPressed: () => context.push('/add-venue'),
-                        shape: const CircleBorder(),
-                        child: const Icon(Icons.add_location_alt, size: 26),
-                      ),
-                    ),
                 ],
               ),
             ),
@@ -364,12 +352,17 @@ class _Section extends StatelessWidget {
               const Spacer(),
               GestureDetector(
                 onTap: onSeeAll,
-                child: const Text(
-                  'Tümünü Gör',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: AppTheme.primary,
-                    fontWeight: FontWeight.w600,
+                child: Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: AppTheme.border, width: 1.5),
+                  ),
+                  child: const Icon(
+                    Icons.chevron_right,
+                    size: 20,
+                    color: AppTheme.textPrimary,
                   ),
                 ),
               ),
@@ -391,21 +384,27 @@ class _NearbySlider extends StatelessWidget {
   Widget build(BuildContext context) {
     if (state.isLoadingNearby) {
       return const SizedBox(
-        height: 190,
+        height: 220,
         child: Center(child: CircularProgressIndicator()),
       );
     }
     if (state.nearbyVenues.isEmpty) {
       return const _EmptySlot(message: 'Yakınınızda onaylı mekan bulunamadı.');
     }
-    return SizedBox(
-      height: 190,
-      child: ListView.builder(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        scrollDirection: Axis.horizontal,
-        itemCount: state.nearbyVenues.length,
-        itemBuilder: (_, i) => VenueHorizontalCard(venue: state.nearbyVenues[i]),
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final cardWidth = MediaQuery.of(context).size.width - 16 - 80;
+        return SizedBox(
+          height: 220,
+          child: ListView.builder(
+            padding: const EdgeInsets.only(left: 16, right: 4),
+            scrollDirection: Axis.horizontal,
+            itemCount: state.nearbyVenues.length,
+            itemBuilder: (_, i) =>
+                VenueHorizontalCard(venue: state.nearbyVenues[i], width: cardWidth),
+          ),
+        );
+      },
     );
   }
 }
@@ -419,21 +418,27 @@ class _PopularSlider extends StatelessWidget {
   Widget build(BuildContext context) {
     if (state.isLoadingPopular) {
       return const SizedBox(
-        height: 190,
+        height: 220,
         child: Center(child: CircularProgressIndicator()),
       );
     }
     if (state.popularVenues.isEmpty) {
       return const _EmptySlot(message: 'Bu alanda henüz popüler mekan yok.');
     }
-    return SizedBox(
-      height: 190,
-      child: ListView.builder(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        scrollDirection: Axis.horizontal,
-        itemCount: state.popularVenues.length,
-        itemBuilder: (_, i) => VenueHorizontalCard(venue: state.popularVenues[i]),
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final cardWidth = MediaQuery.of(context).size.width - 16 - 80;
+        return SizedBox(
+          height: 220,
+          child: ListView.builder(
+            padding: const EdgeInsets.only(left: 16, right: 4),
+            scrollDirection: Axis.horizontal,
+            itemCount: state.popularVenues.length,
+            itemBuilder: (_, i) =>
+                VenueHorizontalCard(venue: state.popularVenues[i], width: cardWidth),
+          ),
+        );
+      },
     );
   }
 }

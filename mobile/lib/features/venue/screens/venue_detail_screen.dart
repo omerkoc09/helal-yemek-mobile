@@ -218,19 +218,12 @@ class VenueDetailScreen extends ConsumerWidget {
                         Row(
                           children: [
                             StarRatingWidget(
-                                rating: venue.avgRating!, size: 24),
-                            const SizedBox(width: 8),
-                            Text(
-                              venue.avgRating!.toStringAsFixed(1),
-                              style: const TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(width: 4),
+                                rating: venue.avgRating!, size: 22),
+                            const SizedBox(width: 6),
                             Text(
                               '(${venue.reviewCount} yorum)',
                               style: const TextStyle(
+                                fontSize: 15,
                                 color: AppTheme.textSecondary,
                               ),
                             ),

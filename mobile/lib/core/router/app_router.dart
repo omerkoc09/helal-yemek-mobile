@@ -307,39 +307,46 @@ class _SplashPlaceholder extends StatelessWidget {
   }
 }
 
-class AppShell extends StatelessWidget {
+class AppShell extends ConsumerWidget {
   final Widget child;
   const AppShell({super.key, required this.child});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final location = GoRouterState.of(context).matchedLocation;
     final showBottomNav = _isTabRoute(location);
+    final isGuide = ref.watch(authProvider).isGuide;
+
+    if (!showBottomNav) {
+      return Scaffold(appBar: const AppHeader(), body: child);
+    }
+
+    if (isGuide) {
+      return _GuideShell(location: location, child: child);
+    }
 
     return Scaffold(
       appBar: const AppHeader(),
       body: child,
-      bottomNavigationBar: showBottomNav
-          ? BottomNavigationBar(
-              type: BottomNavigationBarType.fixed,
-              currentIndex: _currentIndex(location),
-              onTap: (index) => _onTap(context, index),
-              items: const [
-                BottomNavigationBarItem(
-                    icon: Icon(Icons.home_outlined),
-                    activeIcon: Icon(Icons.home),
-                    label: 'Ana Sayfa'),
-                BottomNavigationBarItem(
-                    icon: Icon(Icons.map_outlined),
-                    activeIcon: Icon(Icons.map),
-                    label: 'Harita'),
-                BottomNavigationBarItem(
-                    icon: Icon(Icons.person_outline),
-                    activeIcon: Icon(Icons.person),
-                    label: 'Profil'),
-              ],
-            )
-          : null,
+      bottomNavigationBar: BottomNavigationBar(
+        type: BottomNavigationBarType.fixed,
+        currentIndex: _travelerIndex(location),
+        onTap: (index) => _travelerTap(context, index),
+        items: const [
+          BottomNavigationBarItem(
+              icon: Icon(Icons.home_outlined),
+              activeIcon: Icon(Icons.home),
+              label: 'Ana Sayfa'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.map_outlined),
+              activeIcon: Icon(Icons.map),
+              label: 'Harita'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.person_outline),
+              activeIcon: Icon(Icons.person),
+              label: 'Profil'),
+        ],
+      ),
     );
   }
 
@@ -349,16 +356,17 @@ class AppShell extends StatelessWidget {
         location == AppRoutes.profile ||
         location == AppRoutes.favorites ||
         location == AppRoutes.foodDiscovery ||
-        location == AppRoutes.search;
+        location == AppRoutes.search ||
+        location == AppRoutes.myVenues;
   }
 
-  int _currentIndex(String location) {
+  int _travelerIndex(String location) {
     if (location.startsWith(AppRoutes.map)) return 1;
     if (location == AppRoutes.profile) return 2;
     return 0;
   }
 
-  void _onTap(BuildContext context, int index) {
+  void _travelerTap(BuildContext context, int index) {
     switch (index) {
       case 0:
         context.go(AppRoutes.home);
@@ -367,5 +375,124 @@ class AppShell extends StatelessWidget {
       case 2:
         context.go(AppRoutes.profile);
     }
+  }
+}
+
+class _GuideShell extends StatelessWidget {
+  final String location;
+  final Widget child;
+
+  const _GuideShell({required this.location, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final primary = theme.colorScheme.primary;
+
+    return Scaffold(
+      appBar: const AppHeader(),
+      body: child,
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => context.go(AppRoutes.addVenue),
+        backgroundColor: primary,
+        foregroundColor: Colors.white,
+        elevation: 4,
+        shape: const CircleBorder(),
+        child: const Icon(Icons.add, size: 28),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      bottomNavigationBar: BottomAppBar(
+        shape: const CircularNotchedRectangle(),
+        notchMargin: 8,
+        color: theme.bottomNavigationBarTheme.backgroundColor,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _GuideNavItem(
+              icon: Icons.home_outlined,
+              activeIcon: Icons.home,
+              label: 'Ana Sayfa',
+              isActive: location == AppRoutes.home,
+              onTap: () => context.go(AppRoutes.home),
+            ),
+            _GuideNavItem(
+              icon: Icons.map_outlined,
+              activeIcon: Icons.map,
+              label: 'Harita',
+              isActive: location.startsWith(AppRoutes.map),
+              onTap: () => context.go(AppRoutes.map),
+            ),
+            const SizedBox(width: 56),
+            _GuideNavItem(
+              icon: Icons.store_outlined,
+              activeIcon: Icons.store,
+              label: 'Mekanlarım',
+              isActive: location == AppRoutes.myVenues,
+              onTap: () => context.go(AppRoutes.myVenues),
+            ),
+            _GuideNavItem(
+              icon: Icons.person_outline,
+              activeIcon: Icons.person,
+              label: 'Profil',
+              isActive: location == AppRoutes.profile,
+              onTap: () => context.go(AppRoutes.profile),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _GuideNavItem extends StatelessWidget {
+  final IconData icon;
+  final IconData activeIcon;
+  final String label;
+  final bool isActive;
+  final VoidCallback onTap;
+
+  const _GuideNavItem({
+    required this.icon,
+    required this.activeIcon,
+    required this.label,
+    required this.isActive,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final primary = theme.colorScheme.primary;
+    final unselected = theme.bottomNavigationBarTheme.unselectedItemColor!;
+
+    return Expanded(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                isActive ? activeIcon : icon,
+                color: isActive ? primary : unselected,
+                size: 24,
+              ),
+              const SizedBox(height: 2),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: isActive ? primary : unselected,
+                  fontWeight:
+                      isActive ? FontWeight.w600 : FontWeight.normal,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
