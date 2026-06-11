@@ -505,5 +505,8 @@ func (r *VenueRepo) FindDistinctCities(ctx context.Context) ([]string, error) {
 	if cities == nil {
 		cities = []string{}
 	}
-	return cities, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("şehir listesi taranması başarısız: %w", err)
+	}
+	return cities, nil
 }
