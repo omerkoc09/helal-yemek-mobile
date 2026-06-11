@@ -40,7 +40,7 @@ class _VenueResultsScreenState extends ConsumerState<VenueResultsScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('Sonuçlar'),
+            Text(state.selectedCity ?? state.cityName ?? 'Sonuçlar'),
             if (!state.isLoading)
               Text(
                 '${results.length} restoran',
