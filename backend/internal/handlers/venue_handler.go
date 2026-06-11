@@ -612,6 +612,16 @@ func (h *VenueHandler) Update(c *fiber.Ctx) error {
 	return c.JSON(updated)
 }
 
+// ListCities godoc
+// GET /api/v1/venues/cities
+func (h *VenueHandler) ListCities(c *fiber.Ctx) error {
+	cities, err := h.venueRepo.FindDistinctCities(c.Context())
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "şehirler listelenemedi"})
+	}
+	return c.JSON(fiber.Map{"data": cities})
+}
+
 // ListFoodCategories godoc
 // GET /api/v1/food-categories
 func (h *VenueHandler) ListFoodCategories(c *fiber.Ctx) error {
