@@ -71,7 +71,11 @@ class VenueFilterScreen extends ConsumerWidget {
           const _SectionHeader(title: 'Şehir'),
           ListTile(
             title: const Text('Şehir'),
-            subtitle: Text(state.selectedCity ?? 'Mevcut Konumum'),
+            subtitle: Text(state.selectedCity != null
+                ? state.selectedCity!
+                : state.cityName != null
+                    ? 'Mevcut Konumum (${state.cityName})'
+                    : 'Mevcut Konumum'),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -354,7 +358,9 @@ class _CityPickerSheetState extends ConsumerState<_CityPickerSheet> {
                       ListTile(
                         leading: const Icon(Icons.my_location,
                             color: AppTheme.primary),
-                        title: const Text('Mevcut Konumum'),
+                        title: Text(ref.watch(venueFilterProvider).cityName != null
+                            ? 'Mevcut Konumum (${ref.watch(venueFilterProvider).cityName})'
+                            : 'Mevcut Konumum'),
                         trailing: currentSelected == null
                             ? const Icon(Icons.check, color: AppTheme.primary)
                             : null,
