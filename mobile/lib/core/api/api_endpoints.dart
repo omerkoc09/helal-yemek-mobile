@@ -55,6 +55,7 @@ class ApiEndpoints {
   // Home feed
   static const String venuesNearby = '/venues/nearby';
   static const String venuesPopular = '/venues/popular';
+  static const String venuesCities = '/venues/cities';
 
   // Food Categories
   static const String foodCategories = '/food-categories';

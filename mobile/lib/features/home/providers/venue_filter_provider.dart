@@ -27,11 +27,14 @@ enum RatingFilter {
   above45,
 }
 
+const Object _sentinel = Object();
+
 class VenueFilterState {
   final List<Venue> allCityVenues;
   final bool isLoading;
   final bool locationDenied;
-  final String? cityName;
+  final String? cityName;       // geocoding'den otomatik
+  final String? selectedCity;   // kullanıcı seçimi (null = mevcut konum)
   final double? userLat;
   final double? userLng;
 
@@ -45,6 +48,7 @@ class VenueFilterState {
     this.isLoading = false,
     this.locationDenied = false,
     this.cityName,
+    this.selectedCity,
     this.userLat,
     this.userLng,
     this.sort = VenueSortOption.none,
@@ -58,6 +62,7 @@ class VenueFilterState {
     bool? isLoading,
     bool? locationDenied,
     String? cityName,
+    Object? selectedCity = _sentinel,
     double? userLat,
     double? userLng,
     VenueSortOption? sort,
@@ -70,6 +75,9 @@ class VenueFilterState {
       isLoading: isLoading ?? this.isLoading,
       locationDenied: locationDenied ?? this.locationDenied,
       cityName: cityName ?? this.cityName,
+      selectedCity: selectedCity == _sentinel
+          ? this.selectedCity
+          : selectedCity as String?,
       userLat: userLat ?? this.userLat,
       userLng: userLng ?? this.userLng,
       sort: sort ?? this.sort,
@@ -81,11 +89,14 @@ class VenueFilterState {
 
   int get activeFilterCount {
     var count = 0;
+    if (selectedCity != null) count++;
     if (selectedCuisineIds.isNotEmpty) count++;
     if (distanceFilter != DistanceFilter.all) count++;
     if (ratingFilter != RatingFilter.all) count++;
     return count;
   }
+
+  String? get effectiveCity => selectedCity ?? cityName;
 
   List<Venue> get filteredVenues => applyVenueFilterPipeline(this);
 }
@@ -161,13 +172,16 @@ class VenueFilterNotifier extends Notifier<VenueFilterState> {
       final lat = position.latitude;
       final lng = position.longitude;
 
-      String? city;
-      try {
-        final placemarks = await placemarkFromCoordinates(lat, lng);
-        if (placemarks.isNotEmpty) {
-          city = placemarks.first.administrativeArea ?? placemarks.first.locality;
-        }
-      } catch (_) {}
+      // selectedCity varsa onu kullan, yoksa geocoding'den al
+      String? city = state.selectedCity;
+      if (city == null || city.isEmpty) {
+        try {
+          final placemarks = await placemarkFromCoordinates(lat, lng);
+          if (placemarks.isNotEmpty) {
+            city = placemarks.first.administrativeArea ?? placemarks.first.locality;
+          }
+        } catch (_) {}
+      }
 
       if (city == null || city.isEmpty) {
         state = state.copyWith(isLoading: false);
@@ -193,7 +207,7 @@ class VenueFilterNotifier extends Notifier<VenueFilterState> {
 
       state = state.copyWith(
         allCityVenues: venues,
-        cityName: city,
+        cityName: state.selectedCity == null ? city : state.cityName,
         userLat: lat,
         userLng: lng,
         isLoading: false,
@@ -203,6 +217,16 @@ class VenueFilterNotifier extends Notifier<VenueFilterState> {
     } catch (_) {
       state = state.copyWith(isLoading: false);
     }
+  }
+
+  Future<void> setCity(String city) async {
+    state = state.copyWith(selectedCity: city, allCityVenues: []);
+    await fetchAllCityVenues();
+  }
+
+  Future<void> clearCity() async {
+    state = state.copyWith(selectedCity: null, allCityVenues: []);
+    await fetchAllCityVenues();
   }
 
   void setSort(VenueSortOption value) => state = state.copyWith(sort: value);
@@ -219,6 +243,7 @@ class VenueFilterNotifier extends Notifier<VenueFilterState> {
       selectedCuisineIds: const {},
       distanceFilter: DistanceFilter.all,
       ratingFilter: RatingFilter.all,
+      selectedCity: null,
     );
   }
 }
@@ -227,3 +252,13 @@ final venueFilterProvider =
     NotifierProvider.autoDispose<VenueFilterNotifier, VenueFilterState>(
   VenueFilterNotifier.new,
 );
+
+final citiesProvider = FutureProvider<List<String>>((ref) async {
+  final apiClient = ref.read(apiClientProvider);
+  final response = await apiClient.get(ApiEndpoints.venuesCities);
+  final data = response.data;
+  final list = data is Map<String, dynamic>
+      ? (data['data'] as List? ?? [])
+      : (data as List? ?? []);
+  return list.cast<String>();
+});
