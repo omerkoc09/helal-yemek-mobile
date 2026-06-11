@@ -195,9 +195,8 @@ func (r *VenueRepo) FindPending(ctx context.Context) ([]models.Venue, error) {
 	return r.scanVenueRowsWithPhotos(ctx, rows, false)
 }
 
-// FindByFoodCategory — belirli yemek kategorisindeki yemekleri sunan yakın mekanları döndürür.
-// $1=categoryID, $2=lat, $3=lng, $4=radius(metre)
-func (r *VenueRepo) FindByFoodCategory(ctx context.Context, categoryID int, lat, lng, radiusMeters float64) ([]models.Venue, error) {
+// FindByFoodCategory — belirli yemek kategorisindeki tüm onaylı mekanları döndürür.
+func (r *VenueRepo) FindByFoodCategory(ctx context.Context, categoryID int) ([]models.Venue, error) {
 	query := `
 		SELECT DISTINCT
 			v.id, v.name, v.address, v.city,
@@ -206,25 +205,23 @@ func (r *VenueRepo) FindByFoodCategory(ctx context.Context, categoryID int, lat,
 			v.google_place_id,
 			v.notes, v.status,
 			v.added_by, v.verified_at,
-			v.created_at, v.updated_at,
-			ST_Distance(v.location, ST_MakePoint($3, $2)::geography) AS distance
+			v.created_at, v.updated_at
 		FROM venues v
 		JOIN venue_food_items vfi ON vfi.venue_id = v.id
 		JOIN food_items fi ON fi.id = vfi.food_item_id
 		WHERE fi.category_id = $1
 		  AND v.status = 'approved'
 		  AND v.deleted_at IS NULL
-		  AND ST_DWithin(v.location, ST_MakePoint($3, $2)::geography, $4)
-		ORDER BY distance
-		LIMIT 50`
+		ORDER BY v.name
+		LIMIT 200`
 
-	rows, err := r.db.Query(ctx, query, categoryID, lat, lng, radiusMeters)
+	rows, err := r.db.Query(ctx, query, categoryID)
 	if err != nil {
 		return nil, fmt.Errorf("kategori bazlı mekan sorgusu başarısız: %w", err)
 	}
 	defer rows.Close()
 
-	return r.scanVenueRowsWithPhotos(ctx, rows, true)
+	return r.scanVenueRowsWithPhotos(ctx, rows, false)
 }
 
 // FindNearbyApproved — onaylı mekanları mesafeye göre döndürür.

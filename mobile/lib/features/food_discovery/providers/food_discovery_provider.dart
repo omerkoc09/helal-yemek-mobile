@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/api/api_endpoints.dart';
 import '../../../core/auth/auth_provider.dart';
 import '../../../core/models/venue.dart';
-import '../../../core/utils/location_service.dart';
 
 class FoodDiscoveryState {
   final int? selectedCategoryId;
@@ -50,17 +49,9 @@ class FoodDiscoveryNotifier extends Notifier<FoodDiscoveryState> {
     );
 
     try {
-      final locationService = LocationService();
-      final position = await locationService.getCurrentPosition();
-
       final apiClient = ref.read(apiClientProvider);
       final response = await apiClient.get(
         ApiEndpoints.venuesByCategory(categoryId),
-        queryParameters: {
-          'lat': position.latitude,
-          'lng': position.longitude,
-          'radius': 10000,
-        },
       );
 
       final data = response.data;
@@ -73,11 +64,6 @@ class FoodDiscoveryNotifier extends Notifier<FoodDiscoveryState> {
           .toList();
 
       state = state.copyWith(venues: venues, isLoading: false);
-    } on LocationServiceException catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        error: e.message,
-      );
     } catch (e) {
       state = state.copyWith(
         isLoading: false,

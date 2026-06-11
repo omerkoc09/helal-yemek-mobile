@@ -82,7 +82,7 @@ func (h *VenueHandler) List(c *fiber.Ctx) error {
 }
 
 // ListByCategory godoc
-// GET /api/v1/venues/by-category/:categoryId?lat=41.0&lng=29.0&radius=5000
+// GET /api/v1/venues/by-category/:categoryId
 func (h *VenueHandler) ListByCategory(c *fiber.Ctx) error {
 	categoryID, err := c.ParamsInt("categoryId")
 	if err != nil || categoryID <= 0 {
@@ -91,19 +91,7 @@ func (h *VenueHandler) ListByCategory(c *fiber.Ctx) error {
 		})
 	}
 
-	latStr := c.Query("lat")
-	lngStr := c.Query("lng")
-	if latStr == "" || lngStr == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "lat ve lng parametreleri zorunludur",
-		})
-	}
-
-	lat := c.QueryFloat("lat", 0)
-	lng := c.QueryFloat("lng", 0)
-	radius := c.QueryFloat("radius", 5000)
-
-	venues, err := h.venueRepo.FindByFoodCategory(c.Context(), categoryID, lat, lng, radius)
+	venues, err := h.venueRepo.FindByFoodCategory(c.Context(), categoryID)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "mekanlar listelenemedi"})
 	}
