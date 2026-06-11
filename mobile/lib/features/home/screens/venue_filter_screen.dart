@@ -70,8 +70,7 @@ class VenueFilterScreen extends ConsumerWidget {
           const Divider(),
           const _SectionHeader(title: 'Şehir'),
           ListTile(
-            title: const Text('Şehir'),
-            subtitle: Text(state.selectedCity != null
+            title: Text(state.selectedCity != null
                 ? state.selectedCity!
                 : state.cityName != null
                     ? 'Mevcut Konumum (${state.cityName})'
@@ -110,8 +109,7 @@ class VenueFilterScreen extends ConsumerWidget {
           const Divider(),
           const _SectionHeader(title: 'Mutfaklar'),
           ListTile(
-            title: const Text('Mutfaklar'),
-            subtitle: Text(_cuisinesSubtitle(state)),
+            title: Text(_cuisinesSubtitle(state)),
             trailing: const Icon(Icons.chevron_right),
             onTap: () async {
               final result = await context
