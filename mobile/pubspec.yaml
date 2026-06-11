@@ -83,11 +83,13 @@ flutter:
   assets:
     - assets/images/
     - assets/images/categories/
+    - assets/logo/logo_with_name/
+    - assets/logo/logo_without_name/
 
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "assets/images/app_logo.png"
+  image_path: "assets/logo/logo_without_name/screen.png"
   min_sdk_android: 21
   web:
     generate: false

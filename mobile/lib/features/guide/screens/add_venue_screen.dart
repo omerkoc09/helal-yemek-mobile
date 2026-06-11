@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../providers/guide_provider.dart';
 import '../widgets/add_venue_details_step.dart';
@@ -263,7 +264,7 @@ class _AddVenueScreenState extends ConsumerState<AddVenueScreen> {
             SizedBox(
               width: double.infinity,
               child: OutlinedButton(
-                onPressed: () => context.pop(),
+                onPressed: () => context.go(AppRoutes.map),
                 child: const Text('Haritaya Dön'),
               ),
             ),
@@ -340,7 +341,7 @@ class _AddVenueScreenState extends ConsumerState<AddVenueScreen> {
   Future<void> _showExitConfirmation(BuildContext context) async {
     final state = ref.read(addVenueProvider);
     if (state.name.isEmpty) {
-      context.pop();
+      context.go(AppRoutes.home);
       return;
     }
 
@@ -365,7 +366,7 @@ class _AddVenueScreenState extends ConsumerState<AddVenueScreen> {
     );
 
     if (shouldExit == true && context.mounted) {
-      context.pop();
+      context.go(AppRoutes.home);
     }
   }
 }

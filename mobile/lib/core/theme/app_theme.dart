@@ -6,7 +6,7 @@ class AppTheme {
 
   // --- Spice Market Palette ---
   // Brand
-  static const Color primary = Color(0xFF9A3412); // Deep brick
+  static const Color primary = Color(0xFFD07318);
   static const Color primaryLight = Color(0xFFEA580C); // Saffron
   static const Color accent = Color(0xFFF59E0B); // Gold / CTA
 

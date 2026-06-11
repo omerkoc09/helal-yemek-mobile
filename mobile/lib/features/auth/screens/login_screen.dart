@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/auth/auth_provider.dart';
@@ -50,28 +51,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               children: [
                 const SizedBox(height: 48),
                 // Logo
-                Image.asset(
-                  'assets/images/app_logo_nobg.png',
-                  height: 96,
-                ),
-                const SizedBox(height: 16),
-                // Title
-                const Text(
-                  'Caiz mi?',
-                  style: TextStyle(
-                    fontSize: 30,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF1E293B),
-                    letterSpacing: -0.5,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Discover Halal Dining & Prayer Spaces',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Color(0xFF94A3B8),
-                  ),
+                SvgPicture.asset(
+                  'assets/logo/logo_without_name/screen.svg',
+                  height: 180,
                 ),
                 const SizedBox(height: 40),
 

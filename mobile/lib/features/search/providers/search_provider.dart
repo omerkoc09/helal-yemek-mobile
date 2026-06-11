@@ -86,15 +86,3 @@ final searchProvider = NotifierProvider<SearchNotifier, SearchState>(
   SearchNotifier.new,
 );
 
-const popularCities = [
-  'İstanbul',
-  'Londra',
-  'Dubai',
-  'Kuala Lumpur',
-  'Paris',
-  'Berlin',
-  'Amsterdam',
-  'Barselona',
-  'Roma',
-  'Tokyo',
-];

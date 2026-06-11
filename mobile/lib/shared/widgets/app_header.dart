@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
@@ -125,24 +126,9 @@ class AppHeader extends ConsumerWidget implements PreferredSizeWidget {
 class _Logo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Image.asset(
-      'assets/images/app_logo_nobg.png',
-      height: 32,
-      errorBuilder: (_, _, _) => const Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.verified, color: Colors.white, size: 22),
-          SizedBox(width: 4),
-          Text(
-            'Caiz mi?',
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w800,
-              fontSize: 16,
-            ),
-          ),
-        ],
-      ),
+    return SvgPicture.asset(
+      'assets/logo/logo_without_name/screen.svg',
+      height: 70,
     );
   }
 }
