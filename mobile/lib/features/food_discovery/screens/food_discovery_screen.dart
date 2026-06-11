@@ -100,7 +100,7 @@ class FoodDiscoveryScreen extends ConsumerWidget {
         child: Padding(
           padding: EdgeInsets.all(24),
           child: Text(
-            'Bu kategoride yakınınızda mekan bulunamadı.',
+            'Bu kategoride henüz mekan bulunamadı.',
             textAlign: TextAlign.center,
             style: TextStyle(color: AppTheme.textSecondary, fontSize: 16),
           ),

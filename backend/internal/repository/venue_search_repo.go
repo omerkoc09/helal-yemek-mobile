@@ -198,21 +198,36 @@ func (r *VenueRepo) FindPending(ctx context.Context) ([]models.Venue, error) {
 // FindByFoodCategory — belirli yemek kategorisindeki tüm onaylı mekanları döndürür.
 func (r *VenueRepo) FindByFoodCategory(ctx context.Context, categoryID int) ([]models.Venue, error) {
 	query := `
-		SELECT DISTINCT
-			v.id, v.name, v.address, v.city,
+		SELECT DISTINCT ON (v.id)
+			v.id, v.name, v.address, v.city, v.district,
 			ST_Y(v.location::geometry) AS latitude,
 			ST_X(v.location::geometry) AS longitude,
 			v.google_place_id,
 			v.notes, v.status,
 			v.added_by, v.verified_at,
-			v.created_at, v.updated_at
+			v.created_at, v.updated_at,
+			NULL::float8 AS distance,
+			COALESCE(AVG(rv.rating) OVER (PARTITION BY v.id), 0)::float8 AS avg_rating,
+			COUNT(rv.id) OVER (PARTITION BY v.id)::int AS review_count,
+			(
+				SELECT STRING_AGG(fc.label_tr, ' · ')
+				FROM (
+					SELECT DISTINCT fc2.label_tr
+					FROM venue_food_items vfi2
+					JOIN food_items fi2 ON fi2.id = vfi2.food_item_id
+					JOIN food_categories fc2 ON fc2.id = fi2.category_id
+					WHERE vfi2.venue_id = v.id
+					LIMIT 2
+				) fc
+			) AS categories_str
 		FROM venues v
 		JOIN venue_food_items vfi ON vfi.venue_id = v.id
 		JOIN food_items fi ON fi.id = vfi.food_item_id
+		LEFT JOIN reviews rv ON rv.venue_id = v.id
 		WHERE fi.category_id = $1
 		  AND v.status = 'approved'
 		  AND v.deleted_at IS NULL
-		ORDER BY v.name
+		ORDER BY v.id, v.name
 		LIMIT 200`
 
 	rows, err := r.db.Query(ctx, query, categoryID)
@@ -221,7 +236,7 @@ func (r *VenueRepo) FindByFoodCategory(ctx context.Context, categoryID int) ([]m
 	}
 	defer rows.Close()
 
-	return r.scanVenueRowsWithPhotos(ctx, rows, false)
+	return r.scanVenueRowsWithRatingAndPhotos(ctx, rows)
 }
 
 // FindNearbyApproved — onaylı mekanları mesafeye göre döndürür.
