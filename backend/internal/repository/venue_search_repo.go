@@ -360,6 +360,12 @@ func (r *VenueRepo) scanVenueRowsWithRatingAndPhotos(ctx context.Context, rows p
 			return nil, err
 		}
 		venues[i].Photos = photos
+
+		foodItems, err := r.GetFoodItemsByVenueID(ctx, venues[i].ID)
+		if err != nil {
+			return nil, err
+		}
+		venues[i].FoodItems = foodItems
 	}
 	return venues, nil
 }
@@ -404,6 +410,12 @@ func (r *VenueRepo) scanVenueCityRows(ctx context.Context, rows pgx.Rows) ([]mod
 			return nil, err
 		}
 		venues[i].Photos = photos
+
+		foodItems, err := r.GetFoodItemsByVenueID(ctx, venues[i].ID)
+		if err != nil {
+			return nil, err
+		}
+		venues[i].FoodItems = foodItems
 	}
 	return venues, nil
 }
@@ -465,4 +477,33 @@ func (r *VenueRepo) scanVenueRowsWithPhotos(ctx context.Context, rows pgx.Rows, 
 	}
 
 	return venues, nil
+}
+
+// FindDistinctCities — approved mekanlardaki benzersiz şehirleri alfabetik döndürür.
+func (r *VenueRepo) FindDistinctCities(ctx context.Context) ([]string, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT DISTINCT city
+		FROM venues
+		WHERE status = 'approved'
+		  AND deleted_at IS NULL
+		  AND city != ''
+		ORDER BY city ASC
+	`)
+	if err != nil {
+		return nil, fmt.Errorf("şehir listesi sorgusu başarısız: %w", err)
+	}
+	defer rows.Close()
+
+	var cities []string
+	for rows.Next() {
+		var city string
+		if err := rows.Scan(&city); err != nil {
+			return nil, err
+		}
+		cities = append(cities, city)
+	}
+	if cities == nil {
+		cities = []string{}
+	}
+	return cities, rows.Err()
 }
