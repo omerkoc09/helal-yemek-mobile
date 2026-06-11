@@ -68,6 +68,42 @@ class VenueFilterScreen extends ConsumerWidget {
               'Değerlendirme sayısına göre'),
 
           const Divider(),
+          const _SectionHeader(title: 'Şehir'),
+          ListTile(
+            title: const Text('Şehir'),
+            subtitle: Text(state.selectedCity ?? 'Mevcut Konumum'),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (state.selectedCity != null)
+                  IconButton(
+                    icon: const Icon(Icons.close, size: 20),
+                    onPressed: notifier.clearCity,
+                    tooltip: 'Mevcut konuma dön',
+                  ),
+                const Icon(Icons.chevron_right),
+              ],
+            ),
+            onTap: () async {
+              final result = await showModalBottomSheet<String>(
+                context: context,
+                isScrollControlled: true,
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                ),
+                builder: (_) => const _CityPickerSheet(),
+              );
+              if (result != null) {
+                if (result == '__current__') {
+                  notifier.clearCity();
+                } else {
+                  notifier.setCity(result);
+                }
+              }
+            },
+          ),
+
+          const Divider(),
           const _SectionHeader(title: 'Mutfaklar'),
           ListTile(
             title: const Text('Mutfaklar'),
@@ -208,6 +244,150 @@ class _SectionHeader extends StatelessWidget {
           color: AppTheme.textPrimary,
         ),
       ),
+    );
+  }
+}
+
+class _CityPickerSheet extends ConsumerStatefulWidget {
+  const _CityPickerSheet();
+
+  @override
+  ConsumerState<_CityPickerSheet> createState() => _CityPickerSheetState();
+}
+
+class _CityPickerSheetState extends ConsumerState<_CityPickerSheet> {
+  final _searchController = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final citiesAsync = ref.watch(citiesProvider);
+    final currentSelected = ref.watch(venueFilterProvider).selectedCity;
+
+    return DraggableScrollableSheet(
+      initialChildSize: 0.75,
+      minChildSize: 0.5,
+      maxChildSize: 0.95,
+      expand: false,
+      builder: (_, scrollController) {
+        return Column(
+          children: [
+            Container(
+              margin: const EdgeInsets.symmetric(vertical: 10),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+              child: Text(
+                'Şehir Seç',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: TextField(
+                controller: _searchController,
+                autofocus: true,
+                decoration: InputDecoration(
+                  hintText: 'Şehir ara...',
+                  prefixIcon: const Icon(Icons.search),
+                  suffixIcon: _query.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () {
+                            _searchController.clear();
+                            setState(() => _query = '');
+                          },
+                        )
+                      : null,
+                  filled: true,
+                  fillColor: Colors.grey[100],
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                ),
+                onChanged: (v) => setState(() => _query = v.toLowerCase()),
+              ),
+            ),
+            Expanded(
+              child: citiesAsync.when(
+                loading: () =>
+                    const Center(child: CircularProgressIndicator()),
+                error: (_, __) => Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text('Şehirler yüklenemedi.'),
+                      const SizedBox(height: 8),
+                      TextButton(
+                        onPressed: () => ref.invalidate(citiesProvider),
+                        child: const Text('Tekrar dene'),
+                      ),
+                    ],
+                  ),
+                ),
+                data: (cities) {
+                  final filtered = _query.isEmpty
+                      ? cities
+                      : cities
+                          .where((c) => c.toLowerCase().contains(_query))
+                          .toList();
+
+                  return ListView(
+                    controller: scrollController,
+                    children: [
+                      ListTile(
+                        leading: const Icon(Icons.my_location,
+                            color: AppTheme.primary),
+                        title: const Text('Mevcut Konumum'),
+                        trailing: currentSelected == null
+                            ? const Icon(Icons.check, color: AppTheme.primary)
+                            : null,
+                        onTap: () => Navigator.of(context).pop('__current__'),
+                      ),
+                      const Divider(height: 1),
+                      ...filtered.map((city) => ListTile(
+                            title: Text(city),
+                            trailing: currentSelected == city
+                                ? const Icon(Icons.check,
+                                    color: AppTheme.primary)
+                                : null,
+                            onTap: () => Navigator.of(context).pop(city),
+                          )),
+                      if (filtered.isEmpty)
+                        Padding(
+                          padding: const EdgeInsets.all(24),
+                          child: Center(
+                            child: Text(
+                              '"$_query" bulunamadı.',
+                              style: const TextStyle(
+                                  color: AppTheme.textSecondary),
+                            ),
+                          ),
+                        ),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }
