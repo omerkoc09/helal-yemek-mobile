@@ -1,200 +1,93 @@
 <script setup lang="ts">
-import tarihFormat from '@/utils/ExDate'
-
-import Extable from '@/components/extable.vue'
+import ApiService from '@/services/ApiService'
+import { SuccessToast, WarningPopup, ErrorPopup } from '@/utils/Popup'
 import type { ITableColumn } from '@/model/table'
-import { emailValidator, phoneValidator, requiredValidator } from '@validators'
-import { ApiQuery } from '@/model/api'
 
-export interface User {
-  id: number
-  name: string
-  surname: string
-  phone: string
-  email: string
-  password: string
-  created_at: string
-  role: string
+definePage({ meta: { role: ['admin'] } })
+
+const tableRef = ref()
+const form = ref<any>({})
+
+const columns: ITableColumn[] = [
+  { key: 'email', name: 'E-POSTA', sortable: true },
+  { key: 'name', name: 'AD', sortable: true },
+  { key: 'role', name: 'ROL', sortable: true },
+  { key: 'is_active', name: 'AKTİF' },
+]
+
+const roles = [
+  { title: 'Gezgin', value: 'traveler' },
+  { title: 'Rehber', value: 'guide' },
+  { title: 'Admin', value: 'admin' },
+]
+
+async function onSubmit() {
+  const [error] = await ApiService.put('admin/users/' + form.value.id, {
+    name: form.value.name,
+    surname: form.value.surname,
+    phone: form.value.phone,
+    email: form.value.email,
+    role: form.value.role,
+    is_active: form.value.is_active,
+  })
+
+  return error
 }
 
-const apiUrl = 'user/'
+function openEdit(row: any) {
+  form.value = { ...row }
+  tableRef.value?.openEditModal?.()
+}
 
-const form = ref<User>({
-  id: 0,
-  name: '',
-  surname: '',
-  phone: '',
-  email: '',
-  password: '',
-  created_at: '',
-  role: '',
-})
-
-const tableQuery = ref<ApiQuery>(new ApiQuery())
-
-const columns = ref<ITableColumn[]>([
-  {
-    key: 'name',
-    name: 'İSİM',
-    sortable: true,
-  },
-  {
-    key: 'surname',
-    name: 'SOYİSİM',
-    sortable: true,
-  },
-  {
-    key: 'phone',
-    name: 'TELEFON',
-  },
-  {
-    key: 'created_at',
-    name: 'KAYIT TARİHİ',
-  },
-])
-
-const roles = ref([
-  { value: 1, title: 'Normal' },
-  { value: 10, title: 'Admin' },
-])
+async function onDelete(row: any) {
+  const c = await WarningPopup('Kullanıcı silinsin mi?', 'Evet', 'Hayır')
+  if (!c.isConfirmed)
+    return
+  const [error] = await ApiService.delete('admin/users/' + row.id)
+  if (error)
+    return ErrorPopup(error)
+  SuccessToast()
+  tableRef.value?.refresh?.()
+}
 </script>
 
 <template>
-  <div>
-    <VCard>
-      <VCardText>
-        <VRow>
-          <VCol
-            sm="6"
-            md="4"
-            lg="3"
-          >
-            <VTextField
-              label="Arama"
-              @update:model-value="tableQuery.append($event, 'name;surname')"
-            />
-          </VCol>
-        </VRow>
-      </VCardText>
-      <VDivider />
-      <Extable
-        v-model:form="form"
-        :api-url="apiUrl"
-        :columns="columns"
-        :query="tableQuery"
-        create-button
-        table-actions
-      >
-        <template #created_at="{ row }">
-          {{ tarihFormat(row.created_at) }}
-        </template>
-
-        <!-- 👉 Modal -->
-        <template #modalBody="{ closemodal, formloading, iscreateform }">
-          <VRow>
-            <!-- Name -->
-            <VCol
-              cols="12"
-              md="6"
-            >
-              <VTextField
-                v-model="form.name"
-                label="İsim"
-                :rules="[requiredValidator]"
-              />
-            </VCol>
-            <!-- Surname -->
-            <VCol
-              cols="12"
-              md="6"
-            >
-              <VTextField
-                v-model="form.surname"
-                label="Soyisim"
-                :rules="[requiredValidator]"
-              />
-            </VCol>
-            <!-- email -->
-            <VCol
-              cols="12"
-              md="6"
-            >
-              <VTextField
-                v-model="form.email"
-                label="Email"
-                type="email"
-                :rules="[requiredValidator, emailValidator]"
-              />
-            </VCol>
-
-            <!-- phone -->
-            <VCol
-              cols="12"
-              md="6"
-            >
-              <VTextField
-                v-model="form.phone"
-                label="Telefon"
-                type="phone"
-                :rules="[requiredValidator, phoneValidator]"
-              />
-            </VCol>
-
-            <!-- password -->
-            <VCol
-              cols="12"
-              md="6"
-            >
-              <VTextField
-                v-model="form.password"
-                label="Parola"
-                type="text"
-                :rules="iscreateform ? [requiredValidator] : [] "
-              />
-            </VCol>
-
-            <!-- 👉 Select Role -->
-            <VCol
-              cols="12"
-              md="6"
-            >
-              <VSelect
-                v-model="form.role"
-                label="Rol"
-                :items="roles"
-                :rules="[requiredValidator]"
-                clear-icon="tabler-x"
-              />
-            </VCol>
-            <VCol
-              cols="12"
-              class="d-flex flex-wrap justify-center gap-4"
-            >
-              <VBtn
-                type="submit"
-                :loading="formloading"
-              >
-                Kaydet
-              </VBtn>
-
-              <VBtn
-                type="reset"
-                color="secondary"
-                variant="tonal"
-                :loading="formloading"
-                @click="closemodal"
-              >
-                Vazgeç
-              </VBtn>
-            </VCol>
-          </VRow>
-        </template>
-      </Extable>
-    </vcard>
-  </div>
+  <extable
+    ref="tableRef"
+    api-url="admin/users"
+    :columns="columns"
+    :create-button="false"
+    :form="form"
+    form-title="Kullanıcı"
+    :table-actions="false"
+    :actions-column="true"
+    :on-submit="onSubmit"
+    @update:form="v => form = v"
+  >
+    <template #role="{ row }">
+      <VChip size="small" :color="row.role === 'admin' ? 'error' : row.role === 'guide' ? 'warning' : 'default'">
+        {{ row.role }}
+      </VChip>
+    </template>
+    <template #is_active="{ row }">
+      <VIcon :icon="row.is_active ? 'tabler-circle-check' : 'tabler-circle-x'" :color="row.is_active ? 'success' : 'error'" />
+    </template>
+    <template #actions="{ row }">
+      <VBtn icon size="small" variant="text" @click="openEdit(row)">
+        <VIcon icon="tabler-edit" size="22" />
+      </VBtn>
+      <VBtn icon size="small" variant="text" @click="onDelete(row)">
+        <VIcon icon="tabler-trash" size="22" color="error" />
+      </VBtn>
+    </template>
+    <template #modalBody>
+      <VTextField v-model="form.email" label="E-posta" class="mb-3" />
+      <VTextField v-model="form.name" label="Ad" class="mb-3" />
+      <VTextField v-model="form.surname" label="Soyad" class="mb-3" />
+      <VTextField v-model="form.phone" label="Telefon" class="mb-3" />
+      <VSelect v-model="form.role" :items="roles" label="Rol" class="mb-3" />
+      <VSwitch v-model="form.is_active" label="Aktif" class="mb-3" />
+      <VBtn type="submit" block color="primary">Kaydet</VBtn>
+    </template>
+  </extable>
 </template>
-
-<route lang="yaml">
-meta:
-  role: admin
-</route>
