@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 	fiberlogger "github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 
@@ -79,6 +80,14 @@ func main() {
 
 	app.Use(recover.New())
 	app.Use(fiberlogger.New())
+
+	// CORS — web admin paneli için (mobil native istemciyi etkilemez)
+	app.Use(cors.New(cors.Config{
+		AllowOrigins:     cfg.CORSAllowOrigins,
+		AllowMethods:     "GET,POST,PUT,DELETE,OPTIONS",
+		AllowHeaders:     "Origin,Content-Type,Accept,Authorization",
+		AllowCredentials: false,
+	}))
 
 	// Sağlık kontrolü
 	app.Get("/health", func(c *fiber.Ctx) error {

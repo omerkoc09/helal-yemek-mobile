@@ -16,6 +16,9 @@ type Config struct {
 	GoogleClientID   string
 	GoogleMapsAPIKey string
 
+	// CORS — admin paneli (web) için izinli origin'ler (virgülle ayrılmış)
+	CORSAllowOrigins string
+
 	// SMTP
 	SMTPHost     string
 	SMTPPort     string
@@ -39,6 +42,9 @@ func Load() *Config {
 		StorageBucket:    os.Getenv("STORAGE_BUCKET"),
 		GoogleClientID:   os.Getenv("GOOGLE_CLIENT_ID"),
 		GoogleMapsAPIKey: os.Getenv("GOOGLE_MAPS_API_KEY"),
+
+		// Varsayılan: Vite dev sunucusu (admin paneli). Production'da env ile override edilir.
+		CORSAllowOrigins: getEnv("CORS_ALLOW_ORIGINS", "http://localhost:5173,http://localhost:5050"),
 
 		SMTPHost:     getEnv("SMTP_HOST", "smtp.gmail.com"),
 		SMTPPort:     getEnv("SMTP_PORT", "587"),
