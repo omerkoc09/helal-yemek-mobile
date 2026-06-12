@@ -108,7 +108,8 @@ watch(
   () => props.query,
   newVal => {
     query.value = newVal
-    fetchData()
+    pagination.value.currentPage = 1
+    applyClientPaging()
   },
   { deep: true },
 )
