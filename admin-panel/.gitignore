@@ -33,7 +33,9 @@ dist-ssr
 .yarn
 
 # iconify dist files
-src/plugins/iconify/icons.css
+# NOT: build:icons scripti bu ortamda (Node ESM) çalışmadığından icons.css
+# placeholder olarak repoda tutuluyor; aksi halde dev server import hatası verir.
+# src/plugins/iconify/icons.css
 
 # Ignore MSW script
 public/mockServiceWorker.js

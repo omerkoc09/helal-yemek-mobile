@@ -22,13 +22,19 @@ const onSubmit = async () => {
   const { valid } = await formRef.value!.validate()
   if (!valid)
     return
-  console.log(import.meta.env.VITE_API_BASE_URL)
   loading.value = true
-  const [error, resp] = await ApiService.post<any>('auth/login', form.value)
+  const [error, resp] = await ApiService.post<{ access_token: string; refresh_token: string }>('auth/login', form.value)
   loading.value = false
   if (error)
     return ErrorPopup(error)
-  await useUserStore().login(resp.data.access_token, resp.data.refresh_token)
+
+  await useUserStore().login(resp.access_token, resp.refresh_token)
+
+  if (!useUserStore().isAdmin) {
+    await useUserStore().logout()
+
+    return ErrorPopup('Bu panele yalnızca yöneticiler erişebilir.')
+  }
 
   await router.push('/')
 }
