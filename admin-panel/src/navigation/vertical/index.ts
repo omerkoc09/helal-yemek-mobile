@@ -1,5 +1,5 @@
 export default [
-  { title: 'Dashboard', to: { name: 'index' }, icon: { icon: 'tabler-smart-home' }, role: ['admin'] },
+  { title: 'Dashboard', to: { name: 'root' }, icon: { icon: 'tabler-smart-home' }, role: ['admin'] },
   { title: 'Mekanlar', to: { name: 'venues' }, icon: { icon: 'tabler-building-store' }, role: ['admin'] },
   { title: 'Bekleyen Mekanlar', to: { name: 'venues-pending' }, icon: { icon: 'tabler-clock-hour-4' }, role: ['admin'] },
   { title: 'Kullanıcılar', to: { name: 'users' }, icon: { icon: 'tabler-users' }, role: ['admin'] },
