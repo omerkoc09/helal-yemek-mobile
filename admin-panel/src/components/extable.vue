@@ -275,6 +275,7 @@ const onSubmit = async () => {
   formLoading.value = true
   if (props.onSubmit) {
     const error = await props.onSubmit()
+    formLoading.value = false
     if (error)
       return ErrorPopup(error)
 
