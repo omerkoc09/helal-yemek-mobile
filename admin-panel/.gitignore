@@ -41,5 +41,7 @@ dist-ssr
 public/mockServiceWorker.js
 
 # Env files
-.env.development
-!.env.development
+# .env.development repoda tutuluyor (sadece localhost API URL'i içerir, gizli değil).
+# Gizli env değerleri .env.local veya .env.production.local içinde olmalı (bunlar ignore'da).
+.env.local
+.env.*.local

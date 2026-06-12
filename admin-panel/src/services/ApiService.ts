@@ -89,7 +89,6 @@ class ApiService {
         prom.resolve(token)
     })
 
-    console.log('failedQueue', this.failedQueue)
     this.failedQueue = []
   }
 
