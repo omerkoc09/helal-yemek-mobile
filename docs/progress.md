@@ -24,8 +24,39 @@ add cta button in the bottom navigation (for guides it can be adding new venue f
 
 smtp env yi doldur.
 
+mekan puanlamasını çeşitlendirme?
+
+kullanıcının şehrine veya yakınına yeni mekan eklenirse bildirim?
+
+yeni rehber olma yolu: direkt admine talep gönderme küçük bir başvuru formu doldurarak.
+
+birden fazla rehberin onaylamasıyla yeni rozet takdimi 
 
 ## Tamamlanan İşler
+
+### Web Admin Paneli (Vue 3 + Vuetify) — YENİ
+
+> 2026-06-12'de eklendi. Mobil uygulamadaki admin ekranları yerine, ayrı bir web tabanlı yönetim paneli. `admin-panel/` klasöründe, caiz_mi Fiber backend'ine (`/api/v1`) bağlanır, mobil ile aynı veritabanını kullanır. Sadece `admin` rolüne açıktır.
+
+| Modül | Durum | Detay |
+|-------|-------|-------|
+| Template taşıma | ✅ | go-template2 Vue/Vuetify frontend'i admin-panel/ olarak taşındı, Go backend'i atıldı |
+| Ortam | ✅ | Node 22 LTS (.nvmrc), pnpm; build:icons/msw prebuild hook'ları kaldırıldı (ESM uyumsuz) |
+| Auth & ApiService | ✅ | caiz_mi düz-JSON formatına uyarlandı, `[error, data]` deseni, token refresh |
+| Admin guard | ✅ | Login'de `role !== 'admin'` reddedilir; router meta `role: ['admin']` |
+| extable (client-side) | ✅ | Liste/CRUD bileşeni client-side pagination/filtre/sıralama yapacak şekilde uyarlandı |
+| Dashboard | ✅ | Mekan/bekleyen/kullanıcı/başvuru özet kartları |
+| Mekanlar ekranı | ✅ | Liste + onay/red/reaktive/sil/düzenle |
+| Bekleyen Mekanlar | ✅ | Hızlı onay kuyruğu |
+| Kullanıcılar ekranı | ✅ | Liste + rol/aktiflik düzenle, sil |
+| Guide Başvuruları | ✅ | Liste + onay/red |
+| Düzeltmeler | ✅ | Liste + onay/red (`{action}` body) |
+| Mekan Raporları | ✅ | Liste + çözümle |
+| Audit Log | ✅ | Salt-okunur işlem geçmişi |
+| Doğrulama Logları | ✅ | Tab'lı görünüm (verified/suspended/upcoming/warnings) + manuel scheduler |
+
+**Çalıştırma:** `cd admin-panel && nvm use 22 && pnpm dev` (→ :5173). Backend `:8080` ayakta olmalı.
+**NOT:** Proje kök dizini `caiz_mi?` → `caiz_mi` olarak yeniden adlandırıldı (`?` Vite/esbuild'i bozuyordu).
 
 ### Backend (Go + Fiber)
 
