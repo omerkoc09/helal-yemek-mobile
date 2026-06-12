@@ -8,10 +8,12 @@ const loading = ref(true)
 
 async function load() {
   loading.value = true
-  const [, venues] = await ApiService.get<any[]>('admin/venues')
-  const [, pending] = await ApiService.get<any[]>('admin/venues/pending')
-  const [, users] = await ApiService.get<any[]>('admin/users')
-  const [, apps] = await ApiService.get<any[]>('admin/applications')
+  const [[, venues], [, pending], [, users], [, apps]] = await Promise.all([
+    ApiService.get<any[]>('admin/venues'),
+    ApiService.get<any[]>('admin/venues/pending'),
+    ApiService.get<any[]>('admin/users'),
+    ApiService.get<any[]>('admin/applications'),
+  ])
   stats.value = {
     venues: Array.isArray(venues) ? venues.length : 0,
     pending: Array.isArray(pending) ? pending.length : 0,
