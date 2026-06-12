@@ -2,14 +2,7 @@ import type { AxiosInstance, AxiosRequestConfig, AxiosRequestHeaders } from 'axi
 import axios from 'axios'
 import JwtService from '@/services/JwtService'
 import { useUserStore } from '@/store/user'
-import type { IApiPagination, IApiQuery, IApiQueryPagination } from '@/model/api'
 
-interface ApiResponse<T> {
-  data: T
-  data_count: number
-  error_code: number
-  error_message: string
-}
 interface RefreshQueue {
   resolve: (value: unknown) => void
   reject: (reason?: any) => void
@@ -71,9 +64,9 @@ class ApiService {
       axios
         .post(`${ApiService.baseUrl}/auth/refresh`, { refresh_token: JwtService.getRefreshToken() })
         .then(({ data }) => {
-          JwtService.saveTokens(data.data.access_token, data.data.refresh_token)
+          JwtService.saveTokens(data.access_token, data.refresh_token)
           originalRequest.headers.Authorization = `Bearer ${JwtService.getAccessToken()}`
-          ApiService.processQueue(null, data.data.access_token)
+          ApiService.processQueue(null, data.access_token)
           resolve(axios.request(originalRequest)) // başarılı oldu ise orjinal requesti tekrar gönder ve resolve et
         })
         .catch(err => {
@@ -102,22 +95,22 @@ class ApiService {
 
   private static async request<T>(
     config: AxiosRequestConfig,
-  ): Promise<[null, ApiResponse<T>] | [string, ApiResponse<T>]> {
+  ): Promise<[null, T] | [string, T]> {
     if (!ApiService.instance)
       this.init()
 
     try {
-      const { data } = await ApiService.instance.request<ApiResponse<T>>(config)
+      const { data } = await ApiService.instance.request<T>(config)
 
       return [null, data]
     }
     catch (error: any) {
-      const t: ApiResponse<T> = <ApiResponse<T>>{}
+      const empty = {} as T
       if (error?.response?.status === 401) {
         try {
           const data = await this.refresh(error)
 
-          return [null, data.data as ApiResponse<T>]
+          return [null, data.data as T]
         }
         catch (e) {
           // eslint-disable-next-line no-ex-assign
@@ -126,38 +119,22 @@ class ApiService {
       }
 
       if (!error.response)
-        return ['Bağlantı Hatası. Lütfen İnternet Bağlantınızı Kontrol Ediniz.', t]
+        return ['Bağlantı Hatası. Lütfen İnternet Bağlantınızı Kontrol Ediniz.', empty]
+
       const resp = error.response
       if (resp.status === 403)
-        return ['Yetki Hatası', t]
-
+        return ['Yetki Hatası', empty]
       if (resp.status === 500)
-        return ['Sunucu içi hata', t]
+        return ['Sunucu içi hata', empty]
 
-      const msg = resp.data?.error_message || 'Bilinmeyen Hata'
+      const msg = resp.data?.error || resp.data?.message || 'Bilinmeyen Hata'
 
-      return [msg, t]
+      return [msg, empty]
     }
   }
 
-  public static async get<T>(route: string, query?: IApiQuery | IApiPagination | IApiQueryPagination, urlParams?: URLSearchParams) {
+  public static async get<T>(route: string, _query?: unknown, urlParams?: URLSearchParams) {
     const searchParams = new URLSearchParams()
-    let q: IApiQueryPagination
-    if (query) {
-      q = query as IApiQueryPagination
-      searchParams.set('page', q.page?.toString() || '1')
-      searchParams.set('per_page', q.perPage?.toString() || '1000')
-      for (let i = 0; i < q.columns?.length; i++) {
-        searchParams.append('columns', q.columns[i])
-        searchParams.append('column_types', q.columnTypes[i].toString())
-        searchParams.append('query', q.query[i])
-      }
-      for (let i = 0; i < q.sortColumns?.length; i++) {
-        searchParams.append('sort_columns', q.sortColumns[i])
-        searchParams.append('sort_column_types', q.sortColumnTypes[i].toString())
-        searchParams.append('sort_orders', q.sortOrders[i])
-      }
-    }
     if (urlParams)
       urlParams.forEach((v, k) => searchParams.append(k, v))
 

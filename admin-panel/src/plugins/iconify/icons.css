@@ -1,0 +1,4 @@
+/* Iconify CSS-class ikon bundle'ı (build:icons çıktısı) burada üretilir.
+   build:icons scripti Node 22 ESM ortamında çalışmıyor (require.resolve ESM scope hatası).
+   Component-tabanlı ikonlar (@iconify/vue, nav'daki tabler-* gibi) bu dosyaya ihtiyaç duymaz,
+   runtime'dan gelir. CSS-class tabanlı ikon kullanılırsa bu dosya doldurulmalı. */

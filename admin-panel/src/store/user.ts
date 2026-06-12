@@ -3,14 +3,16 @@ import ApiService from '@/services/ApiService'
 import JwtService from '@/services/JwtService'
 import { ErrorPopup } from '@/utils/Popup'
 
-export type UserRole = 'admin' | 'teacher' | 'parent'
+export type UserRole = 'traveler' | 'guide' | 'admin'
 
 export interface User {
-  id: number
+  id: string
   name: string
-  surname: string
+  surname?: string
   email: string
+  phone?: string
   role: UserRole
+  is_active: boolean
 }
 
 export const useUserStore = defineStore('UserStore', {
@@ -20,8 +22,9 @@ export const useUserStore = defineStore('UserStore', {
   }),
   getters: {
     isUserAuthenticated: state => state.isAuthenticated,
-    hasRole: state => (roles?: UserRole[]) => !roles || roles.includes(state.user.role), // role paramteresi verilmediyse true döndürür
-    getRole: state => () => state.user.role, // todo: SOR
+    hasRole: state => (roles?: UserRole[]) => !roles || roles.includes(state.user.role),
+    getRole: state => () => state.user.role,
+    isAdmin: state => state.user.role === 'admin',
   },
   actions: {
     async login(access_token: string, refresh_token: string) {
@@ -38,7 +41,6 @@ export const useUserStore = defineStore('UserStore', {
 
       const redirect = window.location.pathname + window.location.search
       const urlParams = new URLSearchParams()
-
       urlParams.set('redirect', redirect)
       document.location.href = `/auth/login?${urlParams.toString()}`
     },
@@ -47,13 +49,13 @@ export const useUserStore = defineStore('UserStore', {
       if (this.isAuthenticated !== true)
         return
 
-      const [error, data] = await ApiService.get<User>('user/me')
+      const [error, data] = await ApiService.get<User>('auth/me')
       if (error) {
         ErrorPopup(error)
 
         return
       }
-      this.user = data.data
+      this.user = data
       localStorage.setItem('user', JSON.stringify(this.user))
     },
   },
