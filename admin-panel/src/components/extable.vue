@@ -4,7 +4,7 @@ import { VForm } from 'vuetify/components'
 import ApiService from '@/services/ApiService'
 import { ErrorPopup, SuccessToast, WarningPopup } from '@/utils/Popup'
 import type { ITableColumn } from '@/model/table'
-import type { IApiQuery, IApiQueryPagination } from '@/model/api'
+import type { IApiQuery } from '@/model/api'
 import { SORT_COLUMN_TYPES } from '@/model/api'
 import { pathJoin } from '@/utils/Path'
 
@@ -115,6 +115,7 @@ watch(
 
 // 👉 Table refs
 const rows = ref<any[]>([])
+const allRows = ref<any[]>([])
 const sortColumn = ref(props.defaultSortColumn)
 const sortColumnType = ref(props.defaultSortColumnType)
 const sortOrder = ref(props.defaultSortOrder)
@@ -172,8 +173,7 @@ const sort = (sortable: boolean | undefined, columnKey: string, columnType: SORT
 
   sortColumn.value = columnKey
   sortColumnType.value = columnType ?? SORT_COLUMN_TYPES.NORMAL
-  // eslint-disable-next-line @typescript-eslint/no-use-before-define
-  fetchData()
+  applyClientPaging()
 }
 
 // 👉 Form refs
@@ -196,39 +196,63 @@ const rowClick = id => {
     props.onRowClick(id)
 }
 
+const applyClientPaging = () => {
+  let data = [...allRows.value]
+
+  const q = query.value
+  if (q && q.columns && q.columns.length) {
+    data = data.filter(row => {
+      for (let i = 0; i < q.columns.length; i++) {
+        const col = q.columns[i]
+        const term = (q.query[i] ?? '').toString().toLowerCase()
+        if (!term)
+          continue
+        const val = (row[col] ?? '').toString().toLowerCase()
+        if (!val.includes(term))
+          return false
+      }
+
+      return true
+    })
+  }
+
+  if (sortColumn.value) {
+    const col = sortColumn.value
+    const dir = sortOrder.value === 'asc' ? 1 : -1
+    data.sort((a, b) => {
+      const av = a[col]
+      const bv = b[col]
+      if (av == null && bv == null)
+        return 0
+      if (av == null)
+        return -1 * dir
+      if (bv == null)
+        return 1 * dir
+      if (av < bv)
+        return -1 * dir
+      if (av > bv)
+        return 1 * dir
+
+      return 0
+    })
+  }
+
+  pagination.value.totalRows = data.length
+  pagination.value.totalPage = Math.max(1, Math.ceil(data.length / pagination.value.rowPerPage))
+
+  const start = (pagination.value.currentPage - 1) * pagination.value.rowPerPage
+  rows.value = data.slice(start, start + pagination.value.rowPerPage)
+}
+
 const fetchData = async () => {
-  // if (sortColumn.value === '')
-  //   sortColumn.value = 'created_at'
-  //
-  // if (sortOrder.value === '')
-  //   sortOrder.value = 'desc'
-
-  const q = {
-    ...query.value,
-  } as IApiQueryPagination
-
-  // const q = { ...query.value }
-  q.sortColumns = [sortColumn.value]
-  q.sortOrders = [sortOrder.value]
-  q.sortColumnTypes = [sortColumnType.value]
-
-  q.page = pagination.value.currentPage
-  q.perPage = pagination.value.rowPerPage
-
   loading.value = true
-
-  const [error, resp] = await ApiService.get<any[]>(props.apiUrl, q)
-
+  const [error, resp] = await ApiService.get<any[]>(props.apiUrl)
   loading.value = false
   if (error)
     return ErrorPopup(error)
 
-  rows.value = resp.data || []
-  pagination.value.totalRows = resp.data_count
-  pagination.value.totalPage = Math.ceil(resp.data_count / pagination.value.rowPerPage)
-
-  // emit('update:modelValue', items)
-  // currentSort.value = sortColumn.value + sortOrder.value
+  allRows.value = Array.isArray(resp) ? resp : []
+  applyClientPaging()
 }
 
 const setItemsPerPage = (val: number) => {
@@ -236,7 +260,7 @@ const setItemsPerPage = (val: number) => {
     pagination.value.currentPage = Math.ceil(pagination.value.totalRows / val)
 
   pagination.value.rowPerPage = val
-  fetchData()
+  applyClientPaging()
 }
 
 onMounted(() => {
@@ -369,9 +393,12 @@ const refresh = async (q?: IApiQuery) => {
   await fetchData()
 }
 
-defineExpose({
-  refresh,
-})
+const openEditModal = () => {
+  isCreateForm.value = false
+  isModalOpen.value = true
+}
+
+defineExpose({ refresh, openEditModal })
 </script>
 
 <template>
@@ -538,7 +565,7 @@ defineExpose({
           size="small"
           :total-visible="5"
           :length="pagination.totalPage"
-          @update:model-value="fetchData"
+          @update:model-value="applyClientPaging"
         />
       </VCardText>
       <VOverlay
