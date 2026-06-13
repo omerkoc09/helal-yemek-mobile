@@ -154,23 +154,71 @@ func (r *VenueRepo) FindByAddedBy(ctx context.Context, userID string) ([]models.
 
 // FindAll — admin için tüm mekanları döndürür (tüm durumlar dahil).
 func (r *VenueRepo) FindAll(ctx context.Context) ([]models.Venue, error) {
+	// Admin paneli liste görünümü için zenginleştirilmiş sorgu:
+	// ekleyen kullanıcının isim/email'i (users join) ve puan/yorum istatistikleri (reviews join).
 	rows, err := r.db.Query(ctx,
-		`SELECT v.id, v.name, v.address, v.city,
+		`SELECT v.id, v.name, v.address, v.city, v.district,
 		        ST_Y(v.location::geometry) AS latitude,
 		        ST_X(v.location::geometry) AS longitude,
 		        v.google_place_id,
 		        v.notes, v.status,
 		        v.added_by, v.verified_at,
-		        v.created_at, v.updated_at
+		        v.created_at, v.updated_at,
+		        u.name AS added_by_name, u.email AS added_by_email,
+		        COALESCE(AVG(rv.rating), 0)::float8 AS avg_rating,
+		        COUNT(rv.id) AS review_count
 		 FROM venues v
+		 LEFT JOIN users u ON u.id = v.added_by
+		 LEFT JOIN reviews rv ON rv.venue_id = v.id
 		 WHERE v.deleted_at IS NULL
+		 GROUP BY v.id, u.name, u.email
 		 ORDER BY v.created_at DESC`,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("tüm mekan sorgusu başarısız: %w", err)
 	}
 	defer rows.Close()
-	return r.scanVenueRowsWithPhotos(ctx, rows, false)
+
+	var venues []models.Venue
+	for rows.Next() {
+		v := models.Venue{}
+		var avgRating float64
+		var reviewCount int
+		if err := rows.Scan(
+			&v.ID, &v.Name, &v.Address, &v.City, &v.District,
+			&v.Latitude, &v.Longitude,
+			&v.GooglePlaceID,
+			&v.Notes, &v.Status,
+			&v.AddedBy, &v.VerifiedAt,
+			&v.CreatedAt, &v.UpdatedAt,
+			&v.AddedByName, &v.AddedByEmail,
+			&avgRating, &reviewCount,
+		); err != nil {
+			return nil, fmt.Errorf("tüm mekan taraması başarısız: %w", err)
+		}
+		v.AverageRating = &avgRating
+		v.ReviewCount = reviewCount
+		v.Criteria = []models.HalalCriteria{}
+		v.Photos = []models.VenuePhoto{}
+		venues = append(venues, v)
+	}
+	if venues == nil {
+		venues = []models.Venue{}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("tüm mekan satırları hatası: %w", err)
+	}
+
+	// Fotoğrafları yükle (fotoğraf sayısı kolonu için).
+	for i := range venues {
+		photos, err := r.GetPhotosByVenueID(ctx, venues[i].ID)
+		if err != nil {
+			return nil, err
+		}
+		venues[i].Photos = photos
+	}
+
+	return venues, nil
 }
 
 // FindPending — admin incelemesi için bekleyen mekanları döndürür.
