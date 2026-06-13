@@ -94,18 +94,17 @@ func (h *AdminHandler) UpdateVenue(c *fiber.Ctx) error {
 	log.Printf("[ADMIN] UpdateVenue called for id=%s", venueID)
 
 	var req struct {
-		Name    *string `json:"name"`
-		Address *string `json:"address"`
-		City    *string `json:"city"`
-		Status  *string `json:"status"`
-		Notes   *string `json:"notes"`
+		Name   *string `json:"name"`
+		City   *string `json:"city"`
+		Status *string `json:"status"`
+		Notes  *string `json:"notes"`
 	}
 	if err := c.BodyParser(&req); err != nil {
 		log.Printf("[ADMIN] UpdateVenue body parse error: %v", err)
 		return fiber.ErrBadRequest
 	}
 
-	if err := h.venueRepo.UpdateVenue(c.Context(), venueID, req.Name, req.Address, req.City,
+	if err := h.venueRepo.UpdateVenue(c.Context(), venueID, req.Name, req.City,
 		nil, nil, nil, req.Notes, nil); err != nil {
 		log.Printf("[ADMIN] UpdateVenue repo error for id=%s: %v", venueID, err)
 		if errors.Is(err, repository.ErrNotFound) {

@@ -24,7 +24,7 @@ func NewVenueRepo(db *pgxpool.Pool) *VenueRepo {
 func (r *VenueRepo) FindByID(ctx context.Context, id string) (*models.Venue, error) {
 	query := `
 		SELECT
-			v.id, v.name, v.address, v.city,
+			v.id, v.name, v.city,
 			ST_Y(v.location::geometry) AS latitude,
 			ST_X(v.location::geometry) AS longitude,
 			v.google_place_id,
@@ -44,7 +44,7 @@ func (r *VenueRepo) FindByID(ctx context.Context, id string) (*models.Venue, err
 	v := &models.Venue{}
 
 	err := r.db.QueryRow(ctx, query, id).Scan(
-		&v.ID, &v.Name, &v.Address, &v.City,
+		&v.ID, &v.Name, &v.City,
 		&v.Latitude, &v.Longitude,
 		&v.GooglePlaceID,
 		&v.Notes, &v.Status,
@@ -88,8 +88,8 @@ func (r *VenueRepo) FindByID(ctx context.Context, id string) (*models.Venue, err
 // Create — yeni mekan ekler, ID ve timestamp'leri geri doldurur.
 func (r *VenueRepo) Create(ctx context.Context, v *models.Venue) error {
 	query := `
-		INSERT INTO venues (name, address, city, district, location, google_place_id, notes, added_by, food_halal_mode, excluded_products)
-		VALUES ($1, $2, $3, $4, ST_MakePoint($6, $5)::geography, $7, $8, $9, $10, $11)
+		INSERT INTO venues (name, city, district, location, google_place_id, notes, added_by, food_halal_mode, excluded_products)
+		VALUES ($1, $2, $3, ST_MakePoint($5, $4)::geography, $6, $7, $8, $9, $10)
 		RETURNING id, status, created_at, updated_at`
 	// ST_MakePoint(lng, lat) — PostGIS koordinat sırası: X=lng, Y=lat
 
@@ -98,7 +98,7 @@ func (r *VenueRepo) Create(ctx context.Context, v *models.Venue) error {
 	}
 
 	err := r.db.QueryRow(ctx, query,
-		v.Name, v.Address, v.City, v.District,
+		v.Name, v.City, v.District,
 		v.Latitude, v.Longitude,
 		v.GooglePlaceID,
 		v.Notes, v.AddedBy, v.FoodHalalMode, v.ExcludedProducts,
@@ -115,7 +115,7 @@ func (r *VenueRepo) Create(ctx context.Context, v *models.Venue) error {
 
 // UpdateVenue — mekanın temel alanlarını günceller. nil olan alanlar değiştirilmez.
 func (r *VenueRepo) UpdateVenue(ctx context.Context, id string,
-	name, address, city, district *string,
+	name, city, district *string,
 	lat, lng *float64,
 	notes *string,
 	googlePlaceID *string,
@@ -123,18 +123,17 @@ func (r *VenueRepo) UpdateVenue(ctx context.Context, id string,
 	query := `
 		UPDATE venues SET
 			name            = COALESCE($2, name),
-			address         = COALESCE($3, address),
-			city            = COALESCE($4, city),
-			district        = COALESCE($5, district),
-			location        = CASE WHEN $6::float8 IS NOT NULL AND $7::float8 IS NOT NULL
-			                       THEN ST_MakePoint($7, $6)::geography
+			city            = COALESCE($3, city),
+			district        = COALESCE($4, district),
+			location        = CASE WHEN $5::float8 IS NOT NULL AND $6::float8 IS NOT NULL
+			                       THEN ST_MakePoint($6, $5)::geography
 			                       ELSE location END,
-			notes           = COALESCE($8, notes),
-			google_place_id = COALESCE($9, google_place_id),
+			notes           = COALESCE($7, notes),
+			google_place_id = COALESCE($8, google_place_id),
 			updated_at      = NOW()
 		WHERE id = $1 AND deleted_at IS NULL`
 
-	result, err := r.db.Exec(ctx, query, id, name, address, city, district, lat, lng, notes, googlePlaceID)
+	result, err := r.db.Exec(ctx, query, id, name, city, district, lat, lng, notes, googlePlaceID)
 	if err != nil {
 		return fmt.Errorf("mekan güncellemesi başarısız: %w", err)
 	}
