@@ -147,7 +147,6 @@ class VenueDetailScreen extends ConsumerWidget {
                           latitude: venue.latitude,
                           longitude: venue.longitude,
                           label: venue.name,
-                          address: '${venue.address}, ${venue.city}',
                           googlePlaceId: venue.googlePlaceId,
                         ),
                       ),
@@ -234,8 +233,9 @@ class VenueDetailScreen extends ConsumerWidget {
                       // Adres
                       _InfoRow(
                         icon: Icons.location_on_outlined,
-                        text:
-                            '${venue.address}, ${venue.city}',
+                        text: venue.district != null && venue.district!.isNotEmpty
+                            ? '${venue.district}, ${venue.city}'
+                            : venue.city,
                       ),
                       const SizedBox(height: 16),
 

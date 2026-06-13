@@ -101,7 +101,9 @@ class _PendingVenuesScreenState extends ConsumerState<PendingVenuesScreen> {
                         const SizedBox(width: 4),
                         Expanded(
                           child: Text(
-                            '${venue.address}, ${venue.city}',
+                            venue.district != null && venue.district!.isNotEmpty
+                                ? '${venue.district}, ${venue.city}'
+                                : venue.city,
                             style: const TextStyle(
                               fontSize: 13,
                               color: AppTheme.textSecondary,

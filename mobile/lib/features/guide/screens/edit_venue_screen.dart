@@ -22,7 +22,6 @@ class EditVenueScreen extends ConsumerStatefulWidget {
 
 class _EditVenueScreenState extends ConsumerState<EditVenueScreen> {
   final _nameController = TextEditingController();
-  final _addressController = TextEditingController();
   final _cityController = TextEditingController();
   final _notesController = TextEditingController();
   final _mapsLinkController = TextEditingController();
@@ -40,7 +39,6 @@ class _EditVenueScreenState extends ConsumerState<EditVenueScreen> {
   @override
   void dispose() {
     _nameController.dispose();
-    _addressController.dispose();
     _cityController.dispose();
     _notesController.dispose();
     _mapsLinkController.dispose();
@@ -51,7 +49,6 @@ class _EditVenueScreenState extends ConsumerState<EditVenueScreen> {
     if (_initialized) return;
     _initialized = true;
     _nameController.text = state.name;
-    _addressController.text = state.address;
     _cityController.text = state.city;
     _notesController.text = state.notes ?? '';
   }
@@ -130,19 +127,9 @@ class _EditVenueScreenState extends ConsumerState<EditVenueScreen> {
                 ),
                 const SizedBox(height: 24),
 
-                // Adres
-                _buildSectionTitle('Adres'),
+                // Şehir
+                _buildSectionTitle('Şehir'),
                 const SizedBox(height: 8),
-                TextField(
-                  controller: _addressController,
-                  decoration: const InputDecoration(
-                    hintText: 'Adres (ilçe)',
-                    prefixIcon: Icon(Icons.location_on_outlined),
-                  ),
-                  onChanged: (v) =>
-                      ref.read(editVenueProvider.notifier).setAddress(v),
-                ),
-                const SizedBox(height: 12),
                 TextField(
                   controller: _cityController,
                   decoration: const InputDecoration(
@@ -529,7 +516,6 @@ class _EditVenueScreenState extends ConsumerState<EditVenueScreen> {
 
   Widget _buildBottomBar(EditVenueState state) {
     final canSubmit = state.name.trim().isNotEmpty &&
-        state.address.trim().isNotEmpty &&
         state.city.trim().isNotEmpty &&
         state.latitude != null &&
         state.longitude != null;

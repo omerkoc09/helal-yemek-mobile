@@ -68,7 +68,9 @@ class VenueReviewScreen extends ConsumerWidget {
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: Text(
-                                    '${venue.address}\n${venue.city}',
+                                    venue.district != null && venue.district!.isNotEmpty
+                                        ? '${venue.district}\n${venue.city}'
+                                        : venue.city,
                                     style: const TextStyle(
                                         fontSize: 14, height: 1.4),
                                   ),

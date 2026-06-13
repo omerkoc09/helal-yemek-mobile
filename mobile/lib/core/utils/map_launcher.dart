@@ -5,7 +5,6 @@ class MapLauncher {
     required double latitude,
     required double longitude,
     String? label,
-    String? address,
     String? googlePlaceId,
   }) async {
     final Uri url;

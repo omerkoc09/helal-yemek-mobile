@@ -8,7 +8,6 @@ abstract class Venue with _$Venue {
   const factory Venue({
     required String id,
     required String name,
-    required String address,
     required String city,
     String? district,
     required double latitude,
