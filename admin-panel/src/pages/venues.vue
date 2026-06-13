@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import ApiService from '@/services/ApiService'
-import { SuccessToast, WarningPopup, ErrorPopup } from '@/utils/Popup'
+import { ErrorPopup, SuccessToast, WarningPopup } from '@/utils/Popup'
 import type { ITableColumn } from '@/model/table'
 
 definePage({ meta: { role: ['admin'] } })
@@ -17,8 +17,20 @@ const columns: ITableColumn[] = [
   { key: 'review_count', name: 'YORUM', sortable: true },
   { key: 'added_by_name', name: 'EKLEYEN', sortable: true },
   { key: 'photos', name: 'FOTO' },
+  { key: 'location', name: 'KONUM' },
   { key: 'created_at', name: 'EKLENME', sortable: true },
 ]
+
+// Mekanın Google Maps konum bağlantısını üretir.
+// google_place_id varsa doğrudan mekan sayfasına, yoksa koordinata gider.
+function mapsUrl(row: any): string | null {
+  if (row.google_place_id)
+    return `https://www.google.com/maps/place/?q=place_id:${row.google_place_id}`
+  if (row.latitude && row.longitude)
+    return `https://www.google.com/maps/search/?api=1&query=${row.latitude},${row.longitude}`
+
+  return null
+}
 
 function formatDate(v?: string) {
   if (!v)
@@ -28,6 +40,7 @@ function formatDate(v?: string) {
 }
 
 const statusFilter = ref<string | null>(null)
+
 const statusOptions = [
   { title: 'Tümü', value: null },
   { title: 'Bekleyen', value: 'pending' },
@@ -35,6 +48,78 @@ const statusOptions = [
   { title: 'Reddedilen', value: 'rejected' },
   { title: 'Askıda', value: 'suspended' },
 ]
+
+// Düzenleme modalı seçenekleri
+const editStatusOptions = [
+  { title: 'Bekleyen', value: 'pending' },
+  { title: 'Onaylı', value: 'approved' },
+  { title: 'Reddedilen', value: 'rejected' },
+]
+
+const halalModeOptions = [
+  { title: 'Tüm yemekler caiz', value: 'all' },
+  { title: 'Sadece seçili çeşitler caiz', value: 'selected' },
+  { title: 'Belirli ürünler hariç caiz', value: 'except' },
+]
+
+interface CriteriaOption { id: number; label_tr: string }
+interface FoodItemOption { id: number; label_tr: string }
+interface FoodCategory { id: number; label_tr: string; items: FoodItemOption[] }
+
+// Konum önizleme akışı (mobildeki link-parse mantığının web karşılığı)
+interface LocationPreview {
+  latitude: number
+  longitude: number
+  place_id: string
+  name?: string
+  city?: string
+  district?: string
+  photo_urls?: string[]
+}
+
+const locationPreview = ref<LocationPreview | null>(null)
+const previewLoading = ref(false)
+
+const criteriaOptions = ref<CriteriaOption[]>([])
+const foodCategories = ref<FoodCategory[]>([])
+const activeFoodCategoryId = ref<number | null>(null)
+
+async function loadLookups() {
+  if (!criteriaOptions.value.length) {
+    const [, data] = await ApiService.get<CriteriaOption[]>('criteria')
+
+    criteriaOptions.value = data ?? []
+  }
+  if (!foodCategories.value.length) {
+    const [, data] = await ApiService.get<FoodCategory[]>('food-categories')
+
+    foodCategories.value = data ?? []
+  }
+}
+
+// Seçili kategorinin çeşitleri (dosya-yolu mantığı: kategori → çeşitler)
+const activeFoodItems = computed(() =>
+  foodCategories.value.find(c => c.id === activeFoodCategoryId.value)?.items ?? [],
+)
+
+function isFoodSelected(id: number): boolean {
+  return (form.value.food_item_ids ?? []).includes(id)
+}
+
+function toggleFoodItem(id: number) {
+  const ids: number[] = form.value.food_item_ids ?? []
+
+  form.value.food_item_ids = ids.includes(id)
+    ? ids.filter(x => x !== id)
+    : [...ids, id]
+}
+
+// Bir kategoride kaç çeşit seçili (kategori listesinde rozet göstermek için)
+function selectedCountIn(cat: FoodCategory): number {
+  const ids: number[] = form.value.food_item_ids ?? []
+
+  return (cat.items ?? []).filter(i => ids.includes(i.id)).length
+}
 
 function applyStatusFilter() {
   if (statusFilter.value)
@@ -47,7 +132,7 @@ async function action(url: string, row: any, confirmText: string) {
   const c = await WarningPopup(confirmText, 'Evet', 'Hayır')
   if (!c.isConfirmed)
     return
-  const [error] = await ApiService.put('admin/venues/' + row.id + url, {})
+  const [error] = await ApiService.put(`admin/venues/${row.id}${url}`, {})
   if (error)
     return ErrorPopup(error)
   SuccessToast()
@@ -58,37 +143,161 @@ async function onDelete(row: any) {
   const c = await WarningPopup('Mekan silinsin mi?', 'Evet', 'Hayır')
   if (!c.isConfirmed)
     return
-  const [error] = await ApiService.delete('admin/venues/' + row.id)
+  const [error] = await ApiService.delete(`admin/venues/${row.id}`)
   if (error)
     return ErrorPopup(error)
   SuccessToast()
   tableRef.value?.refresh?.()
 }
 
-function openEdit(row: any) {
-  form.value = { ...row }
+async function openEdit(row: any) {
+  loadLookups()
+  activeFoodCategoryId.value = null
+  locationPreview.value = null
+
+  // Liste sorgusu (FindAll) criteria/food_items/food_halal_mode getirmiyor;
+  // tam veriyi tekil detay endpoint'inden çekip işaretli gösteriyoruz.
+  const [, detail] = await ApiService.get<any>(`venues/${row.id}`)
+  const venue = detail ?? row
+
+  form.value = {
+    ...venue,
+    criteria_ids: (venue.criteria ?? []).map((c: any) => c.id),
+    food_item_ids: (venue.food_items ?? []).map((f: any) => f.id),
+    excluded_products_text: (venue.excluded_products ?? []).join(', '),
+    maps_link: '',
+  }
   tableRef.value?.openEditModal?.()
 }
 
+const photoFile = ref<File | null>(null)
+const photoUploading = ref(false)
+
+async function uploadPhoto() {
+  if (!photoFile.value || !form.value.id)
+    return
+
+  photoUploading.value = true
+
+  const fd = new FormData()
+
+  fd.append('photo', photoFile.value)
+
+  const [error, data] = await ApiService.post<{ url: string }>(
+    `venues/${form.value.id}/photos`,
+    fd,
+  )
+
+  photoUploading.value = false
+  if (error)
+    return ErrorPopup(error)
+
+  // Modaldaki önizlemeyi ve tablodaki satırı güncel tut
+  form.value.photos = data?.url ? [{ url: data.url }] : []
+  photoFile.value = null
+  SuccessToast()
+  tableRef.value?.refresh?.()
+}
+
+async function previewLocation() {
+  const link = (form.value.maps_link ?? '').trim()
+  if (!link)
+    return
+
+  previewLoading.value = true
+  locationPreview.value = null
+
+  const [error, data] = await ApiService.post<LocationPreview>(
+    'venues/preview-location',
+    { maps_link: link },
+  )
+
+  previewLoading.value = false
+  if (error)
+    return ErrorPopup(error)
+
+  locationPreview.value = data ?? null
+}
+
+// Önizlemeyi onayla: çıkan bilgileri forma uygula (boş gelenler korunur).
+// maps_link temizlenir; kaydederken doğrudan parse edilmiş değerler gönderilir
+// (backend'in linki ikinci kez parse etmesine gerek kalmaz).
+function applyPreview() {
+  const p = locationPreview.value
+  if (!p)
+    return
+
+  form.value.latitude = p.latitude
+  form.value.longitude = p.longitude
+  form.value.google_place_id = p.place_id || null
+  if (p.name)
+    form.value.name = p.name
+  if (p.city)
+    form.value.city = p.city
+  if (p.district)
+    form.value.district = p.district
+
+  form.value.maps_link = ''
+  form.value._locationApplied = true
+  locationPreview.value = null
+  SuccessToast()
+}
+
+// Sakıncalı ürünler yalnızca 'except' modunda anlamlı; virgülle ayrılmış metni
+// temizlenmiş bir diziye çevirir.
+function parseExcludedProducts(): string[] {
+  if (form.value.food_halal_mode !== 'except')
+    return []
+
+  return (form.value.excluded_products_text ?? '')
+    .split(',')
+    .map((s: string) => s.trim())
+    .filter(Boolean)
+}
+
 async function onSubmit() {
-  const [error] = await ApiService.put('admin/venues/' + form.value.id, form.value)
+  const payload: Record<string, any> = {
+    name: form.value.name,
+    city: form.value.city,
+    district: form.value.district,
+    notes: form.value.notes,
+    status: form.value.status,
+    food_halal_mode: form.value.food_halal_mode,
+    criteria_ids: form.value.criteria_ids ?? [],
+    food_item_ids: form.value.food_item_ids ?? [],
+    excluded_products: parseExcludedProducts(),
+  }
+
+  // Konum: önizleme onaylandıysa doğrudan parse edilmiş değerleri gönder;
+  // aksi halde (önizlemeden) link doluysa onu gönder, backend parse eder.
+  const mapsLink = (form.value.maps_link ?? '').trim()
+  if (form.value._locationApplied) {
+    payload.latitude = form.value.latitude
+    payload.longitude = form.value.longitude
+    payload.google_place_id = form.value.google_place_id ?? null
+  }
+  else if (mapsLink) {
+    payload.maps_link = mapsLink
+  }
+
+  const [error] = await ApiService.put(`admin/venues/${form.value.id}`, payload)
 
   return error
 }
 </script>
 
 <template>
-  <extable
+  <Extable
     ref="tableRef"
     api-url="admin/venues"
     :columns="columns"
     :create-button="false"
-    :action-bar="true"
+    action-bar
     :form="form"
     form-title="Mekan"
     :table-actions="false"
     :on-submit="onSubmit"
-    @update:form="v => form = v"
+    @update:form="(v: any) => form = v"
   >
     <template #actionBar>
       <VSelect
@@ -102,7 +311,10 @@ async function onSubmit() {
       />
     </template>
     <template #status="{ row }">
-      <VChip size="small" :color="row.status === 'approved' ? 'success' : row.status === 'pending' ? 'warning' : 'default'">
+      <VChip
+        size="small"
+        :color="row.status === 'approved' ? 'success' : row.status === 'pending' ? 'warning' : 'default'"
+      >
         {{ row.status }}
       </VChip>
     </template>
@@ -111,9 +323,17 @@ async function onSubmit() {
     </template>
     <template #average_rating="{ row }">
       <span v-if="row.review_count > 0">
-        <VIcon icon="tabler-star-filled" size="16" color="warning" class="me-1" />{{ row.average_rating?.toFixed(1) }}
+        <VIcon
+          icon="tabler-star-filled"
+          size="16"
+          color="warning"
+          class="me-1"
+        />{{ row.average_rating?.toFixed(1) }}
       </span>
-      <span v-else class="text-disabled">-</span>
+      <span
+        v-else
+        class="text-disabled"
+      >-</span>
     </template>
     <template #review_count="{ row }">
       {{ row.review_count ?? 0 }}
@@ -121,38 +341,414 @@ async function onSubmit() {
     <template #added_by_name="{ row }">
       <div>
         <div>{{ row.added_by_name || '-' }}</div>
-        <div v-if="row.added_by_email" class="text-caption text-disabled">{{ row.added_by_email }}</div>
+        <div
+          v-if="row.added_by_email"
+          class="text-caption text-disabled"
+        >
+          {{ row.added_by_email }}
+        </div>
       </div>
     </template>
     <template #photos="{ row }">
-      <VChip size="x-small" variant="tonal">
-        <VIcon icon="tabler-photo" size="14" class="me-1" />{{ row.photos?.length ?? 0 }}
-      </VChip>
+      <VImg
+        v-if="row.photos?.length"
+        :src="row.photos[0].url"
+        :alt="row.name"
+        width="48"
+        height="48"
+        cover
+        class="rounded"
+      />
+      <VAvatar
+        v-else
+        size="48"
+        rounded
+        color="grey-lighten-2"
+      >
+        <VIcon
+          icon="tabler-photo-off"
+          size="20"
+        />
+      </VAvatar>
+    </template>
+    <template #location="{ row }">
+      <VBtn
+        v-if="mapsUrl(row)"
+        :href="mapsUrl(row)!"
+        target="_blank"
+        rel="noopener noreferrer"
+        size="small"
+        variant="tonal"
+        color="primary"
+        prepend-icon="tabler-map-pin"
+      >
+        Haritada Aç
+      </VBtn>
+      <span
+        v-else
+        class="text-disabled"
+      >-</span>
     </template>
     <template #created_at="{ row }">
       {{ formatDate(row.created_at) }}
     </template>
     <template #actions="{ row }">
-      <VBtn icon size="small" variant="text" color="success" @click="action('/approve', row, 'Onaylansın mı?')">
-        <VIcon icon="tabler-check" size="22" />
+      <VBtn
+        icon
+        size="small"
+        variant="text"
+        color="success"
+        @click="action('/approve', row, 'Onaylansın mı?')"
+      >
+        <VIcon
+          icon="tabler-check"
+          size="22"
+        />
       </VBtn>
-      <VBtn icon size="small" variant="text" color="warning" @click="action('/reject', row, 'Reddedilsin mi?')">
-        <VIcon icon="tabler-x" size="22" />
+      <VBtn
+        icon
+        size="small"
+        variant="text"
+        color="warning"
+        @click="action('/reject', row, 'Reddedilsin mi?')"
+      >
+        <VIcon
+          icon="tabler-x"
+          size="22"
+        />
       </VBtn>
-      <VBtn icon size="small" variant="text" @click="action('/reactivate', row, 'Yeniden aktive edilsin mi?')">
-        <VIcon icon="tabler-refresh" size="22" />
+      <VBtn
+        icon
+        size="small"
+        variant="text"
+        @click="action('/reactivate', row, 'Yeniden aktive edilsin mi?')"
+      >
+        <VIcon
+          icon="tabler-refresh"
+          size="22"
+        />
       </VBtn>
-      <VBtn icon size="small" variant="text" @click="openEdit(row)">
-        <VIcon icon="tabler-edit" size="22" />
+      <VBtn
+        icon
+        size="small"
+        variant="text"
+        @click="openEdit(row)"
+      >
+        <VIcon
+          icon="tabler-edit"
+          size="22"
+        />
       </VBtn>
-      <VBtn icon size="small" variant="text" @click="onDelete(row)">
-        <VIcon icon="tabler-trash" size="22" color="error" />
+      <VBtn
+        icon
+        size="small"
+        variant="text"
+        @click="onDelete(row)"
+      >
+        <VIcon
+          icon="tabler-trash"
+          size="22"
+          color="error"
+        />
       </VBtn>
     </template>
     <template #modalBody>
-      <VTextField v-model="form.name" label="Ad" class="mb-3" />
-      <VTextField v-model="form.city" label="Şehir" class="mb-3" />
-      <VBtn type="submit" block color="primary">Kaydet</VBtn>
+      <VRow>
+        <VCol
+          cols="12"
+          md="6"
+        >
+          <VTextField
+            v-model="form.name"
+            label="Ad"
+            class="mb-3"
+          />
+        </VCol>
+        <VCol
+          cols="12"
+          md="6"
+        >
+          <VTextField
+            v-model="form.city"
+            label="Şehir"
+            class="mb-3"
+          />
+        </VCol>
+        <VCol
+          cols="12"
+          md="6"
+        >
+          <VTextField
+            v-model="form.district"
+            label="İlçe"
+            class="mb-3"
+          />
+        </VCol>
+        <VCol
+          cols="12"
+          md="6"
+        >
+          <VSelect
+            v-model="form.status"
+            :items="editStatusOptions"
+            label="Durum"
+            class="mb-3"
+          />
+        </VCol>
+        <VCol cols="12">
+          <VTextarea
+            v-model="form.notes"
+            label="Notlar"
+            rows="2"
+            auto-grow
+            class="mb-3"
+          />
+        </VCol>
+        <VCol cols="12">
+          <div class="d-flex align-center gap-2 mb-1">
+            <span class="text-body-2 text-medium-emphasis">Konum</span>
+            <VBtn
+              v-if="mapsUrl(form)"
+              :href="mapsUrl(form)!"
+              target="_blank"
+              rel="noopener noreferrer"
+              size="x-small"
+              variant="tonal"
+              color="primary"
+              prepend-icon="tabler-map-pin"
+            >
+              Mevcut konumu aç
+            </VBtn>
+            <span
+              v-else
+              class="text-caption text-disabled"
+            >Konum bilgisi yok</span>
+          </div>
+          <div class="d-flex gap-2 align-start">
+            <VTextField
+              v-model="form.maps_link"
+              label="Google Maps Linki (konumu güncellemek için)"
+              placeholder="https://maps.app.goo.gl/... veya tam Google Maps linki"
+              prepend-inner-icon="tabler-link"
+              clearable
+              hint="Linki yapıştırıp Önizle'ye basın; mekan bilgileri Google'dan çekilir."
+              persistent-hint
+              class="flex-grow-1"
+            />
+            <VBtn
+              :loading="previewLoading"
+              :disabled="!form.maps_link"
+              color="primary"
+              variant="tonal"
+              class="mt-1"
+              prepend-icon="tabler-eye"
+              @click="previewLocation"
+            >
+              Önizle
+            </VBtn>
+          </div>
+
+          <!-- Önizleme kartı: linkten çözülen mekan bilgileri -->
+          <VCard
+            v-if="locationPreview"
+            variant="tonal"
+            color="primary"
+            class="mt-3"
+          >
+            <VCardText class="d-flex align-center gap-3">
+              <VImg
+                v-if="locationPreview.photo_urls?.length"
+                :src="locationPreview.photo_urls[0]"
+                width="64"
+                height="64"
+                cover
+                class="rounded flex-grow-0"
+              />
+              <VIcon
+                v-else
+                icon="tabler-map-pin"
+                size="40"
+              />
+              <div class="flex-grow-1">
+                <div class="text-subtitle-2">
+                  {{ locationPreview.name || 'İsim bulunamadı' }}
+                </div>
+                <div class="text-caption">
+                  {{ [locationPreview.district, locationPreview.city].filter(Boolean).join(', ') || 'Konum bilgisi Google\'dan çekilemedi' }}
+                </div>
+                <div class="text-caption text-disabled">
+                  {{ locationPreview.latitude.toFixed(6) }}, {{ locationPreview.longitude.toFixed(6) }}
+                  <span v-if="locationPreview.place_id"> · Google kaydı bulundu ✓</span>
+                </div>
+              </div>
+              <VBtn
+                color="primary"
+                variant="flat"
+                prepend-icon="tabler-check"
+                @click="applyPreview"
+              >
+                Uygula
+              </VBtn>
+            </VCardText>
+          </VCard>
+        </VCol>
+        <VCol cols="12">
+          <VSelect
+            v-model="form.food_halal_mode"
+            :items="halalModeOptions"
+            label="Helal Modu"
+            class="mb-3"
+          />
+        </VCol>
+        <VCol
+          v-if="form.food_halal_mode === 'except'"
+          cols="12"
+        >
+          <VTextField
+            v-model="form.excluded_products_text"
+            label="Sakıncalı Ürünler (virgülle ayırın)"
+            placeholder="alkol, jelatin"
+            class="mb-3"
+          />
+        </VCol>
+        <VCol cols="12">
+          <div class="d-flex align-center gap-3 mb-3">
+            <VImg
+              v-if="form.photos?.length"
+              :src="form.photos[0].url"
+              width="64"
+              height="64"
+              cover
+              class="rounded flex-grow-0"
+            />
+            <VAvatar
+              v-else
+              size="64"
+              rounded
+              color="grey-lighten-2"
+            >
+              <VIcon
+                icon="tabler-photo-off"
+                size="24"
+              />
+            </VAvatar>
+            <VFileInput
+              v-model="photoFile"
+              label="Kapak Fotoğrafı"
+              accept="image/*"
+              prepend-icon="tabler-camera"
+              density="compact"
+              hide-details
+              class="flex-grow-1"
+            />
+            <VBtn
+              :loading="photoUploading"
+              :disabled="!photoFile"
+              color="primary"
+              variant="tonal"
+              @click="uploadPhoto"
+            >
+              Yükle
+            </VBtn>
+          </div>
+        </VCol>
+        <VCol cols="12">
+          <VSelect
+            v-model="form.criteria_ids"
+            :items="criteriaOptions"
+            item-title="label_tr"
+            item-value="id"
+            label="Helal Kriterleri"
+            multiple
+            chips
+            closable-chips
+            class="mb-3"
+          />
+        </VCol>
+        <VCol cols="12">
+          <label class="text-body-2 text-medium-emphasis d-block mb-1">Yemek Çeşitleri</label>
+          <VCard
+            variant="outlined"
+            class="mb-3"
+          >
+            <VRow
+              no-gutters
+              style="block-size: 220px;"
+            >
+              <!-- Sol: kategoriler (dosya yolu mantığı 1. kademe) -->
+              <VCol
+                cols="5"
+                class="border-e"
+                style="overflow-y: auto; block-size: 220px;"
+              >
+                <VList
+                  density="compact"
+                  nav
+                >
+                  <VListItem
+                    v-for="cat in foodCategories"
+                    :key="cat.id"
+                    :active="activeFoodCategoryId === cat.id"
+                    :title="cat.label_tr"
+                    @click="activeFoodCategoryId = cat.id"
+                  >
+                    <template #append>
+                      <VChip
+                        v-if="selectedCountIn(cat) > 0"
+                        size="x-small"
+                        color="primary"
+                      >
+                        {{ selectedCountIn(cat) }}
+                      </VChip>
+                      <VIcon
+                        icon="tabler-chevron-right"
+                        size="16"
+                      />
+                    </template>
+                  </VListItem>
+                </VList>
+              </VCol>
+              <!-- Sağ: seçili kategorinin çeşitleri (2. kademe) -->
+              <VCol
+                cols="7"
+                style="overflow-y: auto; block-size: 220px;"
+              >
+                <div
+                  v-if="!activeFoodCategoryId"
+                  class="d-flex align-center justify-center h-100 pa-4 text-disabled text-caption text-center"
+                >
+                  Çeşitleri görmek için bir kategori seçin
+                </div>
+                <VList
+                  v-else
+                  density="compact"
+                >
+                  <VListItem
+                    v-for="food in activeFoodItems"
+                    :key="food.id"
+                    @click="toggleFoodItem(food.id)"
+                  >
+                    <template #prepend>
+                      <VCheckboxBtn
+                        :model-value="isFoodSelected(food.id)"
+                        @click.stop="toggleFoodItem(food.id)"
+                      />
+                    </template>
+                    <VListItemTitle>{{ food.label_tr }}</VListItemTitle>
+                  </VListItem>
+                </VList>
+              </VCol>
+            </VRow>
+          </VCard>
+        </VCol>
+      </VRow>
+      <VBtn
+        type="submit"
+        block
+        color="primary"
+      >
+        Kaydet
+      </VBtn>
     </template>
-  </extable>
+  </Extable>
 </template>

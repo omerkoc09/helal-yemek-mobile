@@ -126,6 +126,11 @@ func main() {
 		middleware.RequireRole("guide", "admin"),
 		venueHandler.PlacePreview,
 	)
+	api.Post("/venues/preview-location",
+		middleware.Auth(cfg.JWTSecret),
+		middleware.RequireRole("guide", "admin"),
+		venueHandler.PreviewLocationFromLink,
+	)
 	api.Get("/venues/:id", venueHandler.Detail)
 	api.Get("/criteria", venueHandler.ListCriteria)
 	api.Get("/food-categories", venueHandler.ListFoodCategories)
