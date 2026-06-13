@@ -13,7 +13,6 @@ Venue _v({
   return Venue(
     id: id,
     name: name,
-    address: '',
     city: 'Istanbul',
     latitude: 0,
     longitude: 0,

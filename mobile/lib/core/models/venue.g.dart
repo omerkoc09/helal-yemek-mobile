@@ -9,7 +9,6 @@ part of 'venue.dart';
 _Venue _$VenueFromJson(Map<String, dynamic> json) => _Venue(
   id: json['id'] as String,
   name: json['name'] as String,
-  address: json['address'] as String,
   city: json['city'] as String,
   district: json['district'] as String?,
   latitude: (json['latitude'] as num).toDouble(),
@@ -63,7 +62,6 @@ _Venue _$VenueFromJson(Map<String, dynamic> json) => _Venue(
 Map<String, dynamic> _$VenueToJson(_Venue instance) => <String, dynamic>{
   'id': instance.id,
   'name': instance.name,
-  'address': instance.address,
   'city': instance.city,
   'district': instance.district,
   'latitude': instance.latitude,

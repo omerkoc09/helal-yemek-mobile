@@ -142,7 +142,6 @@ class _AllVenuesScreenState extends ConsumerState<AllVenuesScreen> {
         .firstWhere((v) => v.id == venueId);
 
     final nameCtrl = TextEditingController(text: venue.name);
-    final addressCtrl = TextEditingController(text: venue.address);
     final cityCtrl = TextEditingController(text: venue.city);
     String selectedStatus = venue.status;
 
@@ -158,11 +157,6 @@ class _AllVenuesScreenState extends ConsumerState<AllVenuesScreen> {
                 TextField(
                   controller: nameCtrl,
                   decoration: const InputDecoration(labelText: 'Ad'),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: addressCtrl,
-                  decoration: const InputDecoration(labelText: 'Adres'),
                 ),
                 const SizedBox(height: 8),
                 TextField(
@@ -200,9 +194,6 @@ class _AllVenuesScreenState extends ConsumerState<AllVenuesScreen> {
                 Navigator.pop(ctx);
                 final data = <String, dynamic>{};
                 if (nameCtrl.text != venue.name) data['name'] = nameCtrl.text;
-                if (addressCtrl.text != venue.address) {
-                  data['address'] = addressCtrl.text;
-                }
                 if (cityCtrl.text != venue.city) data['city'] = cityCtrl.text;
                 if (selectedStatus != venue.status) {
                   data['status'] = selectedStatus;

@@ -78,7 +78,7 @@ class _VenueBottomSheetContent extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      venue.address,
+                      venue.district != null && venue.district!.isNotEmpty ? venue.district! : venue.city,
                       style: const TextStyle(
                         fontSize: 13,
                         color: AppTheme.textSecondary,

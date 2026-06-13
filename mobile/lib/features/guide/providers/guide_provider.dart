@@ -15,7 +15,6 @@ class AddVenueState {
   // Wizard adımları
   final int currentStep;
   final String name;
-  final String address;
   final String city; // İl
   final String district; // İlçe
   final String mapsLink; // Google Maps linki
@@ -41,7 +40,6 @@ class AddVenueState {
     this.isSuccess = false,
     this.currentStep = 0,
     this.name = '',
-    this.address = '',
     this.city = '',
     this.district = '',
     this.mapsLink = '',
@@ -66,7 +64,6 @@ class AddVenueState {
     bool? isSuccess,
     int? currentStep,
     String? name,
-    String? address,
     String? city,
     String? district,
     String? mapsLink,
@@ -90,7 +87,6 @@ class AddVenueState {
       isSuccess: isSuccess ?? this.isSuccess,
       currentStep: currentStep ?? this.currentStep,
       name: name ?? this.name,
-      address: address ?? this.address,
       city: city ?? this.city,
       district: district ?? this.district,
       mapsLink: mapsLink ?? this.mapsLink,
@@ -155,10 +151,6 @@ class AddVenueNotifier extends Notifier<AddVenueState> {
 
   void setDistrict(String district) {
     state = state.copyWith(district: district);
-  }
-
-  void setAddress(String address) {
-    state = state.copyWith(address: address);
   }
 
   void setCoordinates({required double latitude, required double longitude}) {
@@ -408,7 +400,6 @@ class AddVenueNotifier extends Notifier<AddVenueState> {
         ApiEndpoints.venues,
         data: {
           'name': state.name.trim(),
-          'address': state.district.isNotEmpty ? state.district : state.city,
           'city': state.city,
           'district': state.district.isNotEmpty ? state.district : null,
           'latitude': state.latitude,
@@ -510,7 +501,6 @@ class EditVenueState {
 
   final String venueId;
   final String name;
-  final String address;
   final String city;
   final String? notes;
   final double? latitude;
@@ -532,7 +522,6 @@ class EditVenueState {
     this.isSuccess = false,
     this.venueId = '',
     this.name = '',
-    this.address = '',
     this.city = '',
     this.notes,
     this.latitude,
@@ -553,7 +542,6 @@ class EditVenueState {
     bool? isSuccess,
     String? venueId,
     String? name,
-    String? address,
     String? city,
     String? notes,
     double? latitude,
@@ -573,7 +561,6 @@ class EditVenueState {
       isSuccess: isSuccess ?? this.isSuccess,
       venueId: venueId ?? this.venueId,
       name: name ?? this.name,
-      address: address ?? this.address,
       city: city ?? this.city,
       notes: notes ?? this.notes,
       latitude: latitude ?? this.latitude,
@@ -608,7 +595,6 @@ class EditVenueNotifier extends Notifier<EditVenueState> {
         isLoadingVenue: false,
         venueId: venue.id,
         name: venue.name,
-        address: venue.address,
         city: venue.city,
         notes: venue.notes,
         latitude: venue.latitude,
@@ -627,7 +613,6 @@ class EditVenueNotifier extends Notifier<EditVenueState> {
   }
 
   void setName(String name) => state = state.copyWith(name: name);
-  void setAddress(String address) => state = state.copyWith(address: address);
   void setCity(String city) => state = state.copyWith(city: city);
   void setNotes(String? notes) => state = state.copyWith(notes: notes);
 
@@ -726,7 +711,6 @@ class EditVenueNotifier extends Notifier<EditVenueState> {
         ApiEndpoints.venueDetail(state.venueId),
         data: {
           'name': state.name.trim(),
-          'address': state.address.trim(),
           'city': state.city.trim(),
           'latitude': state.latitude,
           'longitude': state.longitude,
