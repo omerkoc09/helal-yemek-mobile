@@ -152,7 +152,6 @@ async function onSubmit() {
     <template #modalBody>
       <VTextField v-model="form.name" label="Ad" class="mb-3" />
       <VTextField v-model="form.city" label="Şehir" class="mb-3" />
-      <VTextField v-model="form.address" label="Adres" class="mb-3" />
       <VBtn type="submit" block color="primary">Kaydet</VBtn>
     </template>
   </extable>
