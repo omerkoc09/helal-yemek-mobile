@@ -120,6 +120,10 @@ func (r *VenueRepo) UpdateVenue(ctx context.Context, id string,
 	notes *string,
 	googlePlaceID *string,
 ) error {
+	// Konum (lat/lng) güncellendiğinde google_place_id de doğrudan $8'e set edilir
+	// (NULL olsa bile). Çünkü yeni konum eski place_id'yi geçersiz kılar — aksi
+	// halde "Haritada Aç" eski place_id'nin konumunu açar. Konum değişmiyorsa
+	// COALESCE ile eski place_id korunur.
 	query := `
 		UPDATE venues SET
 			name            = COALESCE($2, name),
@@ -129,12 +133,19 @@ func (r *VenueRepo) UpdateVenue(ctx context.Context, id string,
 			                       THEN ST_MakePoint($6, $5)::geography
 			                       ELSE location END,
 			notes           = COALESCE($7, notes),
-			google_place_id = COALESCE($8, google_place_id),
+			google_place_id = CASE WHEN $5::float8 IS NOT NULL AND $6::float8 IS NOT NULL
+			                       THEN $8
+			                       ELSE COALESCE($8, google_place_id) END,
 			updated_at      = NOW()
 		WHERE id = $1 AND deleted_at IS NULL`
 
 	result, err := r.db.Exec(ctx, query, id, name, city, district, lat, lng, notes, googlePlaceID)
 	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			// Aynı google_place_id'yi başka bir mekan kullanıyor.
+			return ErrAlreadyExists
+		}
 		return fmt.Errorf("mekan güncellemesi başarısız: %w", err)
 	}
 	if result.RowsAffected() == 0 {

@@ -122,6 +122,7 @@ func (h *VenueHandler) PlacePreview(c *fiber.Ctx) error {
 		}
 		photoURLs := h.placesService.BuildPhotoURLs(components.PhotoReferences, 800)
 		return c.JSON(fiber.Map{
+			"place_id":   placeID,
 			"name":       components.Name,
 			"city":       components.City,
 			"district":   components.District,
@@ -163,11 +164,64 @@ func (h *VenueHandler) PlacePreview(c *fiber.Ctx) error {
 
 	photoURLs := h.placesService.BuildPhotoURLs(components.PhotoReferences, 800)
 	return c.JSON(fiber.Map{
+		"place_id":   resolved,
 		"name":       components.Name,
 		"city":       components.City,
 		"district":   components.District,
 		"photo_urls": photoURLs,
 	})
+}
+
+// PreviewLocationFromLink godoc
+// POST /api/v1/venues/preview-location  (Guide + Admin)
+// Bir Google Maps linkini parse edip koordinat + (mümkünse) gerçek place_id ve
+// mekan bilgilerini (isim/şehir/ilçe/foto) önizleme olarak döndürür.
+// Kısa linkleri (maps.app.goo.gl) backend'de redirect takibiyle çözer.
+func (h *VenueHandler) PreviewLocationFromLink(c *fiber.Ctx) error {
+	if h.placesService == nil {
+		return c.Status(fiber.StatusServiceUnavailable).JSON(fiber.Map{
+			"error": "places servisi kullanılamıyor",
+		})
+	}
+
+	var req struct {
+		MapsLink string `json:"maps_link"`
+	}
+	if err := c.BodyParser(&req); err != nil {
+		return fiber.ErrBadRequest
+	}
+
+	coords, err := services.ParseMapsLink(req.MapsLink)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Google Maps linki çözümlenemedi. Lütfen geçerli bir konum linki yapıştırın.",
+		})
+	}
+
+	// place_id'yi belirle: linkte ChIJ varsa onu, yoksa isim+koordinatla çöz.
+	placeID := coords.PlaceID
+	if placeID == "" && coords.PlaceName != "" {
+		placeID = h.placesService.ResolvePlaceID(coords.PlaceName, coords.Latitude, coords.Longitude)
+	}
+
+	resp := fiber.Map{
+		"latitude":  coords.Latitude,
+		"longitude": coords.Longitude,
+		"place_id":  placeID,
+		"name":      coords.PlaceName,
+	}
+
+	// place_id bulunduysa Places API'den zengin bilgileri ekle.
+	if placeID != "" {
+		if components, err := h.placesService.GetAddressComponents(placeID); err == nil && components != nil {
+			resp["name"] = components.Name
+			resp["city"] = components.City
+			resp["district"] = components.District
+			resp["photo_urls"] = h.placesService.BuildPhotoURLs(components.PhotoReferences, 800)
+		}
+	}
+
+	return c.JSON(resp)
 }
 
 // ListNearby godoc
@@ -410,10 +464,20 @@ func (h *VenueHandler) UploadPhoto(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 	}
 
+	// Tek fotoğraf politikası: yeni fotoğraf yüklenince mevcut fotoğraflar silinir.
+	if existing, err := h.venueRepo.GetPhotosByVenueID(c.Context(), venueID); err == nil {
+		for _, old := range existing {
+			if err := h.venueRepo.DeletePhoto(c.Context(), old.ID, venueID); err == nil {
+				_ = h.storageService.Delete(c.Context(), old.URL)
+			}
+		}
+	}
+
 	photo := &models.VenuePhoto{
 		VenueID:    venueID,
 		URL:        url,
 		UploadedBy: userID,
+		IsPrimary:  true,
 	}
 	if err := h.venueRepo.AddPhoto(c.Context(), photo); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "fotoğraf kaydedilemedi"})

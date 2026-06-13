@@ -4,10 +4,12 @@ import (
 	"context"
 	"errors"
 	"log"
+	"strings"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/omerkoc/caiz-mi/internal/models"
 	"github.com/omerkoc/caiz-mi/internal/repository"
+	"github.com/omerkoc/caiz-mi/internal/services"
 )
 
 type SchedulerRunner interface {
@@ -94,27 +96,107 @@ func (h *AdminHandler) UpdateVenue(c *fiber.Ctx) error {
 	log.Printf("[ADMIN] UpdateVenue called for id=%s", venueID)
 
 	var req struct {
-		Name   *string `json:"name"`
-		City   *string `json:"city"`
-		Status *string `json:"status"`
-		Notes  *string `json:"notes"`
+		Name             *string   `json:"name"`
+		City             *string   `json:"city"`
+		District         *string   `json:"district"`
+		Status           *string   `json:"status"`
+		Notes            *string   `json:"notes"`
+		FoodHalalMode    *string   `json:"food_halal_mode"`
+		CriteriaIDs      *[]int    `json:"criteria_ids"`
+		FoodItemIDs      *[]int    `json:"food_item_ids"`
+		ExcludedProducts *[]string `json:"excluded_products"`
+		MapsLink         *string   `json:"maps_link"`
+		Latitude         *float64  `json:"latitude"`
+		Longitude        *float64  `json:"longitude"`
+		GooglePlaceID    *string   `json:"google_place_id"`
 	}
 	if err := c.BodyParser(&req); err != nil {
 		log.Printf("[ADMIN] UpdateVenue body parse error: %v", err)
 		return fiber.ErrBadRequest
 	}
 
-	if err := h.venueRepo.UpdateVenue(c.Context(), venueID, req.Name, req.City,
-		nil, nil, nil, req.Notes, nil); err != nil {
-		log.Printf("[ADMIN] UpdateVenue repo error for id=%s: %v", venueID, err)
+	// Mevcut mekanı al — status karşılaştırması ve var olma kontrolü için.
+	current, err := h.venueRepo.FindByID(c.Context(), venueID)
+	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
 			return fiber.ErrNotFound
 		}
 		return fiber.ErrInternalServerError
 	}
 
-	// Status değişikliği
-	if req.Status != nil {
+	// Konum belirleme: öncelik maps_link (parse edilir); yoksa önizleme-onay
+	// akışından gelen doğrudan koordinat + place_id kullanılır.
+	var lat, lng *float64
+	var googlePlaceID *string
+	switch {
+	case req.MapsLink != nil && strings.TrimSpace(*req.MapsLink) != "":
+		coords, err := services.ParseMapsLink(*req.MapsLink)
+		if err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": "Google Maps linki çözümlenemedi. Lütfen geçerli bir konum linki yapıştırın.",
+			})
+		}
+		lat = &coords.Latitude
+		lng = &coords.Longitude
+		if coords.PlaceID != "" {
+			googlePlaceID = &coords.PlaceID
+		}
+	case req.Latitude != nil && req.Longitude != nil:
+		lat = req.Latitude
+		lng = req.Longitude
+		googlePlaceID = req.GooglePlaceID // nil ise repo place_id'yi temizler (konum değişimiyle)
+	}
+
+	if err := h.venueRepo.UpdateVenue(c.Context(), venueID, req.Name, req.City,
+		req.District, lat, lng, req.Notes, googlePlaceID); err != nil {
+		log.Printf("[ADMIN] UpdateVenue repo error for id=%s: %v", venueID, err)
+		if errors.Is(err, repository.ErrNotFound) {
+			return fiber.ErrNotFound
+		}
+		if errors.Is(err, repository.ErrAlreadyExists) {
+			return c.Status(fiber.StatusConflict).JSON(fiber.Map{
+				"error": "Bu Google konumu başka bir mekana ait. Farklı bir konum seçin.",
+			})
+		}
+		return fiber.ErrInternalServerError
+	}
+
+	// Helal kriterleri
+	if req.CriteriaIDs != nil {
+		if err := h.venueRepo.SetCriteria(c.Context(), venueID, *req.CriteriaIDs); err != nil {
+			log.Printf("[ADMIN] UpdateVenue SetCriteria error for id=%s: %v", venueID, err)
+			return fiber.ErrInternalServerError
+		}
+	}
+
+	// Yemek çeşitleri
+	if req.FoodItemIDs != nil {
+		if err := h.venueRepo.SetVenueFoodItems(c.Context(), venueID, *req.FoodItemIDs); err != nil {
+			log.Printf("[ADMIN] UpdateVenue SetVenueFoodItems error for id=%s: %v", venueID, err)
+			return fiber.ErrInternalServerError
+		}
+	}
+
+	// Helal modu (whitelist/blacklist vb.)
+	if req.FoodHalalMode != nil {
+		if err := h.venueRepo.SetFoodHalalMode(c.Context(), venueID, *req.FoodHalalMode); err != nil {
+			log.Printf("[ADMIN] UpdateVenue SetFoodHalalMode error for id=%s: %v", venueID, err)
+			return fiber.ErrInternalServerError
+		}
+	}
+
+	// Sakıncalı ürünler
+	if req.ExcludedProducts != nil {
+		if err := h.venueRepo.SetExcludedProducts(c.Context(), venueID, *req.ExcludedProducts); err != nil {
+			log.Printf("[ADMIN] UpdateVenue SetExcludedProducts error for id=%s: %v", venueID, err)
+			return fiber.ErrInternalServerError
+		}
+	}
+
+	// Status değişikliği — yalnızca gönderilen durum mevcut durumdan farklıysa
+	// uygula. Aksi halde geçiş sorguları (Approve/Reject/Suspend) "kayıt
+	// bulunamadı" döndürür çünkü WHERE koşulları belirli kaynak durumlara bağlı.
+	if req.Status != nil && *req.Status != string(current.Status) {
 		adminID, err := getUserID(c)
 		if err != nil {
 			return err
@@ -127,6 +209,8 @@ func (h *AdminHandler) UpdateVenue(c *fiber.Ctx) error {
 			statusErr = h.venueRepo.Reject(c.Context(), venueID, adminID, nil)
 		case "pending":
 			statusErr = h.venueRepo.Suspend(c.Context(), venueID, adminID)
+		default:
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "geçersiz durum değeri"})
 		}
 		if statusErr != nil {
 			log.Printf("[ADMIN] UpdateVenue status change error for id=%s: %v", venueID, statusErr)
