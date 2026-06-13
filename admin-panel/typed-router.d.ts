@@ -31,7 +31,6 @@ declare module 'vue-router/auto-routes' {
     'users': RouteRecordInfo<'users', '/users', Record<never, never>, Record<never, never>>,
     'venue-reports': RouteRecordInfo<'venue-reports', '/venue-reports', Record<never, never>, Record<never, never>>,
     'venues': RouteRecordInfo<'venues', '/venues', Record<never, never>, Record<never, never>>,
-    'venues-pending': RouteRecordInfo<'venues-pending', '/venues-pending', Record<never, never>, Record<never, never>>,
     'verification-logs': RouteRecordInfo<'verification-logs', '/verification-logs', Record<never, never>, Record<never, never>>,
   }
 }
