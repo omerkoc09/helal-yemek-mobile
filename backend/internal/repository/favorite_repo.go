@@ -18,9 +18,10 @@ func NewFavoriteRepo(db *pgxpool.Pool) *FavoriteRepo {
 // ListByUser — kullanıcının favori mekanlarını döndürür.
 func (r *FavoriteRepo) ListByUser(ctx context.Context, userID string) ([]models.Venue, error) {
 	rows, err := r.db.Query(ctx,
-		`SELECT v.id, v.name, v.address, v.city,
+		`SELECT v.id, v.name, v.city,
 		        ST_Y(v.location::geometry) AS latitude,
 		        ST_X(v.location::geometry) AS longitude,
+		        v.google_place_id,
 		        v.notes, v.status,
 		        v.added_by, v.verified_at,
 		        v.created_at, v.updated_at

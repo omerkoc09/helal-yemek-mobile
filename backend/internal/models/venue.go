@@ -49,7 +49,6 @@ type VenuePhoto struct {
 type Venue struct {
 	ID               string          `json:"id"`
 	Name             string          `json:"name"`
-	Address          string          `json:"address"`
 	City             string          `json:"city"`
 	District         *string         `json:"district,omitempty"`
 	Latitude         float64         `json:"latitude"`

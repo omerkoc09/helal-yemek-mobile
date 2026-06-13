@@ -238,7 +238,6 @@ func (h *VenueHandler) Create(c *fiber.Ctx) error {
 
 	var req struct {
 		Name             string   `json:"name"`
-		Address          string   `json:"address"`
 		City             string   `json:"city"`
 		District         string   `json:"district"`
 		Latitude         float64  `json:"latitude"`
@@ -306,15 +305,8 @@ func (h *VenueHandler) Create(c *fiber.Ctx) error {
 		}
 	}
 
-	// address alanı yoksa district'i fallback olarak kullan
-	address := req.Address
-	if address == "" {
-		address = district
-	}
-
 	venue := &models.Venue{
 		Name:             req.Name,
-		Address:          address,
 		City:             city,
 		Latitude:         req.Latitude,
 		Longitude:        req.Longitude,
@@ -500,7 +492,6 @@ func (h *VenueHandler) Update(c *fiber.Ctx) error {
 
 	var req struct {
 		Name             *string   `json:"name"`
-		Address          *string   `json:"address"`
 		City             *string   `json:"city"`
 		District         *string   `json:"district"`
 		Latitude         *float64  `json:"latitude"`
@@ -554,7 +545,7 @@ func (h *VenueHandler) Update(c *fiber.Ctx) error {
 		}
 	}
 
-	if err := h.venueRepo.UpdateVenue(c.Context(), venueID, req.Name, req.Address, req.City, req.District,
+	if err := h.venueRepo.UpdateVenue(c.Context(), venueID, req.Name, req.City, req.District,
 		req.Latitude, req.Longitude, req.Notes, googlePlaceID); err != nil {
 		return fiber.ErrInternalServerError
 	}

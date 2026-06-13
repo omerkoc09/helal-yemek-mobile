@@ -15,7 +15,7 @@ import (
 func (r *VenueRepo) FindNearby(ctx context.Context, lat, lng, radiusMeters float64) ([]models.Venue, error) {
 	query := `
 		SELECT
-			v.id, v.name, v.address, v.city,
+			v.id, v.name, v.city,
 			ST_Y(v.location::geometry) AS latitude,
 			ST_X(v.location::geometry) AS longitude,
 			v.google_place_id,
@@ -50,7 +50,7 @@ func (r *VenueRepo) SearchByText(ctx context.Context, query string) ([]models.Ve
 	query = escapeILIKE(query)
 	q := `
 		SELECT
-			v.id, v.name, v.address, v.city,
+			v.id, v.name, v.city,
 			ST_Y(v.location::geometry) AS latitude,
 			ST_X(v.location::geometry) AS longitude,
 			v.google_place_id,
@@ -63,7 +63,6 @@ func (r *VenueRepo) SearchByText(ctx context.Context, query string) ([]models.Ve
 		  AND (
 		    v.name ILIKE '%' || $1 || '%'
 		    OR v.city ILIKE '%' || $1 || '%'
-		    OR v.address ILIKE '%' || $1 || '%'
 		  )
 		ORDER BY CASE WHEN v.status = 'approved' THEN 0 ELSE 1 END, v.name
 		LIMIT 50`
@@ -88,7 +87,7 @@ func (r *VenueRepo) FindByCity(ctx context.Context, city string, lat, lng float6
 
 	query := fmt.Sprintf(`
 		SELECT
-			v.id, v.name, v.address, v.city, v.district,
+			v.id, v.name, v.city, v.district,
 			ST_Y(v.location::geometry) AS latitude,
 			ST_X(v.location::geometry) AS longitude,
 			v.google_place_id,
@@ -132,7 +131,7 @@ func (r *VenueRepo) FindByCity(ctx context.Context, city string, lat, lng float6
 // FindByAddedBy — guide'ın eklediği tüm mekanları döndürür (tüm durumlar dahil).
 func (r *VenueRepo) FindByAddedBy(ctx context.Context, userID string) ([]models.Venue, error) {
 	rows, err := r.db.Query(ctx,
-		`SELECT v.id, v.name, v.address, v.city,
+		`SELECT v.id, v.name, v.city,
 		        ST_Y(v.location::geometry) AS latitude,
 		        ST_X(v.location::geometry) AS longitude,
 		        v.google_place_id,
@@ -157,7 +156,7 @@ func (r *VenueRepo) FindAll(ctx context.Context) ([]models.Venue, error) {
 	// Admin paneli liste görünümü için zenginleştirilmiş sorgu:
 	// ekleyen kullanıcının isim/email'i (users join) ve puan/yorum istatistikleri (reviews join).
 	rows, err := r.db.Query(ctx,
-		`SELECT v.id, v.name, v.address, v.city, v.district,
+		`SELECT v.id, v.name, v.city, v.district,
 		        ST_Y(v.location::geometry) AS latitude,
 		        ST_X(v.location::geometry) AS longitude,
 		        v.google_place_id,
@@ -185,7 +184,7 @@ func (r *VenueRepo) FindAll(ctx context.Context) ([]models.Venue, error) {
 		var avgRating float64
 		var reviewCount int
 		if err := rows.Scan(
-			&v.ID, &v.Name, &v.Address, &v.City, &v.District,
+			&v.ID, &v.Name, &v.City, &v.District,
 			&v.Latitude, &v.Longitude,
 			&v.GooglePlaceID,
 			&v.Notes, &v.Status,
@@ -224,7 +223,7 @@ func (r *VenueRepo) FindAll(ctx context.Context) ([]models.Venue, error) {
 // FindPending — admin incelemesi için bekleyen mekanları döndürür.
 func (r *VenueRepo) FindPending(ctx context.Context) ([]models.Venue, error) {
 	rows, err := r.db.Query(ctx,
-		`SELECT v.id, v.name, v.address, v.city,
+		`SELECT v.id, v.name, v.city,
 		        ST_Y(v.location::geometry) AS latitude,
 		        ST_X(v.location::geometry) AS longitude,
 		        v.google_place_id,
@@ -247,7 +246,7 @@ func (r *VenueRepo) FindPending(ctx context.Context) ([]models.Venue, error) {
 func (r *VenueRepo) FindByFoodCategory(ctx context.Context, categoryID int) ([]models.Venue, error) {
 	query := `
 		SELECT DISTINCT ON (v.id)
-			v.id, v.name, v.address, v.city, v.district,
+			v.id, v.name, v.city, v.district,
 			ST_Y(v.location::geometry) AS latitude,
 			ST_X(v.location::geometry) AS longitude,
 			v.google_place_id,
@@ -296,7 +295,7 @@ func (r *VenueRepo) FindNearbyApproved(ctx context.Context, lat, lng, radiusMete
 	}
 	query := fmt.Sprintf(`
 		SELECT
-			v.id, v.name, v.address, v.city, v.district,
+			v.id, v.name, v.city, v.district,
 			ST_Y(v.location::geometry) AS latitude,
 			ST_X(v.location::geometry) AS longitude,
 			v.google_place_id,
@@ -344,7 +343,7 @@ func (r *VenueRepo) FindPopular(ctx context.Context, lat, lng, radiusMeters floa
 	}
 	query := fmt.Sprintf(`
 		SELECT
-			v.id, v.name, v.address, v.city, v.district,
+			v.id, v.name, v.city, v.district,
 			ST_Y(v.location::geometry) AS latitude,
 			ST_X(v.location::geometry) AS longitude,
 			v.google_place_id,
@@ -389,7 +388,7 @@ func (r *VenueRepo) scanVenueRowsWithRatingAndPhotos(ctx context.Context, rows p
 	for rows.Next() {
 		v := models.Venue{}
 		err := rows.Scan(
-			&v.ID, &v.Name, &v.Address, &v.City, &v.District,
+			&v.ID, &v.Name, &v.City, &v.District,
 			&v.Latitude, &v.Longitude,
 			&v.GooglePlaceID,
 			&v.Notes, &v.Status,
@@ -431,7 +430,7 @@ func (r *VenueRepo) scanVenueRowsWithRatingAndPhotos(ctx context.Context, rows p
 }
 
 // scanVenueCityRows — FindByCity sorgusundan dönen satırları tarar.
-// Sütun sırası: id, name, address, city, district, lat, lng, google_place_id,
+// Sütun sırası: id, name, city, district, lat, lng, google_place_id,
 //               notes, status, added_by, verified_at, created_at, updated_at,
 //               distance, avg_rating, review_count, categories_str
 func (r *VenueRepo) scanVenueCityRows(ctx context.Context, rows pgx.Rows) ([]models.Venue, error) {
@@ -439,7 +438,7 @@ func (r *VenueRepo) scanVenueCityRows(ctx context.Context, rows pgx.Rows) ([]mod
 	for rows.Next() {
 		v := models.Venue{}
 		err := rows.Scan(
-			&v.ID, &v.Name, &v.Address, &v.City, &v.District,
+			&v.ID, &v.Name, &v.City, &v.District,
 			&v.Latitude, &v.Longitude,
 			&v.GooglePlaceID,
 			&v.Notes, &v.Status,
@@ -490,7 +489,7 @@ func scanVenueRows(rows pgx.Rows, withDistance bool) ([]models.Venue, error) {
 		var err error
 		if withDistance {
 			err = rows.Scan(
-				&v.ID, &v.Name, &v.Address, &v.City,
+				&v.ID, &v.Name, &v.City,
 				&v.Latitude, &v.Longitude,
 				&v.GooglePlaceID,
 				&v.Notes, &v.Status,
@@ -500,7 +499,7 @@ func scanVenueRows(rows pgx.Rows, withDistance bool) ([]models.Venue, error) {
 			)
 		} else {
 			err = rows.Scan(
-				&v.ID, &v.Name, &v.Address, &v.City,
+				&v.ID, &v.Name, &v.City,
 				&v.Latitude, &v.Longitude,
 				&v.GooglePlaceID,
 				&v.Notes, &v.Status,
