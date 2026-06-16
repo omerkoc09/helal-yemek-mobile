@@ -43,8 +43,10 @@ func Load() *Config {
 		GoogleClientID:   os.Getenv("GOOGLE_CLIENT_ID"),
 		GoogleMapsAPIKey: os.Getenv("GOOGLE_MAPS_API_KEY"),
 
-		// Varsayılan: Vite dev sunucusu (admin paneli). Production'da env ile override edilir.
-		CORSAllowOrigins: getEnv("CORS_ALLOW_ORIGINS", "http://localhost:5173,http://localhost:5050"),
+		// Varsayılan: tüm origin'lere izin ver (AllowCredentials=false olduğu için güvenli).
+		// Production'da CORS_ALLOW_ORIGINS env ile spesifik origin'lere kısıtlanır.
+		// Not: Fiber CORS, "http://*" gibi host'suz wildcard'ı reddeder; "tümü" için tek geçerli değer "*".
+		CORSAllowOrigins: getEnv("CORS_ALLOW_ORIGINS", "*"),
 
 		SMTPHost:     getEnv("SMTP_HOST", "smtp.gmail.com"),
 		SMTPPort:     getEnv("SMTP_PORT", "587"),
