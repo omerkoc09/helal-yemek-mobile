@@ -194,25 +194,22 @@ func (h *AdminHandler) UpdateVenue(c *fiber.Ctx) error {
 	}
 
 	// Status değişikliği — yalnızca gönderilen durum mevcut durumdan farklıysa
-	// uygula. Aksi halde geçiş sorguları (Approve/Reject/Suspend) "kayıt
-	// bulunamadı" döndürür çünkü WHERE koşulları belirli kaynak durumlara bağlı.
+	// uygula. Admin modalı tam yetkili olduğundan SetStatus kaynak duruma
+	// bakmadan hedef duruma geçer ve yan-etki sütunlarını tutarlı tutar.
 	if req.Status != nil && *req.Status != string(current.Status) {
+		newStatus := models.VenueStatus(*req.Status)
+		switch newStatus {
+		case models.VenueStatusApproved, models.VenueStatusRejected,
+			models.VenueStatusPending, models.VenueStatusSuspended:
+		default:
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "geçersiz durum değeri"})
+		}
+
 		adminID, err := getUserID(c)
 		if err != nil {
 			return err
 		}
-		var statusErr error
-		switch *req.Status {
-		case "approved":
-			statusErr = h.venueRepo.Approve(c.Context(), venueID, adminID, h.verificationPeriodDays)
-		case "rejected":
-			statusErr = h.venueRepo.Reject(c.Context(), venueID, adminID, nil)
-		case "pending":
-			statusErr = h.venueRepo.Suspend(c.Context(), venueID, adminID)
-		default:
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "geçersiz durum değeri"})
-		}
-		if statusErr != nil {
+		if statusErr := h.venueRepo.SetStatus(c.Context(), venueID, newStatus, adminID, nil, h.verificationPeriodDays); statusErr != nil {
 			log.Printf("[ADMIN] UpdateVenue status change error for id=%s: %v", venueID, statusErr)
 			return fiber.ErrInternalServerError
 		}
