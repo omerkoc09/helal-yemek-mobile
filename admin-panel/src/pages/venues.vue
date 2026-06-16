@@ -128,6 +128,22 @@ function applyStatusFilter() {
     tableRef.value?.refresh?.({ query: [], columns: [], columnTypes: [] })
 }
 
+// Aksiyon butonlarının görünürlüğü backend ön-koşullarıyla birebir eşleşir
+// (venue_status_repo.go): Approve → pending|rejected, Reject → pending,
+// ReactivateVenue → suspended. Aksi durumda backend "bulunamadı" döndüğünden
+// kullanıcıya işe yaramayacak buton gösterilmez.
+function canApprove(row: any): boolean {
+  return row.status === 'pending' || row.status === 'rejected'
+}
+
+function canReject(row: any): boolean {
+  return row.status === 'pending'
+}
+
+function canReactivate(row: any): boolean {
+  return row.status === 'suspended'
+}
+
 async function action(url: string, row: any, confirmText: string) {
   const c = await WarningPopup(confirmText, 'Evet', 'Hayır')
   if (!c.isConfirmed)
@@ -394,6 +410,7 @@ async function onSubmit() {
     </template>
     <template #actions="{ row }">
       <VBtn
+        v-if="canApprove(row)"
         icon
         size="small"
         variant="text"
@@ -404,8 +421,15 @@ async function onSubmit() {
           icon="tabler-check"
           size="22"
         />
+        <VTooltip
+          activator="parent"
+          location="top"
+        >
+          Onayla
+        </VTooltip>
       </VBtn>
       <VBtn
+        v-if="canReject(row)"
         icon
         size="small"
         variant="text"
@@ -416,8 +440,15 @@ async function onSubmit() {
           icon="tabler-x"
           size="22"
         />
+        <VTooltip
+          activator="parent"
+          location="top"
+        >
+          Reddet
+        </VTooltip>
       </VBtn>
       <VBtn
+        v-if="canReactivate(row)"
         icon
         size="small"
         variant="text"
@@ -427,6 +458,12 @@ async function onSubmit() {
           icon="tabler-refresh"
           size="22"
         />
+        <VTooltip
+          activator="parent"
+          location="top"
+        >
+          Yeniden Aktive Et
+        </VTooltip>
       </VBtn>
       <VBtn
         icon
