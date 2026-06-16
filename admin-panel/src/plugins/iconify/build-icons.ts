@@ -11,7 +11,14 @@
  * For Iconify Tools documentation visit https://docs.iconify.design/tools/tools2/
  */
 import { promises as fs } from 'node:fs'
+import { createRequire } from 'node:module'
 import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+// `require` is not available in ESM scope ("type": "module").
+// Recreate it so require.resolve() can locate @iconify-json packages.
+const require = createRequire(import.meta.url)
+const __dirname = dirname(fileURLToPath(import.meta.url))
 
 // Installation: npm install --save-dev @iconify/tools @iconify/utils @iconify/json @iconify/iconify
 import { cleanupSVG, importDirectory, isEmptyColor, parseColors, runSVGO } from '@iconify/tools'
