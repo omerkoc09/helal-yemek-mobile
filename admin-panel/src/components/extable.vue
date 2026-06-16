@@ -7,6 +7,7 @@ import type { ITableColumn } from '@/model/table'
 import type { IApiQuery } from '@/model/api'
 import { SORT_COLUMN_TYPES } from '@/model/api'
 import { pathJoin } from '@/utils/Path'
+import tarihFormat, { tarihSaatFormat } from '@/utils/ExDate'
 
 const props = defineProps({
   columns: {
@@ -98,6 +99,20 @@ const props = defineProps({
 
 const emits = defineEmits(['update:form'])
 const slots = useSlots()
+
+// Kolon tipine göre hücre değerini biçimlendirir. Tarih kolonları için
+// ham ISO değerini okunabilir Türkçe formata çevirir.
+const formatCell = (column: ITableColumn, value: any) => {
+  if (value == null || value === '')
+    return '-'
+
+  if (column.type === 'date')
+    return tarihFormat(value)
+  if (column.type === 'datetime')
+    return tarihSaatFormat(value)
+
+  return value
+}
 
 const loading = ref(false)
 const formLoading = ref(false)
@@ -520,7 +535,7 @@ defineExpose({ refresh, openEditModal })
                       :row="row"
                     />
                     <!-- column slot olarak verilmediyse direk row içinden ilgili kolonu span olarak yaz -->
-                    <span v-else>{{ row[column.key] }}</span>
+                    <span v-else>{{ formatCell(column, row[column.key]) }}</span>
                   </td>
                 </template>
               </tr>

@@ -9,7 +9,7 @@ const columns: ITableColumn[] = [
   { key: 'action', name: 'İŞLEM', sortable: true },
   { key: 'target_type', name: 'HEDEF TİP', sortable: true },
   { key: 'target_id', name: 'HEDEF ID' },
-  { key: 'created_at', name: 'TARİH', sortable: true },
+  { key: 'created_at', name: 'TARİH', sortable: true, type: 'datetime' },
 ]
 </script>
 

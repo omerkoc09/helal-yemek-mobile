@@ -13,7 +13,7 @@ const columns: ITableColumn[] = [
   { key: 'reporter_name', name: 'BİLDİREN', sortable: true },
   { key: 'reason', name: 'SEBEP' },
   { key: 'status', name: 'DURUM', sortable: true },
-  { key: 'created_at', name: 'TARİH', sortable: true },
+  { key: 'created_at', name: 'TARİH', sortable: true, type: 'datetime' },
 ]
 
 async function resolve(row: any) {

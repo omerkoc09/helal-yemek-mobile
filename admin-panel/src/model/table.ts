@@ -7,4 +7,8 @@ export interface ITableColumn {
   sortField?: string
   sortFieldType?: SORT_COLUMN_TYPES
   max_width?: string
+
+  // Hücrenin nasıl render edileceğini belirler. 'date' -> DD.MM.YYYY,
+  // 'datetime' -> DD/MM/YYYY HH:mm. Belirtilmezse ham değer yazılır.
+  type?: 'date' | 'datetime'
 }
