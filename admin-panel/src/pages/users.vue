@@ -11,8 +11,11 @@ const form = ref<any>({})
 const columns: ITableColumn[] = [
   { key: 'email', name: 'E-POSTA', sortable: true },
   { key: 'name', name: 'AD', sortable: true },
+  { key: 'surname', name: 'SOYAD', sortable: true },
+  { key: 'phone', name: 'TELEFON' },
   { key: 'role', name: 'ROL', sortable: true },
   { key: 'is_active', name: 'AKTİF' },
+  { key: 'created_at', name: 'KAYIT TARİHİ', sortable: true, type: 'date' },
 ]
 
 const roles = [
