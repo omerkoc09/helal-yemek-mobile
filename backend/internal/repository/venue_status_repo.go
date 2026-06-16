@@ -30,7 +30,62 @@ func (r *VenueRepo) Approve(ctx context.Context, id, adminID string, periodDays 
 	return nil
 }
 
+// SetStatus — admin düzenleme modalı için kaynak duruma bakmadan mekanın
+// statüsünü doğrudan ayarlar ve her hedef duruma uygun yan-etki sütunlarını
+// (approved_by, verified_at, verification_due_at, rejection_note) tutarlı hale
+// getirir. Durum-geçiş kuralı olan akışlar (scheduler, guide doğrulaması) için
+// Approve/Reject/Suspend kullanılmaya devam edilmeli; bu fonksiyon yalnızca
+// adminin tam yetkili manuel düzenlemesi içindir.
+func (r *VenueRepo) SetStatus(ctx context.Context, id string, status models.VenueStatus, adminID string, note *string, periodDays int) error {
+	// Her hedef durum farklı yan-etki sütunlarını ve argüman setini gerektirdiği
+	// için sorgu ve argümanlar burada seçilir; ortak çalıştırma/sonuç kontrolü
+	// switch sonrasında tek noktada yapılır.
+	var (
+		query string
+		args  []any
+	)
+
+	switch status {
+	case models.VenueStatusApproved:
+		query = `UPDATE venues
+			 SET status = 'approved', approved_by = $1, verified_at = NOW(),
+			     verification_due_at = NOW() + ($3 * INTERVAL '1 day'),
+			     rejection_note = NULL, updated_at = NOW()
+			 WHERE id = $2 AND deleted_at IS NULL`
+		args = []any{adminID, id, periodDays}
+	case models.VenueStatusRejected:
+		query = `UPDATE venues
+			 SET status = 'rejected', approved_by = $1, rejection_note = $2,
+			     verified_at = NULL, verification_due_at = NULL, updated_at = NOW()
+			 WHERE id = $3 AND deleted_at IS NULL`
+		args = []any{adminID, note, id}
+	case models.VenueStatusPending:
+		query = `UPDATE venues
+			 SET status = 'pending', approved_by = NULL, verified_at = NULL,
+			     verification_due_at = NULL, rejection_note = NULL, updated_at = NOW()
+			 WHERE id = $1 AND deleted_at IS NULL`
+		args = []any{id}
+	case models.VenueStatusSuspended:
+		query = `UPDATE venues
+			 SET status = 'suspended', verification_due_at = NULL, updated_at = NOW()
+			 WHERE id = $1 AND deleted_at IS NULL`
+		args = []any{id}
+	default:
+		return fmt.Errorf("geçersiz mekan durumu: %s", status)
+	}
+
+	result, err := r.db.Exec(ctx, query, args...)
+	if err != nil {
+		return fmt.Errorf("mekan durumu güncellenemedi: %w", err)
+	}
+	if result.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
 // Suspend — onaylı veya reddedilmiş mekanı tekrar pending durumuna alır.
+// TODO: dead code silebilirsin kullanmayacaksan buton olarak falan
 func (r *VenueRepo) Suspend(ctx context.Context, id, adminID string) error {
 	result, err := r.db.Exec(ctx,
 		`UPDATE venues
