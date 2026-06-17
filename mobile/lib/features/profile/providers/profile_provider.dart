@@ -70,6 +70,32 @@ class GuideApplicationNotifier extends Notifier<GuideApplicationState> {
       );
     }
   }
+
+  Future<void> applyWithoutCode() async {
+    state = state.copyWith(isLoading: true, error: null, isSuccess: false);
+    try {
+      final apiClient = ref.read(apiClientProvider);
+      await apiClient.post(
+        ApiEndpoints.guideApply,
+        data: {'terms_accepted': true},
+      );
+      // Kodsuz başvuru pending'e düşer; rol değişmez, auth tazelenmez.
+      state = state.copyWith(
+        isLoading: false,
+        isSuccess: true,
+        currentStatus: 'pending',
+      );
+    } catch (e) {
+      String errorMsg = 'Başvuru gönderilemedi. Lütfen tekrar deneyin.';
+      if (e.toString().contains('409')) {
+        errorMsg = 'Bekleyen bir başvurunuz zaten var.';
+      }
+      state = state.copyWith(
+        isLoading: false,
+        error: errorMsg,
+      );
+    }
+  }
 }
 
 final guideApplicationProvider =
