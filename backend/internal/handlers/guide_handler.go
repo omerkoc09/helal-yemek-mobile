@@ -3,6 +3,7 @@ package handlers
 import (
 	"errors"
 	"strings"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/omerkoc/caiz-mi/internal/models"
@@ -19,7 +20,9 @@ func NewGuideHandler(guideRepo *repository.GuideRepo, venueRepo *repository.Venu
 	return &GuideHandler{guideRepo: guideRepo, venueRepo: venueRepo, referralRepo: referralRepo}
 }
 
-// POST /guide/apply — Traveler geçerli referans kodu girerek anında Guide olur (otomatik onay).
+// POST /guide/apply — İki yol:
+//   1) referral_code doluysa: geçerli kodla anında Guide olur (otomatik onay).
+//   2) referral_code boşsa: terms_accepted ile admin onayına başvuru gönderir (pending).
 func (h *GuideHandler) Apply(c *fiber.Ctx) error {
 	userID, err := getUserID(c)
 	if err != nil {
@@ -32,15 +35,39 @@ func (h *GuideHandler) Apply(c *fiber.Ctx) error {
 	}
 
 	var body struct {
-		ReferralCode string `json:"referral_code"`
+		ReferralCode  string `json:"referral_code"`
+		TermsAccepted bool   `json:"terms_accepted"`
 	}
-	if err := c.BodyParser(&body); err != nil || strings.TrimSpace(body.ReferralCode) == "" {
-		return c.Status(400).JSON(fiber.Map{"error": "referans kodu gereklidir"})
+	if err := c.BodyParser(&body); err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": "geçersiz istek"})
 	}
-	body.ReferralCode = strings.ToUpper(strings.TrimSpace(body.ReferralCode))
+	code := strings.ToUpper(strings.TrimSpace(body.ReferralCode))
 
-	// Referans kodunu doğrula.
-	refCode, err := h.referralRepo.FindActiveByCode(c.Context(), body.ReferralCode)
+	// Yol 2: Kodsuz başvuru (admin onayına pending).
+	if code == "" {
+		if !body.TermsAccepted {
+			return c.Status(400).JSON(fiber.Map{"error": "rehberlik şartlarını kabul etmelisiniz"})
+		}
+		hasPending, err := h.guideRepo.HasPendingApplication(c.Context(), userID)
+		if err != nil {
+			return fiber.ErrInternalServerError
+		}
+		if hasPending {
+			return c.Status(409).JSON(fiber.Map{"error": "bekleyen bir başvurunuz zaten var"})
+		}
+		now := time.Now()
+		app := &models.GuideApplication{
+			UserID:          userID,
+			TermsAcceptedAt: &now,
+		}
+		if err := h.guideRepo.Create(c.Context(), app); err != nil {
+			return fiber.ErrInternalServerError
+		}
+		return c.Status(201).JSON(fiber.Map{"status": "pending"})
+	}
+
+	// Yol 1: Kodlu başvuru (anında guide).
+	refCode, err := h.referralRepo.FindActiveByCode(c.Context(), code)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
 			return c.Status(400).JSON(fiber.Map{"error": "geçersiz referans kodu"})
