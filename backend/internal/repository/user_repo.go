@@ -143,9 +143,21 @@ func (r *UserRepo) Delete(ctx context.Context, id string) error {
 // List — tüm kullanıcıları döndürür (admin kullanımı).
 func (r *UserRepo) List(ctx context.Context) ([]models.User, error) {
 	rows, err := r.db.Query(ctx,
-		`SELECT id, email, name, surname, phone, avatar_url, role, provider, is_active, created_at, updated_at
-		 FROM users
-		 ORDER BY created_at DESC`,
+		`SELECT u.id, u.email, u.name, u.surname, u.phone, u.avatar_url, u.role,
+		        u.provider, u.is_active, u.created_at, u.updated_at,
+		        ref.name AS referred_by_name,
+		        COALESCE(cnt.referral_count, 0) AS referral_count
+		 FROM users u
+		 LEFT JOIN guide_applications ga
+		        ON ga.user_id = u.id AND ga.status = 'approved'
+		 LEFT JOIN users ref ON ref.id = ga.referred_by
+		 LEFT JOIN (
+		     SELECT referred_by, COUNT(*) AS referral_count
+		     FROM guide_applications
+		     WHERE status = 'approved' AND referred_by IS NOT NULL
+		     GROUP BY referred_by
+		 ) cnt ON cnt.referred_by = u.id
+		 ORDER BY u.created_at DESC`,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("kullanıcı listesi sorgusu başarısız: %w", err)
@@ -158,6 +170,7 @@ func (r *UserRepo) List(ctx context.Context) ([]models.User, error) {
 		if err := rows.Scan(
 			&u.ID, &u.Email, &u.Name, &u.Surname, &u.Phone, &u.AvatarURL,
 			&u.Role, &u.Provider, &u.IsActive, &u.CreatedAt, &u.UpdatedAt,
+			&u.ReferredByName, &u.ReferralCount,
 		); err != nil {
 			return nil, err
 		}
