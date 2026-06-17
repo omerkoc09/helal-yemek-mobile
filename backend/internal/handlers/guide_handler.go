@@ -21,8 +21,8 @@ func NewGuideHandler(guideRepo *repository.GuideRepo, venueRepo *repository.Venu
 }
 
 // POST /guide/apply — İki yol:
-//   1) referral_code doluysa: geçerli kodla anında Guide olur (otomatik onay).
-//   2) referral_code boşsa: terms_accepted ile admin onayına başvuru gönderir (pending).
+//  1. referral_code doluysa: geçerli kodla anında Guide olur (otomatik onay).
+//  2. referral_code boşsa: terms_accepted ile admin onayına başvuru gönderir (pending).
 func (h *GuideHandler) Apply(c *fiber.Ctx) error {
 	userID, err := getUserID(c)
 	if err != nil {
