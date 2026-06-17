@@ -102,3 +102,41 @@ func TestRevokeByGuideID_NoActiveCode_NoError(t *testing.T) {
 		t.Fatalf("aktif kod yokken hata dönmemeli: %v", err)
 	}
 }
+
+func TestUserList_IncludesReferralColumns(t *testing.T) {
+	truncate(t)
+	ctx := context.Background()
+	refRepo := repository.NewReferralRepo(testPool)
+	userRepo := repository.NewUserRepo(testPool)
+
+	guideID := insertTestUser(t)
+	if _, err := refRepo.CreateCode(ctx, guideID); err != nil {
+		t.Fatalf("kod üretilemedi: %v", err)
+	}
+	travelerID := insertTraveler(t)
+	if err := refRepo.ApproveGuideTx(ctx, travelerID, guideID); err != nil {
+		t.Fatalf("ApproveGuideTx hata: %v", err)
+	}
+
+	users, err := userRepo.List(ctx)
+	if err != nil {
+		t.Fatalf("List hata: %v", err)
+	}
+
+	var travelerHasReferrer bool
+	var guideCount int
+	for _, u := range users {
+		if u.ID == travelerID && u.ReferredByName != nil {
+			travelerHasReferrer = true
+		}
+		if u.ID == guideID {
+			guideCount = u.ReferralCount
+		}
+	}
+	if !travelerHasReferrer {
+		t.Fatalf("yeni guide'ın getiren adı dolu olmalı")
+	}
+	if guideCount != 1 {
+		t.Fatalf("referrer'ın referral_count'u 1 olmalı, bulunan: %d", guideCount)
+	}
+}
