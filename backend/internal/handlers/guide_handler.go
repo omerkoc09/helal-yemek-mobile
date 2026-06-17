@@ -116,3 +116,23 @@ func (h *GuideHandler) MyReferralCode(c *fiber.Ctx) error {
 	}
 	return c.JSON(fiber.Map{"referral_code": rc.Code})
 }
+
+// GET /guide/my-application — Kullanıcının en güncel guide başvurusunu döndürür.
+// Başvuru yoksa 404. Mobil, açılışta pending/rejected durumunu göstermek için kullanır.
+func (h *GuideHandler) MyApplication(c *fiber.Ctx) error {
+	userID, err := getUserID(c)
+	if err != nil {
+		return err
+	}
+	app, err := h.guideRepo.FindLatestByUserID(c.Context(), userID)
+	if err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			return c.Status(404).JSON(fiber.Map{"error": "başvurunuz bulunmuyor"})
+		}
+		return fiber.ErrInternalServerError
+	}
+	return c.JSON(fiber.Map{
+		"status": app.Status,
+		"note":   app.Note,
+	})
+}
