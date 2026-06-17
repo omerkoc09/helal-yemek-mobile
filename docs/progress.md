@@ -34,6 +34,19 @@ birden fazla rehberin onaylamasıyla yeni rozet takdimi
 
 ## Tamamlanan İşler
 
+### Kodsuz Guide Başvurusu (Manuel Onay) — YENİ
+
+> 2026-06-17'de eklendi. Referans kodu olmayan traveler, "okudum-onaylıyorum" onayıyla admin'e başvuru gönderebiliyor; admin onaylayınca guide oluyor. Kodlu/otomatik onay yolu birincil, bu ikincil. Tasarım: `docs/superpowers/specs/2026-06-17-codeless-guide-application-design.md`.
+
+| Değişiklik | Durum | Detay |
+|-----------|-------|-------|
+| Migration 031 | ✅ | `guide_applications.terms_accepted_at` kolonu |
+| Apply iki yol | ✅ | `referral_code` boşsa `terms_accepted` zorunlu → pending başvuru (`GuideHandler.Apply`) |
+| Manuel onay | ✅ | `ApproveApplication`/`RejectApplication` yeniden aktif (rol guide + kod üretir) |
+| admin-panel | ✅ | Guide Başvuruları listesinde "BAŞVURU TARİHİ" kolonu |
+| Mobil | ✅ | "Referans kodum yok" formu (placeholder şartlar + onay kutusu); pending'de "inceleniyor" kartı |
+| Test | ✅ | Kodsuz başvuru kaydı integration testi |
+
 ### Referans Kodu v2: Çok Kullanımlı Kod + Otomatik Onay — YENİ
 
 > 2026-06-17'de eklendi. Referans kodu sistemi tek kullanımlık + otomatik yenilenen modelden, kalıcı + çok kullanımlı modele geçirildi ve admin onayı kaldırılıp otomatik onaya dönüştürüldü. Tasarım: `docs/superpowers/specs/2026-06-17-referral-auto-approve-design.md`.
