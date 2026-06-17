@@ -9,12 +9,14 @@ class GuideApplicationState {
   final String? error;
   final bool isSuccess;
   final String? currentStatus; // pending | approved | rejected | null
+  final String? note; // ret notu (rejected durumunda)
 
   const GuideApplicationState({
     this.isLoading = false,
     this.error,
     this.isSuccess = false,
     this.currentStatus,
+    this.note,
   });
 
   GuideApplicationState copyWith({
@@ -22,12 +24,14 @@ class GuideApplicationState {
     String? error,
     bool? isSuccess,
     String? currentStatus,
+    String? note,
   }) {
     return GuideApplicationState(
       isLoading: isLoading ?? this.isLoading,
       error: error,
       isSuccess: isSuccess ?? this.isSuccess,
       currentStatus: currentStatus ?? this.currentStatus,
+      note: note ?? this.note,
     );
   }
 }
@@ -94,6 +98,21 @@ class GuideApplicationNotifier extends Notifier<GuideApplicationState> {
         isLoading: false,
         error: errorMsg,
       );
+    }
+  }
+
+  // Açılışta mevcut başvuru durumunu backend'den çeker (kalıcı pending/rejected gösterimi için).
+  Future<void> fetchStatus() async {
+    try {
+      final apiClient = ref.read(apiClientProvider);
+      final res = await apiClient.get(ApiEndpoints.guideMyApplication);
+      final data = res.data as Map<String, dynamic>;
+      state = state.copyWith(
+        currentStatus: data['status'] as String?,
+        note: data['note'] as String?,
+      );
+    } catch (_) {
+      // 404 = başvuru yok; sessizce geç (normal form gösterilir).
     }
   }
 }
