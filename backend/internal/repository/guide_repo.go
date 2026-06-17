@@ -29,8 +29,9 @@ func (r *GuideRepo) HasPendingApplication(ctx context.Context, userID string) (b
 
 func (r *GuideRepo) Create(ctx context.Context, app *models.GuideApplication) error {
 	return r.db.QueryRow(ctx,
-		`INSERT INTO guide_applications (user_id, referred_by) VALUES ($1, $2) RETURNING id, created_at`,
-		app.UserID, app.ReferredBy,
+		`INSERT INTO guide_applications (user_id, referred_by, terms_accepted_at)
+		 VALUES ($1, $2, $3) RETURNING id, created_at`,
+		app.UserID, app.ReferredBy, app.TermsAcceptedAt,
 	).Scan(&app.ID, &app.CreatedAt)
 }
 
