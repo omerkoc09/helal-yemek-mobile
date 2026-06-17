@@ -46,6 +46,7 @@ birden fazla rehberin onaylamasıyla yeni rozet takdimi
 | admin-panel | ✅ | Guide Başvuruları listesinde "BAŞVURU TARİHİ" kolonu |
 | Mobil | ✅ | "Referans kodum yok" formu (placeholder şartlar + onay kutusu); pending'de "inceleniyor" kartı |
 | Test | ✅ | Kodsuz başvuru kaydı integration testi |
+| Durum kalıcılığı | ✅ | `GET /guide/my-application` ile açılışta pending/rejected durumu çekiliyor; rejected'da ret notu gösteriliyor |
 
 ### Referans Kodu v2: Çok Kullanımlı Kod + Otomatik Onay — YENİ
 
