@@ -211,6 +211,14 @@ class _GuideApplicationCard extends ConsumerStatefulWidget {
 
 class _GuideApplicationCardState extends ConsumerState<_GuideApplicationCard> {
   final _codeController = TextEditingController();
+  bool _showCodelessForm = false;
+  bool _termsAccepted = false;
+
+  // Placeholder bilgilendirme metni — gerçek rehberlik şartları ile değiştirilecek.
+  static const _termsText =
+      'Rehber olarak eklediğiniz mekanların helal kriterlerine uygunluğundan '
+      'siz sorumlusunuz. Doğru ve dürüst bilgi paylaşmayı, topluluk kurallarına '
+      'uymayı kabul ediyorsunuz. (Bu metin geçicidir.)';
 
   @override
   void dispose() {
@@ -221,6 +229,40 @@ class _GuideApplicationCardState extends ConsumerState<_GuideApplicationCard> {
   @override
   Widget build(BuildContext context) {
     final appState = ref.watch(guideApplicationProvider);
+
+    // Başvuru gönderildi (kodsuz akış pending) → inceleniyor kartı.
+    if (appState.currentStatus == 'pending' || appState.isSuccess) {
+      return Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              const Icon(Icons.hourglass_top, color: AppTheme.pinPending),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Rehber Başvurusu',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Başvurunuz inceleniyor.',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: AppTheme.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
     return Card(
       child: Padding(
@@ -292,6 +334,59 @@ class _GuideApplicationCardState extends ConsumerState<_GuideApplicationCard> {
                     : const Text('Başvur'),
               ),
             ),
+            const SizedBox(height: 8),
+            // Kodsuz başvuru yolu (ikincil).
+            if (!_showCodelessForm)
+              Align(
+                alignment: Alignment.center,
+                child: TextButton(
+                  onPressed: () => setState(() => _showCodelessForm = true),
+                  child: const Text('Referans kodum yok'),
+                ),
+              )
+            else ...[
+              const Divider(height: 24),
+              Text(
+                _termsText,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: AppTheme.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 8),
+              CheckboxListTile(
+                value: _termsAccepted,
+                onChanged: (v) => setState(() => _termsAccepted = v ?? false),
+                contentPadding: EdgeInsets.zero,
+                controlAffinity: ListTileControlAffinity.leading,
+                dense: true,
+                title: const Text(
+                  'Okudum, onaylıyorum',
+                  style: TextStyle(fontSize: 13),
+                ),
+              ),
+              const SizedBox(height: 4),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: appState.isLoading || !_termsAccepted
+                      ? null
+                      : () => ref
+                          .read(guideApplicationProvider.notifier)
+                          .applyWithoutCode(),
+                  child: appState.isLoading
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text('Admine Başvur'),
+                ),
+              ),
+            ],
           ],
         ),
       ),
