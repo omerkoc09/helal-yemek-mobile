@@ -24,4 +24,7 @@ type User struct {
 	IsActive     bool      `json:"is_active"`
 	CreatedAt    time.Time `json:"created_at"`
 	UpdatedAt    time.Time `json:"updated_at"`
+	// Admin Kullanıcılar listesi için türetilmiş alanlar (DB kolonu değil).
+	ReferredByName *string `json:"referred_by_name,omitempty"`
+	ReferralCount  int     `json:"referral_count"`
 }
