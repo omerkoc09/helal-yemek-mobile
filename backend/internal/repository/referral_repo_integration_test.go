@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/omerkoc/caiz-mi/internal/models"
 	"github.com/omerkoc/caiz-mi/internal/repository"
 )
 
@@ -138,5 +139,52 @@ func TestUserList_IncludesReferralColumns(t *testing.T) {
 	}
 	if guideCount != 1 {
 		t.Fatalf("referrer'ın referral_count'u 1 olmalı, bulunan: %d", guideCount)
+	}
+}
+
+func TestGuideRepoCreate_CodelessApplication(t *testing.T) {
+	truncate(t)
+	ctx := context.Background()
+	guideRepo := repository.NewGuideRepo(testPool)
+
+	travelerID := insertTraveler(t)
+	now := time.Now()
+	app := &models.GuideApplication{
+		UserID:          travelerID,
+		TermsAcceptedAt: &now,
+	}
+	if err := guideRepo.Create(ctx, app); err != nil {
+		t.Fatalf("Create hata: %v", err)
+	}
+	if app.ID == "" {
+		t.Fatalf("başvuru id boş")
+	}
+
+	// pending durumda, referred_by NULL, terms_accepted_at dolu olmalı.
+	var status string
+	var referredBy *string
+	var termsAcceptedAt *time.Time
+	if err := testPool.QueryRow(ctx,
+		`SELECT status, referred_by, terms_accepted_at FROM guide_applications WHERE id = $1`, app.ID,
+	).Scan(&status, &referredBy, &termsAcceptedAt); err != nil {
+		t.Fatalf("sorgu hata: %v", err)
+	}
+	if status != "pending" {
+		t.Fatalf("status pending olmalı, bulunan: %s", status)
+	}
+	if referredBy != nil {
+		t.Fatalf("referred_by NULL olmalı, bulunan: %v", *referredBy)
+	}
+	if termsAcceptedAt == nil {
+		t.Fatalf("terms_accepted_at dolu olmalı")
+	}
+
+	// HasPendingApplication true dönmeli.
+	has, err := guideRepo.HasPendingApplication(ctx, travelerID)
+	if err != nil {
+		t.Fatalf("HasPendingApplication hata: %v", err)
+	}
+	if !has {
+		t.Fatalf("bekleyen başvuru true olmalı")
 	}
 }
