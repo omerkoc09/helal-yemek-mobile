@@ -288,9 +288,7 @@ func (h *AdminHandler) ListApplications(c *fiber.Ctx) error {
 	return c.JSON(list)
 }
 
-// PUT /admin/applications/:id/approve
-// DEVRE DIŞI: Referans kodu ile otomatik onay aktif (bkz. GuideHandler.Apply).
-// Bu handler ve route'u geri dönüş kolaylığı için duruyor; yeni akışa bağlı değil.
+// PUT /admin/applications/:id/approve — Kodsuz başvuruyu onaylar: rolü guide yapar + ilk kodu üretir.
 func (h *AdminHandler) ApproveApplication(c *fiber.Ctx) error {
 	id := c.Params("id")
 	adminID, err := getUserID(c)
@@ -327,8 +325,7 @@ func (h *AdminHandler) ApproveApplication(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"status": "approved"})
 }
 
-// PUT /admin/applications/:id/reject
-// DEVRE DIŞI: Otomatik onay aktif; bu handler kullanılmıyor (geri dönüş için duruyor).
+// PUT /admin/applications/:id/reject — Kodsuz başvuruyu reddeder.
 // Body: {"note": "..."}
 func (h *AdminHandler) RejectApplication(c *fiber.Ctx) error {
 	id := c.Params("id")
