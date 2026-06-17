@@ -34,6 +34,21 @@ birden fazla rehberin onaylamasıyla yeni rozet takdimi
 
 ## Tamamlanan İşler
 
+### Referans Kodu v2: Çok Kullanımlı Kod + Otomatik Onay — YENİ
+
+> 2026-06-17'de eklendi. Referans kodu sistemi tek kullanımlık + otomatik yenilenen modelden, kalıcı + çok kullanımlı modele geçirildi ve admin onayı kaldırılıp otomatik onaya dönüştürüldü. Tasarım: `docs/superpowers/specs/2026-06-17-referral-auto-approve-design.md`.
+
+| Değişiklik | Durum | Detay |
+|-----------|-------|-------|
+| Migration 029 | ✅ | `referral_codes` tablosundan `used_by`/`used_at` kaldırıldı; kodlar kalıcı/çok kullanımlı |
+| Otomatik onay | ✅ | Geçerli kod giren traveler admin onayı olmadan anında guide oluyor (`GuideHandler.Apply` → `ReferralRepo.ApproveGuideTx`, tek transaction) |
+| Self-referral guard | ✅ | Kullanıcı kendi kodunu kullanamaz (400) |
+| Demote'ta iptal | ✅ | Admin bir guide'ı başka role düşürürse aktif kodu `revoked` oluyor (`UpdateUser` → `RevokeByGuideID`) |
+| Admin takip | ✅ | Kullanıcılar sayfasına "GETİREN" + "GETİRDİĞİ" kolonları (`UserRepo.List` join'leri) |
+| Eski onay akışı | ✅ | Manuel approve/reject endpoint'leri geri dönüş için duruyor ama devre dışı işaretlendi |
+| Mobil | ✅ | Apply başarısında `/auth/me` ile rol tazeleniyor, "inceleniyor" kartı kaldırıldı |
+| Testler | ✅ | `ApproveGuideTx`, `RevokeByGuideID`, kullanıcı listesi kolonları için integration testleri (testcontainers) |
+
 ### Web Admin Paneli (Vue 3 + Vuetify) — YENİ
 
 > 2026-06-12'de eklendi. Mobil uygulamadaki admin ekranları yerine, ayrı bir web tabanlı yönetim paneli. `admin-panel/` klasöründe, caiz_mi Fiber backend'ine (`/api/v1`) bağlanır, mobil ile aynı veritabanını kullanır. Sadece `admin` rolüne açıktır.
