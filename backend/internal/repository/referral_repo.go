@@ -41,30 +41,14 @@ func generateCode() (string, error) {
 func (r *ReferralRepo) FindActiveByCode(ctx context.Context, code string) (*models.ReferralCode, error) {
 	rc := &models.ReferralCode{}
 	err := r.db.QueryRow(ctx,
-		`SELECT id, guide_id, code, status, used_by, used_at, created_at
+		`SELECT id, guide_id, code, status, created_at
 		 FROM referral_codes WHERE code = $1 AND status = 'active'`,
 		code,
-	).Scan(&rc.ID, &rc.GuideID, &rc.Code, &rc.Status, &rc.UsedBy, &rc.UsedAt, &rc.CreatedAt)
+	).Scan(&rc.ID, &rc.GuideID, &rc.Code, &rc.Status, &rc.CreatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
 	}
 	return rc, err
-}
-
-// UseCode — referans kodunu kullanılmış olarak işaretler.
-func (r *ReferralRepo) UseCode(ctx context.Context, codeID, usedByUserID string) error {
-	result, err := r.db.Exec(ctx,
-		`UPDATE referral_codes SET status = 'used', used_by = $1, used_at = NOW()
-		 WHERE id = $2 AND status = 'active'`,
-		usedByUserID, codeID,
-	)
-	if err != nil {
-		return err
-	}
-	if result.RowsAffected() == 0 {
-		return ErrNotFound
-	}
-	return nil
 }
 
 // CreateCode — guide için yeni aktif referans kodu üretir.
@@ -97,14 +81,77 @@ func (r *ReferralRepo) CreateCode(ctx context.Context, guideID string) (*models.
 	return nil, fmt.Errorf("referans kodu üretilemedi: %d deneme sonrası benzersiz kod bulunamadı", maxRetries)
 }
 
+// ApproveGuideTx — referans kodu ile başvuran kullanıcıyı tek transaction içinde
+// guide'a yükseltir: guide_applications'a approved kayıt yazar, rolü günceller ve
+// yeni guide'a kalıcı referans kodunu üretir. Hepsi atomiktir.
+func (r *ReferralRepo) ApproveGuideTx(ctx context.Context, userID, referrerGuideID string) error {
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx) //nolint
+
+	// 1. Onaylı başvuru kaydı (davet kayıt defteri).
+	if _, err := tx.Exec(ctx,
+		`INSERT INTO guide_applications (user_id, status, referred_by, reviewed_at)
+		 VALUES ($1, 'approved', $2, NOW())`,
+		userID, referrerGuideID,
+	); err != nil {
+		return fmt.Errorf("başvuru kaydı eklenemedi: %w", err)
+	}
+
+	// 2. Rolü guide'a yükselt.
+	res, err := tx.Exec(ctx,
+		`UPDATE users SET role = 'guide', updated_at = NOW() WHERE id = $1`,
+		userID,
+	)
+	if err != nil {
+		return fmt.Errorf("rol güncellenemedi: %w", err)
+	}
+	if res.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+
+	// 3. Yeni guide'a kalıcı referans kodu üret (unique çakışmada yeniden dene).
+	const maxRetries = 5
+	for i := 0; i < maxRetries; i++ {
+		code, err := generateCode()
+		if err != nil {
+			return err
+		}
+		_, err = tx.Exec(ctx,
+			`INSERT INTO referral_codes (guide_id, code) VALUES ($1, $2)`,
+			userID, code,
+		)
+		if err == nil {
+			return tx.Commit(ctx)
+		}
+		if strings.Contains(err.Error(), "duplicate key") || strings.Contains(err.Error(), "unique") {
+			continue
+		}
+		return err
+	}
+	return fmt.Errorf("referans kodu üretilemedi: %d deneme sonrası benzersiz kod bulunamadı", maxRetries)
+}
+
+// RevokeByGuideID — guide demote edildiğinde aktif referans kodunu iptal eder.
+// Aktif kod yoksa sessizce geçer (idempotent).
+func (r *ReferralRepo) RevokeByGuideID(ctx context.Context, guideID string) error {
+	_, err := r.db.Exec(ctx,
+		`UPDATE referral_codes SET status = 'revoked' WHERE guide_id = $1 AND status = 'active'`,
+		guideID,
+	)
+	return err
+}
+
 // GetActiveByGuideID — guide'ın aktif referans kodunu getirir.
 func (r *ReferralRepo) GetActiveByGuideID(ctx context.Context, guideID string) (*models.ReferralCode, error) {
 	rc := &models.ReferralCode{}
 	err := r.db.QueryRow(ctx,
-		`SELECT id, guide_id, code, status, used_by, used_at, created_at
+		`SELECT id, guide_id, code, status, created_at
 		 FROM referral_codes WHERE guide_id = $1 AND status = 'active'`,
 		guideID,
-	).Scan(&rc.ID, &rc.GuideID, &rc.Code, &rc.Status, &rc.UsedBy, &rc.UsedAt, &rc.CreatedAt)
+	).Scan(&rc.ID, &rc.GuideID, &rc.Code, &rc.Status, &rc.CreatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
 	}
