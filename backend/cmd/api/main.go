@@ -217,6 +217,7 @@ func main() {
 	// Guide endpoint'leri
 	guide := api.Group("/guide", middleware.Auth(cfg.JWTSecret))
 	guide.Post("/apply", guideHandler.Apply)
+	guide.Get("/my-application", guideHandler.MyApplication)
 	guide.Get("/my-venues",
 		middleware.RequireRole("guide", "admin"),
 		guideHandler.MyVenues,
