@@ -65,6 +65,11 @@ func truncate(t *testing.T) {
 	if _, err := testPool.Exec(ctx, "TRUNCATE TABLE venues CASCADE"); err != nil {
 		t.Fatalf("venues truncate hatası: %v", err)
 	}
+	// users(id)'ye FK ile bağlı tablolar (referral_codes, guide_applications)
+	// CASCADE içermediği için kullanıcıları silmeden önce temizlenmeli.
+	if _, err := testPool.Exec(ctx, "TRUNCATE TABLE referral_codes, guide_applications CASCADE"); err != nil {
+		t.Fatalf("referral/başvuru temizleme hatası: %v", err)
+	}
 	if _, err := testPool.Exec(ctx, "DELETE FROM users WHERE email LIKE 'test-%@example.com'"); err != nil {
 		t.Fatalf("users temizleme hatası: %v", err)
 	}
