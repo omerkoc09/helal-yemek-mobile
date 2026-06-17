@@ -222,40 +222,6 @@ class _GuideApplicationCardState extends ConsumerState<_GuideApplicationCard> {
   Widget build(BuildContext context) {
     final appState = ref.watch(guideApplicationProvider);
 
-    // Başvuru zaten gönderildi
-    if (appState.currentStatus == 'pending' || appState.isSuccess) {
-      return Card(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              const Icon(Icons.hourglass_top, color: AppTheme.pinPending),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Rehber Başvurusu',
-                      style: TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Başvurunuz inceleniyor.',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: AppTheme.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),

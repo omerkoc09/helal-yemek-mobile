@@ -44,15 +44,25 @@ class GuideApplicationNotifier extends Notifier<GuideApplicationState> {
         ApiEndpoints.guideApply,
         data: {'referral_code': referralCode},
       );
+
+      // Otomatik onay: kullanıcı artık guide. Auth state'i tazele ki UI güncellensin.
+      try {
+        final me = await apiClient.get(ApiEndpoints.me);
+        final user = User.fromJson(me.data as Map<String, dynamic>);
+        ref.read(authProvider.notifier).updateUser(user);
+      } catch (_) {
+        // Rol tazelenemese bile başvuru başarılı; kullanıcı tekrar girince güncellenir.
+      }
+
       state = state.copyWith(
         isLoading: false,
         isSuccess: true,
-        currentStatus: 'pending',
+        currentStatus: 'approved',
       );
     } catch (e) {
-      String errorMsg = 'Başvuru gönderilemedi. Lütfen tekrar deneyin.';
+      String errorMsg = 'İşlem başarısız. Lütfen tekrar deneyin.';
       if (e.toString().contains('400')) {
-        errorMsg = 'Geçersiz veya kullanılmış referans kodu.';
+        errorMsg = 'Geçersiz referans kodu.';
       }
       state = state.copyWith(
         isLoading: false,
