@@ -289,6 +289,8 @@ func (h *AdminHandler) ListApplications(c *fiber.Ctx) error {
 }
 
 // PUT /admin/applications/:id/approve
+// DEVRE DIŞI: Referans kodu ile otomatik onay aktif (bkz. GuideHandler.Apply).
+// Bu handler ve route'u geri dönüş kolaylığı için duruyor; yeni akışa bağlı değil.
 func (h *AdminHandler) ApproveApplication(c *fiber.Ctx) error {
 	id := c.Params("id")
 	adminID, err := getUserID(c)
@@ -326,6 +328,7 @@ func (h *AdminHandler) ApproveApplication(c *fiber.Ctx) error {
 }
 
 // PUT /admin/applications/:id/reject
+// DEVRE DIŞI: Otomatik onay aktif; bu handler kullanılmıyor (geri dönüş için duruyor).
 // Body: {"note": "..."}
 func (h *AdminHandler) RejectApplication(c *fiber.Ctx) error {
 	id := c.Params("id")
@@ -392,12 +395,26 @@ func (h *AdminHandler) UpdateUser(c *fiber.Ctx) error {
 		return fiber.ErrBadRequest
 	}
 
+	// Demote tespiti için mevcut rolü oku.
+	// Okuma başarısız olursa prevRole boş kalır ve revoke atlanır (idempotent, güvenli).
+	var prevRole models.Role
+	if existing, ferr := h.userRepo.FindByID(c.Context(), id); ferr == nil {
+		prevRole = existing.Role
+	}
+
 	if err := h.userRepo.Update(c.Context(), id, req.Name, req.Surname, req.Phone, req.Email, req.Role, req.IsActive); err != nil {
 		log.Printf("[ADMIN] UpdateUser repo error for id=%s: %v", id, err)
 		if errors.Is(err, repository.ErrNotFound) {
 			return fiber.ErrNotFound
 		}
 		return fiber.ErrInternalServerError
+	}
+
+	// Guide'dan başka role düşürülüyorsa aktif referans kodunu iptal et.
+	if prevRole == models.RoleGuide && req.Role != nil && *req.Role != models.RoleGuide {
+		if rerr := h.referralRepo.RevokeByGuideID(c.Context(), id); rerr != nil {
+			log.Printf("[ADMIN] referans kodu iptal hatası user=%s: %v", id, rerr)
+		}
 	}
 
 	h.writeAuditLog(c, "update_user", "user", id, nil)
