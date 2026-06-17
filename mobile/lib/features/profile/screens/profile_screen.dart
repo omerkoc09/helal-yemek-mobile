@@ -221,6 +221,14 @@ class _GuideApplicationCardState extends ConsumerState<_GuideApplicationCard> {
       'uymayı kabul ediyorsunuz. (Bu metin geçicidir.)';
 
   @override
+  void initState() {
+    super.initState();
+    // Açılışta mevcut başvuru durumunu çek (kalıcı pending/rejected gösterimi).
+    Future.microtask(
+        () => ref.read(guideApplicationProvider.notifier).fetchStatus());
+  }
+
+  @override
   void dispose() {
     _codeController.dispose();
     super.dispose();
@@ -283,6 +291,34 @@ class _GuideApplicationCardState extends ConsumerState<_GuideApplicationCard> {
                 ),
               ],
             ),
+            // Önceki başvuru reddedildiyse bilgilendir (tekrar başvurabilir).
+            if (appState.currentStatus == 'rejected') ...[
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppTheme.error.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.info_outline,
+                        color: AppTheme.error, size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        appState.note != null && appState.note!.isNotEmpty
+                            ? 'Önceki başvurunuz reddedildi: ${appState.note}'
+                            : 'Önceki başvurunuz reddedildi. Tekrar başvurabilirsiniz.',
+                        style: const TextStyle(
+                            fontSize: 12, color: AppTheme.error),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
             const SizedBox(height: 8),
             const Text(
               'Rehber olarak helal mekanlar ekleyebilir ve topluluğa katkıda bulunabilirsiniz. Başvurmak için bir rehberden aldığınız referans kodunu girin.',
