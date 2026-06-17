@@ -82,6 +82,24 @@ func (r *GuideRepo) FindByID(ctx context.Context, id string) (*models.GuideAppli
 	return app, err
 }
 
+// FindLatestByUserID — kullanıcının en güncel guide başvurusunu döner (yoksa ErrNotFound).
+func (r *GuideRepo) FindLatestByUserID(ctx context.Context, userID string) (*models.GuideApplication, error) {
+	app := &models.GuideApplication{}
+	err := r.db.QueryRow(ctx,
+		`SELECT id, user_id, status, note, reviewed_by, reviewed_at, referred_by, terms_accepted_at, created_at
+		 FROM guide_applications
+		 WHERE user_id = $1
+		 ORDER BY created_at DESC
+		 LIMIT 1`,
+		userID,
+	).Scan(&app.ID, &app.UserID, &app.Status, &app.Note, &app.ReviewedBy, &app.ReviewedAt,
+		&app.ReferredBy, &app.TermsAcceptedAt, &app.CreatedAt)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, ErrNotFound
+	}
+	return app, err
+}
+
 // UpdateStatus — başvurunun durumunu günceller (admin işlemi).
 func (r *GuideRepo) UpdateStatus(ctx context.Context, id, adminID string, status models.ApplicationStatus, note *string) error {
 	result, err := r.db.Exec(ctx,
