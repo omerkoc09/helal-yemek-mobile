@@ -12,7 +12,7 @@ const columns: ITableColumn[] = [
   { key: 'user_name', name: 'KULLANICI', sortable: true },
   { key: 'user_email', name: 'E-POSTA', sortable: true },
   { key: 'status', name: 'DURUM', sortable: true },
-  { key: 'created_at', name: 'TARİH', sortable: true, type: 'datetime' },
+  { key: 'created_at', name: 'BAŞVURU TARİHİ', sortable: true, type: 'datetime' },
 ]
 
 async function action(url: string, row: any, confirmText: string) {
