@@ -19,7 +19,7 @@ func NewGuideHandler(guideRepo *repository.GuideRepo, venueRepo *repository.Venu
 	return &GuideHandler{guideRepo: guideRepo, venueRepo: venueRepo, referralRepo: referralRepo}
 }
 
-// POST /guide/apply — Traveler → Guide başvurusu gönderir.
+// POST /guide/apply — Traveler geçerli referans kodu girerek anında Guide olur (otomatik onay).
 func (h *GuideHandler) Apply(c *fiber.Ctx) error {
 	userID, err := getUserID(c)
 	if err != nil {
@@ -39,43 +39,26 @@ func (h *GuideHandler) Apply(c *fiber.Ctx) error {
 	}
 	body.ReferralCode = strings.ToUpper(strings.TrimSpace(body.ReferralCode))
 
-	// Referans kodunu doğrula
+	// Referans kodunu doğrula.
 	refCode, err := h.referralRepo.FindActiveByCode(c.Context(), body.ReferralCode)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return c.Status(400).JSON(fiber.Map{"error": "geçersiz veya kullanılmış referans kodu"})
+			return c.Status(400).JSON(fiber.Map{"error": "geçersiz referans kodu"})
 		}
 		return fiber.ErrInternalServerError
 	}
 
-	hasPending, err := h.guideRepo.HasPendingApplication(c.Context(), userID)
-	if err != nil {
-		return fiber.ErrInternalServerError
-	}
-	if hasPending {
-		return c.Status(409).JSON(fiber.Map{"error": "bekleyen bir başvurunuz zaten var"})
+	// Kendi kodunu kullanamaz (guardrail).
+	if refCode.GuideID == userID {
+		return c.Status(400).JSON(fiber.Map{"error": "kendi referans kodunuzu kullanamazsınız"})
 	}
 
-	app := &models.GuideApplication{
-		UserID:     userID,
-		Status:     models.ApplicationStatusPending,
-		ReferredBy: &refCode.GuideID,
-	}
-	if err := h.guideRepo.Create(c.Context(), app); err != nil {
+	// Tek transaction: başvuru kaydı + rol yükseltme + yeni kod üretimi.
+	if err := h.referralRepo.ApproveGuideTx(c.Context(), userID, refCode.GuideID); err != nil {
 		return fiber.ErrInternalServerError
 	}
 
-	// Kodu kullanılmış olarak işaretle
-	if err := h.referralRepo.UseCode(c.Context(), refCode.ID, userID); err != nil {
-		return fiber.ErrInternalServerError
-	}
-
-	// Guide'a yeni aktif kod üret
-	if _, err := h.referralRepo.CreateCode(c.Context(), refCode.GuideID); err != nil {
-		return fiber.ErrInternalServerError
-	}
-
-	return c.Status(201).JSON(app)
+	return c.Status(201).JSON(fiber.Map{"status": "approved", "role": "guide"})
 }
 
 // GET /guide/my-venues — Guide'ın kendi eklediği mekanları listeler.
