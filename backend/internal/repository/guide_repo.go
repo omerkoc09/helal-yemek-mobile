@@ -17,6 +17,18 @@ func NewGuideRepo(db *pgxpool.Pool) *GuideRepo {
 	return &GuideRepo{db: db}
 }
 
+// CancelOpenByUserID — kullanıcının açık (pending/approved) guide başvurularını
+// 'cancelled' yapar. Demote sırasında çağrılır; etkilenen kayıt yoksa sessizce geçer.
+func (r *GuideRepo) CancelOpenByUserID(ctx context.Context, userID string) error {
+	_, err := r.db.Exec(ctx,
+		`UPDATE guide_applications
+		 SET status = 'cancelled'
+		 WHERE user_id = $1 AND status IN ('pending', 'approved')`,
+		userID,
+	)
+	return err
+}
+
 // HasPendingApplication — kullanıcının bekleyen başvurusu var mı kontrol eder.
 func (r *GuideRepo) HasPendingApplication(ctx context.Context, userID string) (bool, error) {
 	var exists bool

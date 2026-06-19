@@ -407,10 +407,14 @@ func (h *AdminHandler) UpdateUser(c *fiber.Ctx) error {
 		return fiber.ErrInternalServerError
 	}
 
-	// Guide'dan başka role düşürülüyorsa aktif referans kodunu iptal et.
+	// Guide'dan başka role düşürülüyorsa aktif referans kodunu iptal et
+	// ve açık guide başvurularını kapat (kullanıcı yeniden başvurabilsin).
 	if prevRole == models.RoleGuide && req.Role != nil && *req.Role != models.RoleGuide {
 		if rerr := h.referralRepo.RevokeByGuideID(c.Context(), id); rerr != nil {
 			log.Printf("[ADMIN] referans kodu iptal hatası user=%s: %v", id, rerr)
+		}
+		if cerr := h.guideRepo.CancelOpenByUserID(c.Context(), id); cerr != nil {
+			log.Printf("[ADMIN] başvuru kapatma hatası user=%s: %v", id, cerr)
 		}
 	}
 

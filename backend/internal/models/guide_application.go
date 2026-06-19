@@ -5,9 +5,10 @@ import "time"
 type ApplicationStatus string
 
 const (
-	ApplicationStatusPending  ApplicationStatus = "pending"
-	ApplicationStatusApproved ApplicationStatus = "approved"
-	ApplicationStatusRejected ApplicationStatus = "rejected"
+	ApplicationStatusPending   ApplicationStatus = "pending"
+	ApplicationStatusApproved  ApplicationStatus = "approved"
+	ApplicationStatusRejected  ApplicationStatus = "rejected"
+	ApplicationStatusCancelled ApplicationStatus = "cancelled"
 )
 
 type GuideApplication struct {
