@@ -26,13 +26,34 @@ smtp env yi doldur.
 
 mekan puanlamasını çeşitlendirme?
 
-kullanıcının şehrine veya yakınına yeni mekan eklenirse bildirim?
+kullanıcının şehrine veya yakınına yeni mekan eklenirse bildirim? uygulama arka planda konum çekmeye devam edecek mi?
 
-yeni rehber olma yolu: direkt admine talep gönderme küçük bir başvuru formu doldurarak.
 
 birden fazla rehberin onaylamasıyla yeni rozet takdimi 
 
+mobil:
+-profili düzenle zenginleştirilecek.
+-yorumların anonimliği kaldırılacak.
+-seyyahın rehberliği onaylanınca uygulamadan çıkıp  geri girmesi gerekiyor? (bildirim atılabilir)
+-status rehber->seyyah yapınca rehber başvurunuz inceleniyor sayfası geliyor ama tekrar bir guide başvurusu yapılmıyor otomatik olarak.
+- status -> admin yapılırsa uygulama nasıl tepki verir ileride mobil admin paneli kaldırdığımızda?
+
+
+
 ## Tamamlanan İşler
+
+### Mobil Admin Panelinin Kaldırılması — YENİ
+
+> 2026-06-19'da yapıldı. Admin paneli web'e taşındığı için mobildeki çift/ölü admin kodu kaldırıldı. Yukarıdaki "status -> admin yapılırsa uygulama nasıl tepki verir" sorusunun cevabı: **admin rehber (guide) gibi davranır** — login sonrası home'a gider, profilde guide menüleri görünür, admin'e özel ekran yoktur. `isAdmin` rol bilgisi backend ile tutarlılık için korundu. Tasarım: `docs/superpowers/specs/2026-06-19-mobil-admin-panel-kaldirma-design.md`.
+
+| Değişiklik | Durum | Detay |
+|-----------|-------|-------|
+| Admin feature | ✅ | `mobile/lib/features/admin/` tamamen silindi (8 provider, 9 screen, 1 widget, 1 util) |
+| audit_log modeli | ✅ | `core/models/audit_log.dart` (+ `.g`/`.freezed`) silindi (sadece admin kullanıyordu) |
+| Router | ✅ | 9 admin import/route/GoRoute silindi; login redirect home'a sabitlendi; `/admin` guard kaldırıldı |
+| Profil | ✅ | "Admin Paneli" menü öğesi silindi (guide menüleri `isGuide \|\| isAdmin` korundu) |
+| API endpoints | ✅ | ~16 admin endpoint sabiti silindi |
+| Doğrulama | ✅ | `flutter analyze` admin'e dair sıfır hata (kalan 20 uyarı kapsam dışı, önceden vardı) |
 
 ### Kodsuz Guide Başvurusu (Manuel Onay) — YENİ
 

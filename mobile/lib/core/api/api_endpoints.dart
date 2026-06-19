@@ -35,24 +35,6 @@ class ApiEndpoints {
   static const String guideMyReferralCode = '/guide/my-referral-code';
   static const String guideMyApplication = '/guide/my-application';
 
-  // Admin
-  static const String adminVenues = '/admin/venues';
-  static const String adminPendingVenues = '/admin/venues/pending';
-  static String adminVenue(String id) => '/admin/venues/$id';
-  static String adminApproveVenue(String id) => '/admin/venues/$id/approve';
-  static String adminRejectVenue(String id) => '/admin/venues/$id/reject';
-  static const String adminApplications = '/admin/applications';
-  static String adminApproveApplication(String id) =>
-      '/admin/applications/$id/approve';
-  static String adminRejectApplication(String id) =>
-      '/admin/applications/$id/reject';
-  static const String adminAuditLogs = '/admin/audit-logs';
-  static const String adminVenueReports = '/admin/venue-reports';
-  static String adminResolveVenueReport(String id) =>
-      '/admin/venue-reports/$id/resolve';
-  static const String adminUsers = '/admin/users';
-  static String adminUser(String id) => '/admin/users/$id';
-
   // Home feed
   static const String venuesNearby = '/venues/nearby';
   static const String venuesPopular = '/venues/popular';
@@ -72,10 +54,6 @@ class ApiEndpoints {
 
   // Venue verify
   static String venueVerify(String id) => '/venues/$id/verify';
-
-  // Admin verification logs
-  static const String adminVerificationLogs = '/admin/verification-logs';
-  static String adminReactivateVenue(String id) => '/admin/venues/$id/reactivate';
 
   // Misc
   static const String criteria = '/criteria';
