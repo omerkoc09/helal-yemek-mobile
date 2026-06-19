@@ -62,17 +62,6 @@ class ProfileScreen extends ConsumerWidget {
             const SizedBox(height: 8),
           ],
 
-          // Admin menü öğeleri
-          if (user.isAdmin) ...[
-            _MenuTile(
-              icon: Icons.admin_panel_settings_outlined,
-              title: 'Admin Paneli',
-              subtitle: 'Yönetim işlemlerini gerçekleştirin',
-              onTap: () => context.push(AppRoutes.adminDashboard),
-            ),
-            const SizedBox(height: 8),
-          ],
-
           const SizedBox(height: 16),
           const Divider(),
           const SizedBox(height: 16),

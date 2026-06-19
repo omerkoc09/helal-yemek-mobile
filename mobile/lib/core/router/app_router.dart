@@ -18,15 +18,6 @@ import '../../features/venue/screens/city_venues_screen.dart';
 import '../../features/guide/screens/add_venue_screen.dart';
 import '../../features/guide/screens/my_venues_screen.dart';
 import '../../features/guide/screens/edit_venue_screen.dart';
-import '../../features/admin/screens/admin_dashboard_screen.dart';
-import '../../features/admin/screens/pending_venues_screen.dart';
-import '../../features/admin/screens/venue_review_screen.dart';
-import '../../features/admin/screens/guide_applications_screen.dart';
-import '../../features/admin/screens/all_venues_screen.dart';
-import '../../features/admin/screens/audit_log_screen.dart';
-import '../../features/admin/screens/users_screen.dart';
-import '../../features/admin/screens/venue_reports_screen.dart';
-import '../../features/admin/screens/verification_logs_screen.dart';
 import '../../features/home/screens/home_screen.dart';
 import '../../features/home/screens/all_venues_screen.dart' as home;
 import '../../features/home/screens/venue_filter_screen.dart';
@@ -57,15 +48,6 @@ class AppRoutes {
   static const String myVenues = '/my-venues';
   static const String editVenue = '/venue/:id/edit';
   static const String allVenues = '/venues/all';
-  static const String adminDashboard = '/admin';
-  static const String adminPendingVenues = '/admin/pending-venues';
-  static const String adminVenueReview = '/admin/venue/:id';
-  static const String adminApplications = '/admin/applications';
-  static const String adminAllVenues = '/admin/all-venues';
-  static const String adminAuditLog = '/admin/audit-log';
-  static const String adminUsers = '/admin/users';
-  static const String adminVenueReports = '/admin/venue-reports';
-  static const String adminVerificationLogs = '/admin/verification-logs';
   static const String venueFilter = '/venues/filter';
   static const String venueFilterCuisines = '/venues/filter/cuisines';
   static const String venueFiltered = '/venues/filtered';
@@ -97,11 +79,6 @@ final routerProvider = Provider<GoRouter>((ref) {
       }
 
       if (isAuthenticated && (isAuthRoute || isSplash)) {
-        return authState.isAdmin ? AppRoutes.adminDashboard : AppRoutes.home;
-      }
-
-      final isAdminRoute = state.matchedLocation.startsWith('/admin');
-      if (isAdminRoute && !authState.isAdmin) {
         return AppRoutes.home;
       }
 
@@ -244,47 +221,6 @@ final routerProvider = Provider<GoRouter>((ref) {
           final id = state.pathParameters['id']!;
           return EditVenueScreen(venueId: id);
         },
-      ),
-
-      // Admin
-      GoRoute(
-        path: AppRoutes.adminDashboard,
-        builder: (context, state) => const AdminDashboardScreen(),
-      ),
-      GoRoute(
-        path: AppRoutes.adminAllVenues,
-        builder: (context, state) => const AllVenuesScreen(),
-      ),
-      GoRoute(
-        path: AppRoutes.adminPendingVenues,
-        builder: (context, state) => const PendingVenuesScreen(),
-      ),
-      GoRoute(
-        path: AppRoutes.adminVenueReview,
-        builder: (context, state) {
-          final id = state.pathParameters['id']!;
-          return VenueReviewScreen(venueId: id);
-        },
-      ),
-      GoRoute(
-        path: AppRoutes.adminApplications,
-        builder: (context, state) => const GuideApplicationsScreen(),
-      ),
-      GoRoute(
-        path: AppRoutes.adminAuditLog,
-        builder: (context, state) => const AuditLogScreen(),
-      ),
-      GoRoute(
-        path: AppRoutes.adminUsers,
-        builder: (context, state) => const UsersScreen(),
-      ),
-      GoRoute(
-        path: AppRoutes.adminVenueReports,
-        builder: (context, state) => const VenueReportsScreen(),
-      ),
-      GoRoute(
-        path: AppRoutes.adminVerificationLogs,
-        builder: (context, state) => const VerificationLogsScreen(),
       ),
 
       // Notifications
