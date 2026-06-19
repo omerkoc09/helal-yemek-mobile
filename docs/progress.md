@@ -1,6 +1,6 @@
 # Caiz mi? — Proje İlerleme Durumu
 
-> Son güncelleme: 2026-04-02
+> Son güncelleme: 2026-06-19
 Mevcut Durum Notu: Proje genel hatlarıyla Faz 5'e (Test & Yayın) geçmiş gibi görünse de, Faz 1-4 arasındaki bazı özelliklerde (MVP çekirdeği) mimari değişiklikler, UX revizyonları ve bug fix'ler yapılmaktadır. Bir modülü düzenlerken, eski kodun kusursuz olduğunu varsayma; refactoring (kod iyileştirme) ve mantık değişiklikleri yapmak serbesttir ve gereklidir.
 ---
 
@@ -32,15 +32,30 @@ kullanıcının şehrine veya yakınına yeni mekan eklenirse bildirim? uygulama
 birden fazla rehberin onaylamasıyla yeni rozet takdimi 
 
 mobil:
--profili düzenle zenginleştirilecek.
--yorumların anonimliği kaldırılacak.
+-~~profili düzenle zenginleştirilecek.~~ ✅ (2026-06-19)
+-~~yorumların anonimliği kaldırılacak.~~ ✅ (2026-06-19)
 -seyyahın rehberliği onaylanınca uygulamadan çıkıp  geri girmesi gerekiyor? (bildirim atılabilir)
--status rehber->seyyah yapınca rehber başvurunuz inceleniyor sayfası geliyor ama tekrar bir guide başvurusu yapılmıyor otomatik olarak.
-- status -> admin yapılırsa uygulama nasıl tepki verir ileride mobil admin paneli kaldırdığımızda?
+-~~status rehber->seyyah yapınca rehber başvurunuz inceleniyor sayfası geliyor ama tekrar bir guide başvurusu yapılmıyor otomatik olarak.~~ ✅ (2026-06-19)
+
+rehberlere yeni bir özellik ekleyelim:
+hangi şehir için rehberlik yapacağını belirleyelim.
+hali hazırda ikamet ettiği şehirde rehberlik yapabilsin. (semt seçmeli mi)
+bunu rehberlik başvurusunda şart koşalım. Referans kodu ile rehber ekleme mantığını kaldırsak mı? o tarafı kontrol etmek zor. Hem aynı kontrolleri iki defa yapmış olacağız. Herkes bizim kontrolümüzden geçse daha iyi gibi. 
+hem panelden hangi şehirlerde kaç tane rehber olduğunu görürüz (harita mantıklı)
 
 
 
 ## Tamamlanan İşler
+
+### Mobil Refactor 3 Madde (Profil + Yorum İsmi + Demote Başvuru) — YENİ
+
+> 2026-06-19'da yapıldı. Tasarım: `docs/superpowers/specs/2026-06-19-mobil-refactor-3-madde-design.md`. Plan: `docs/superpowers/plans/2026-06-19-mobil-refactor-3-madde.md`.
+
+| Değişiklik | Durum | Detay |
+|-----------|-------|-------|
+| Profil zenginleştirme | ✅ | Edit ekranına soyad + telefon (opsiyonel) eklendi; email salt-okunur; header ad+soyad gösterir |
+| Yorum ismi | ✅ | Review sorgusu users join'i + "Ad S." görünen ad; mobil 'Anonim' kaldırıldı |
+| Demote başvuru | ✅ | `cancelled` durumu + demote'ta açık başvuru kapatma → kullanıcı yeniden başvurabilir |
 
 ### Mobil Admin Panelinin Kaldırılması — YENİ
 
