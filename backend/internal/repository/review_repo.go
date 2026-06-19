@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"errors"
+	"strings"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -19,8 +20,12 @@ func NewReviewRepo(db *pgxpool.Pool) *ReviewRepo {
 
 func (r *ReviewRepo) ListByVenue(ctx context.Context, venueID string) ([]models.Review, error) {
 	rows, err := r.db.Query(ctx,
-		`SELECT id, venue_id, user_id, rating, comment, created_at, updated_at
-		 FROM reviews WHERE venue_id = $1 ORDER BY created_at DESC`,
+		`SELECT r.id, r.venue_id, r.user_id, r.rating, r.comment, r.created_at, r.updated_at,
+		        u.name, u.surname, u.avatar_url
+		 FROM reviews r
+		 LEFT JOIN users u ON u.id = r.user_id
+		 WHERE r.venue_id = $1
+		 ORDER BY r.created_at DESC`,
 		venueID,
 	)
 	if err != nil {
@@ -31,15 +36,40 @@ func (r *ReviewRepo) ListByVenue(ctx context.Context, venueID string) ([]models.
 	var list []models.Review
 	for rows.Next() {
 		rv := models.Review{}
-		if err := rows.Scan(&rv.ID, &rv.VenueID, &rv.UserID, &rv.Rating, &rv.Comment, &rv.CreatedAt, &rv.UpdatedAt); err != nil {
+		var name, surname, avatar *string
+		if err := rows.Scan(&rv.ID, &rv.VenueID, &rv.UserID, &rv.Rating, &rv.Comment,
+			&rv.CreatedAt, &rv.UpdatedAt, &name, &surname, &avatar); err != nil {
 			return nil, err
 		}
+		display := displayName(name, surname)
+		rv.UserName = &display
+		rv.UserAvatar = avatar
 		list = append(list, rv)
 	}
 	if list == nil {
 		list = []models.Review{}
 	}
 	return list, rows.Err()
+}
+
+// displayName — "Ad S." formatında görünen ad üretir. Ad boşsa "Kullanıcı" döner.
+func displayName(name, surname *string) string {
+	n := ""
+	if name != nil {
+		n = strings.TrimSpace(*name)
+	}
+	if n == "" {
+		return "Kullanıcı"
+	}
+	s := ""
+	if surname != nil {
+		s = strings.TrimSpace(*surname)
+	}
+	if s == "" {
+		return n
+	}
+	initial := []rune(s)[0]
+	return n + " " + strings.ToUpper(string(initial)) + "."
 }
 
 func (r *ReviewRepo) Create(ctx context.Context, rv *models.Review) error {
