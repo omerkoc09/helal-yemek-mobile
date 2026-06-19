@@ -134,7 +134,7 @@ class _ProfileHeader extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         Text(
-          user.name,
+          '${user.name}${user.surname != null && user.surname!.isNotEmpty ? ' ${user.surname}' : ''}',
           style: const TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.bold,

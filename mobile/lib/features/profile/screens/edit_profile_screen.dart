@@ -16,17 +16,23 @@ class EditProfileScreen extends ConsumerStatefulWidget {
 class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _nameController;
+  late final TextEditingController _surnameController;
+  late final TextEditingController _phoneController;
 
   @override
   void initState() {
     super.initState();
     final user = ref.read(authProvider).user;
     _nameController = TextEditingController(text: user?.name ?? '');
+    _surnameController = TextEditingController(text: user?.surname ?? '');
+    _phoneController = TextEditingController(text: user?.phone ?? '');
   }
 
   @override
   void dispose() {
     _nameController.dispose();
+    _surnameController.dispose();
+    _phoneController.dispose();
     super.dispose();
   }
 
@@ -35,6 +41,12 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
 
     ref.read(editProfileProvider.notifier).updateProfile(
           name: _nameController.text.trim(),
+          surname: _surnameController.text.trim().isEmpty
+              ? null
+              : _surnameController.text.trim(),
+          phone: _phoneController.text.trim().isEmpty
+              ? null
+              : _phoneController.text.trim(),
         );
   }
 
@@ -103,7 +115,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               TextFormField(
                 controller: _nameController,
                 decoration: const InputDecoration(
-                  labelText: 'Ad Soyad',
+                  labelText: 'Ad',
                   prefixIcon: Icon(Icons.person_outlined),
                 ),
                 validator: (value) {
@@ -112,6 +124,46 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                   }
                   if (value.trim().length < 2) {
                     return 'Ad en az 2 karakter olmalıdır';
+                  }
+                  return null;
+                },
+                textInputAction: TextInputAction.next,
+              ),
+              const SizedBox(height: 16),
+
+              // Soyad (opsiyonel)
+              TextFormField(
+                controller: _surnameController,
+                decoration: const InputDecoration(
+                  labelText: 'Soyad',
+                  prefixIcon: Icon(Icons.person_outline),
+                ),
+                validator: (value) {
+                  final v = value?.trim() ?? '';
+                  if (v.isNotEmpty && v.length < 2) {
+                    return 'Soyad en az 2 karakter olmalıdır';
+                  }
+                  return null;
+                },
+                textInputAction: TextInputAction.next,
+              ),
+              const SizedBox(height: 16),
+
+              // Telefon (opsiyonel)
+              TextFormField(
+                controller: _phoneController,
+                keyboardType: TextInputType.phone,
+                decoration: const InputDecoration(
+                  labelText: 'Telefon',
+                  prefixIcon: Icon(Icons.phone_outlined),
+                  hintText: '5XX XXX XX XX',
+                ),
+                validator: (value) {
+                  final v = value?.trim() ?? '';
+                  if (v.isEmpty) return null;
+                  final digits = v.replaceAll(RegExp(r'[^0-9]'), '');
+                  if (digits.length < 10 || digits.length > 13) {
+                    return 'Geçerli bir telefon numarası girin';
                   }
                   return null;
                 },

@@ -193,16 +193,23 @@ class EditProfileNotifier extends Notifier<EditProfileState> {
   @override
   EditProfileState build() => const EditProfileState();
 
-  Future<void> updateProfile({required String name}) async {
+  Future<void> updateProfile({
+    required String name,
+    String? surname,
+    String? phone,
+  }) async {
     state = state.copyWith(isLoading: true, error: null, isSuccess: false);
     try {
       final apiClient = ref.read(apiClientProvider);
       final response = await apiClient.put(
         ApiEndpoints.updateProfile,
-        data: {'name': name},
+        data: {
+          'name': name,
+          if (surname case String s) 'surname': s,
+          if (phone case String p) 'phone': p,
+        },
       );
-      final user =
-          User.fromJson(response.data as Map<String, dynamic>);
+      final user = User.fromJson(response.data as Map<String, dynamic>);
       ref.read(authProvider.notifier).updateUser(user);
       state = state.copyWith(isLoading: false, isSuccess: true);
     } catch (e) {
