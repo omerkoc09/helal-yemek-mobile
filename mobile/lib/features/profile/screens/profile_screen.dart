@@ -227,7 +227,8 @@ class _GuideApplicationCardState extends ConsumerState<_GuideApplicationCard> {
   Widget build(BuildContext context) {
     final appState = ref.watch(guideApplicationProvider);
 
-    // Başvuru gönderildi (kodsuz akış pending) → inceleniyor kartı.
+    // "inceleniyor" kartı yalnızca gerçek açık (pending) başvuru veya yeni
+    // gönderilen kodsuz başvuru (isSuccess) için. cancelled/approved → form.
     if (appState.currentStatus == 'pending' || appState.isSuccess) {
       return Card(
         child: Padding(
