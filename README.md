@@ -1,9 +1,9 @@
-# Caiz mi? 
+# İtimat mobil uygulama 
 
 
 ## 1. Yönetici Özeti
 
-**Caiz mi?**, Müslüman seyyahların seyahat ettikleri şehirlerde helal gıda sunan mekanları kolayca bulmalarını sağlayan bir mobil uygulamadır. Uygulama; rehberler (gönüllüler), seyyahlar ve yöneticilerden oluşan üç katmanlı bir kullanıcı yapısına sahiptir. Rehberler mekanları ekler ve doğrular, seyyahlar mekanları keşfeder ve değerlendirir, yöneticiler ise içerik moderasyonunu gerçekleştirir.
+**İtimat**, Müslüman seyyahların seyahat ettikleri şehirlerde güvenilir, temiz helal gıda sunan mekanları kolayca bulmalarını sağlayan bir mobil uygulamadır. Uygulama; rehberler (gönüllüler), seyyahlar ve yöneticilerden oluşan üç katmanlı bir kullanıcı yapısına sahiptir. Rehberler mekanları ekler ve doğrular, seyyahlar mekanları keşfeder ve değerlendirir, yöneticiler ise içerik moderasyonunu gerçekleştirir.
 
 Proje, **Flutter** (mobil) ve **Go** (backend) teknolojileri üzerine inşa edilmiştir. Konum tabanlı arama için **PostGIS** destekli PostgreSQL veritabanı kullanılmaktadır.
 
