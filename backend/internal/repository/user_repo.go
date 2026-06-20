@@ -144,19 +144,8 @@ func (r *UserRepo) Delete(ctx context.Context, id string) error {
 func (r *UserRepo) List(ctx context.Context) ([]models.User, error) {
 	rows, err := r.db.Query(ctx,
 		`SELECT u.id, u.email, u.name, u.surname, u.phone, u.avatar_url, u.role,
-		        u.provider, u.is_active, u.created_at, u.updated_at,
-		        ref.name AS referred_by_name,
-		        COALESCE(cnt.referral_count, 0) AS referral_count
+		        u.provider, u.is_active, u.created_at, u.updated_at
 		 FROM users u
-		 LEFT JOIN guide_applications ga
-		        ON ga.user_id = u.id AND ga.status = 'approved'
-		 LEFT JOIN users ref ON ref.id = ga.referred_by
-		 LEFT JOIN (
-		     SELECT referred_by, COUNT(*) AS referral_count
-		     FROM guide_applications
-		     WHERE status = 'approved' AND referred_by IS NOT NULL
-		     GROUP BY referred_by
-		 ) cnt ON cnt.referred_by = u.id
 		 ORDER BY u.created_at DESC`,
 	)
 	if err != nil {
@@ -170,7 +159,6 @@ func (r *UserRepo) List(ctx context.Context) ([]models.User, error) {
 		if err := rows.Scan(
 			&u.ID, &u.Email, &u.Name, &u.Surname, &u.Phone, &u.AvatarURL,
 			&u.Role, &u.Provider, &u.IsActive, &u.CreatedAt, &u.UpdatedAt,
-			&u.ReferredByName, &u.ReferralCount,
 		); err != nil {
 			return nil, err
 		}
@@ -178,6 +166,64 @@ func (r *UserRepo) List(ctx context.Context) ([]models.User, error) {
 	}
 	if list == nil {
 		list = []models.User{}
+	}
+	return list, rows.Err()
+}
+
+// CityGuideCount — şehir bazlı rehber sayımı (admin paneli).
+type CityGuideCount struct {
+	City  string `json:"city"`
+	Count int    `json:"count"`
+}
+
+// SetGuideCity — rehberin aktif çalışma şehrini ayarlar (onayda çağrılır).
+func (r *UserRepo) SetGuideCity(ctx context.Context, userID, city string) error {
+	result, err := r.db.Exec(ctx,
+		`UPDATE users SET guide_city = $1, updated_at = NOW() WHERE id = $2`,
+		city, userID,
+	)
+	if err != nil {
+		return err
+	}
+	if result.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+// ClearGuideCity — guide_city'yi NULL yapar (demote'ta çağrılır; idempotent).
+func (r *UserRepo) ClearGuideCity(ctx context.Context, userID string) error {
+	_, err := r.db.Exec(ctx,
+		`UPDATE users SET guide_city = NULL, updated_at = NOW() WHERE id = $1`,
+		userID,
+	)
+	return err
+}
+
+// CountGuidesByCity — şehir bazlı aktif rehber sayısını azalan döndürür.
+func (r *UserRepo) CountGuidesByCity(ctx context.Context) ([]CityGuideCount, error) {
+	rows, err := r.db.Query(ctx,
+		`SELECT guide_city, COUNT(*) AS cnt
+		 FROM users
+		 WHERE role = 'guide' AND guide_city IS NOT NULL
+		 GROUP BY guide_city
+		 ORDER BY cnt DESC, guide_city`,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var list []CityGuideCount
+	for rows.Next() {
+		var c CityGuideCount
+		if err := rows.Scan(&c.City, &c.Count); err != nil {
+			return nil, err
+		}
+		list = append(list, c)
+	}
+	if list == nil {
+		list = []CityGuideCount{}
 	}
 	return list, rows.Err()
 }
