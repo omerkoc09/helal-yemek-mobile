@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -8,6 +7,7 @@ import '../../../core/models/user.dart';
 import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../providers/profile_provider.dart';
+import '../../guide/screens/guide_apply_screen.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -45,14 +45,12 @@ class ProfileScreen extends ConsumerWidget {
 
           // Guide başvurusu (sadece Traveler için)
           if (user.isTraveler) ...[
-            _GuideApplicationCard(),
+            _GuideApplicationSection(),
             const SizedBox(height: 16),
           ],
 
           // Guide menü öğeleri
           if (user.isGuide || user.isAdmin) ...[
-            _ReferralCodeCard(),
-            const SizedBox(height: 8),
             _MenuTile(
               icon: Icons.store_outlined,
               title: 'Mekanlarım',
@@ -192,23 +190,14 @@ class _RoleBadge extends StatelessWidget {
   }
 }
 
-class _GuideApplicationCard extends ConsumerStatefulWidget {
+class _GuideApplicationSection extends ConsumerStatefulWidget {
   @override
-  ConsumerState<_GuideApplicationCard> createState() =>
-      _GuideApplicationCardState();
+  ConsumerState<_GuideApplicationSection> createState() =>
+      _GuideApplicationSectionState();
 }
 
-class _GuideApplicationCardState extends ConsumerState<_GuideApplicationCard> {
-  final _codeController = TextEditingController();
-  bool _showCodelessForm = false;
-  bool _termsAccepted = false;
-
-  // Placeholder bilgilendirme metni — gerçek rehberlik şartları ile değiştirilecek.
-  static const _termsText =
-      'Rehber olarak eklediğiniz mekanların helal kriterlerine uygunluğundan '
-      'siz sorumlusunuz. Doğru ve dürüst bilgi paylaşmayı, topluluk kurallarına '
-      'uymayı kabul ediyorsunuz. (Bu metin geçicidir.)';
-
+class _GuideApplicationSectionState
+    extends ConsumerState<_GuideApplicationSection> {
   @override
   void initState() {
     super.initState();
@@ -218,17 +207,10 @@ class _GuideApplicationCardState extends ConsumerState<_GuideApplicationCard> {
   }
 
   @override
-  void dispose() {
-    _codeController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final appState = ref.watch(guideApplicationProvider);
 
-    // "inceleniyor" kartı yalnızca gerçek açık (pending) başvuru veya yeni
-    // gönderilen kodsuz başvuru (isSuccess) için. cancelled/approved → form.
+    // "inceleniyor" kartı — pending başvuru veya yeni gönderim (isSuccess).
     if (appState.currentStatus == 'pending' || appState.isSuccess) {
       return Card(
         child: Padding(
@@ -262,255 +244,50 @@ class _GuideApplicationCardState extends ConsumerState<_GuideApplicationCard> {
       );
     }
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Icon(Icons.tour_outlined, color: AppTheme.primary),
-                const SizedBox(width: 8),
-                const Text(
-                  'Rehber Ol',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-            // Önceki başvuru reddedildiyse bilgilendir (tekrar başvurabilir).
-            if (appState.currentStatus == 'rejected') ...[
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: AppTheme.error.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Icon(Icons.info_outline,
-                        color: AppTheme.error, size: 18),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        appState.note != null && appState.note!.isNotEmpty
-                            ? 'Önceki başvurunuz reddedildi: ${appState.note}'
-                            : 'Önceki başvurunuz reddedildi. Tekrar başvurabilirsiniz.',
-                        style: const TextStyle(
-                            fontSize: 12, color: AppTheme.error),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-            const SizedBox(height: 8),
-            const Text(
-              'Rehber olarak helal mekanlar ekleyebilir ve topluluğa katkıda bulunabilirsiniz. Başvurmak için bir rehberden aldığınız referans kodunu girin.',
-              style: TextStyle(
-                fontSize: 13,
-                color: AppTheme.textSecondary,
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _codeController,
-              textCapitalization: TextCapitalization.characters,
-              maxLength: 5,
-              decoration: const InputDecoration(
-                labelText: 'Referans Kodu',
-                hintText: 'Örn: A7X3K',
-                prefixIcon: Icon(Icons.vpn_key_outlined),
-                counterText: '',
-                border: OutlineInputBorder(),
-              ),
-              onChanged: (_) => setState(() {}),
-            ),
-            if (appState.error != null) ...[
-              const SizedBox(height: 8),
-              Text(
-                appState.error!,
-                style: const TextStyle(color: AppTheme.error, fontSize: 13),
-              ),
-            ],
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: appState.isLoading ||
-                        _codeController.text.trim().length < 5
-                    ? null
-                    : () => ref
-                        .read(guideApplicationProvider.notifier)
-                        .apply(_codeController.text.trim()),
-                child: appState.isLoading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Text('Başvur'),
-              ),
-            ),
-            const SizedBox(height: 8),
-            // Kodsuz başvuru yolu (ikincil).
-            if (!_showCodelessForm)
-              Align(
-                alignment: Alignment.center,
-                child: TextButton(
-                  onPressed: () => setState(() => _showCodelessForm = true),
-                  child: const Text('Referans kodum yok'),
-                ),
-              )
-            else ...[
-              const Divider(height: 24),
-              Text(
-                _termsText,
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: AppTheme.textSecondary,
-                ),
-              ),
-              const SizedBox(height: 8),
-              CheckboxListTile(
-                value: _termsAccepted,
-                onChanged: (v) => setState(() => _termsAccepted = v ?? false),
-                contentPadding: EdgeInsets.zero,
-                controlAffinity: ListTileControlAffinity.leading,
-                dense: true,
-                title: const Text(
-                  'Okudum, onaylıyorum',
-                  style: TextStyle(fontSize: 13),
-                ),
-              ),
-              const SizedBox(height: 4),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: appState.isLoading || !_termsAccepted
-                      ? null
-                      : () => ref
-                          .read(guideApplicationProvider.notifier)
-                          .applyWithoutCode(),
-                  child: appState.isLoading
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : const Text('Admine Başvur'),
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ReferralCodeCard extends ConsumerWidget {
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final rcState = ref.watch(referralCodeProvider);
-
-    // İlk yüklemede kodu çek
-    if (rcState.code == null && !rcState.isLoading && rcState.error == null) {
-      Future.microtask(
-          () => ref.read(referralCodeProvider.notifier).fetch());
-    }
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Icon(Icons.share_outlined, color: AppTheme.primary),
-                const SizedBox(width: 8),
-                const Text(
-                  'Referans Kodunuz',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Bu kodu paylaşarak yeni rehberlerin başvurmasını sağlayabilirsiniz.',
-              style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
-            ),
-            const SizedBox(height: 12),
-            if (rcState.isLoading)
-              const Center(
-                child: SizedBox(
-                  height: 20,
-                  width: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-              )
-            else if (rcState.error != null)
-              Text(
-                rcState.error!,
-                style: const TextStyle(color: AppTheme.error, fontSize: 13),
-              )
-            else if (rcState.code != null)
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                decoration: BoxDecoration(
-                  color: AppTheme.primary.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: AppTheme.primary.withValues(alpha: 0.3),
-                  ),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      rcState.code!,
+    // Reddedilen başvuru bildirimi (varsa) + başvur butonu.
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (appState.currentStatus == 'rejected') ...[
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(Icons.info_outline,
+                      color: AppTheme.error, size: 18),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      appState.note != null && appState.note!.isNotEmpty
+                          ? 'Önceki başvurunuz reddedildi: ${appState.note}'
+                          : 'Önceki başvurunuz reddedildi. Tekrar başvurabilirsiniz.',
                       style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 4,
-                        color: AppTheme.primary,
-                      ),
+                          fontSize: 13, color: AppTheme.error),
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.copy, color: AppTheme.primary),
-                      onPressed: () {
-                        Clipboard.setData(
-                            ClipboardData(text: rcState.code!));
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Referans kodu kopyalandı'),
-                            duration: Duration(seconds: 2),
-                          ),
-                        );
-                      },
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-          ],
+            ),
+          ),
+          const SizedBox(height: 8),
+        ],
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            onPressed: () async {
+              final ok = await Navigator.of(context).push<bool>(
+                MaterialPageRoute(builder: (_) => const GuideApplyScreen()),
+              );
+              if (ok == true) {
+                ref.read(guideApplicationProvider.notifier).fetchStatus();
+              }
+            },
+            child: const Text('Rehber Olmak İçin Başvur'),
+          ),
         ),
-      ),
+      ],
     );
   }
 }
