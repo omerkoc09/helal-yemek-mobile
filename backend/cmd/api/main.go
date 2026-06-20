@@ -42,7 +42,6 @@ func main() {
 	correctionRepo := repository.NewCorrectionRepo(pool)
 	guideRepo := repository.NewGuideRepo(pool)
 	auditRepo := repository.NewAuditRepo(pool)
-	referralRepo := repository.NewReferralRepo(pool)
 	venueReportRepo := repository.NewVenueReportRepo(pool)
 	notifRepo    := repository.NewNotificationRepo(pool)
 	verifLogRepo := repository.NewVerificationLogRepo(pool)
@@ -67,8 +66,8 @@ func main() {
 	reviewHandler := handlers.NewReviewHandler(reviewRepo)
 	favoriteHandler := handlers.NewFavoriteHandler(favoriteRepo)
 	correctionHandler := handlers.NewCorrectionHandler(correctionRepo, auditRepo)
-	guideHandler := handlers.NewGuideHandler(guideRepo, venueRepo, referralRepo)
-	adminHandler := handlers.NewAdminHandler(venueRepo, guideRepo, userRepo, auditRepo, referralRepo, verifLogRepo, schedulerSvc, cfg.VerificationPeriodDays)
+	guideHandler := handlers.NewGuideHandler(guideRepo, venueRepo)
+	adminHandler := handlers.NewAdminHandler(venueRepo, guideRepo, userRepo, auditRepo, verifLogRepo, schedulerSvc, cfg.VerificationPeriodDays)
 	venueReportHandler := handlers.NewVenueReportHandler(venueReportRepo)
 	notifHandler := handlers.NewNotificationHandler(notifRepo)
 
@@ -222,10 +221,6 @@ func main() {
 		middleware.RequireRole("guide", "admin"),
 		guideHandler.MyVenues,
 	)
-	guide.Get("/my-referral-code",
-		middleware.RequireRole("guide", "admin"),
-		guideHandler.MyReferralCode,
-	)
 
 	// Admin endpoint'leri
 	admin := api.Group("/admin",
@@ -252,6 +247,7 @@ func main() {
 	admin.Get("/applications", adminHandler.ListApplications)
 	admin.Put("/applications/:id/approve", adminHandler.ApproveApplication)
 	admin.Put("/applications/:id/reject", adminHandler.RejectApplication)
+	admin.Get("/guides/by-city", adminHandler.GuidesByCity)
 
 	// Venue reports
 	admin.Get("/venue-reports", venueReportHandler.AdminList)
