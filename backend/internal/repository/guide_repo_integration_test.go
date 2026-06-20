@@ -4,10 +4,27 @@ package repository_test
 
 import (
 	"context"
+	"fmt"
 	"testing"
+	"time"
 
 	"github.com/omerkoc/caiz-mi/internal/repository"
 )
+
+// insertTraveler — role='traveler' ile bir test kullanıcısı ekler ve ID döndürür.
+func insertTraveler(t *testing.T) string {
+	t.Helper()
+	var id string
+	err := testPool.QueryRow(context.Background(),
+		`INSERT INTO users (email, name, password_hash, role)
+		 VALUES ($1, 'Test Traveler', 'hash', 'traveler') RETURNING id`,
+		fmt.Sprintf("test-traveler-%d@example.com", time.Now().UnixNano()),
+	).Scan(&id)
+	if err != nil {
+		t.Fatalf("test traveler eklenemedi: %v", err)
+	}
+	return id
+}
 
 func TestCancelOpenByUserID_CancelsPendingAndApproved(t *testing.T) {
 	truncate(t)
