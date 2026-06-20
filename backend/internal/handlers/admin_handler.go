@@ -21,7 +21,6 @@ type AdminHandler struct {
 	guideRepo              *repository.GuideRepo
 	userRepo               *repository.UserRepo
 	auditRepo              *repository.AuditRepo
-	referralRepo           *repository.ReferralRepo
 	verifLogRepo           *repository.VerificationLogRepo
 	schedulerSvc           SchedulerRunner
 	verificationPeriodDays int
@@ -32,7 +31,6 @@ func NewAdminHandler(
 	guideRepo *repository.GuideRepo,
 	userRepo *repository.UserRepo,
 	auditRepo *repository.AuditRepo,
-	referralRepo *repository.ReferralRepo,
 	verifLogRepo *repository.VerificationLogRepo,
 	schedulerSvc SchedulerRunner,
 	verificationPeriodDays int,
@@ -42,7 +40,6 @@ func NewAdminHandler(
 		guideRepo:              guideRepo,
 		userRepo:               userRepo,
 		auditRepo:              auditRepo,
-		referralRepo:           referralRepo,
 		verifLogRepo:           verifLogRepo,
 		schedulerSvc:           schedulerSvc,
 		verificationPeriodDays: verificationPeriodDays,
@@ -288,7 +285,7 @@ func (h *AdminHandler) ListApplications(c *fiber.Ctx) error {
 	return c.JSON(list)
 }
 
-// PUT /admin/applications/:id/approve — Kodsuz başvuruyu onaylar: rolü guide yapar + ilk kodu üretir.
+// PUT /admin/applications/:id/approve — Kodsuz başvuruyu onaylar: rolü guide yapar + çalışma şehrini ayarlar.
 func (h *AdminHandler) ApproveApplication(c *fiber.Ctx) error {
 	id := c.Params("id")
 	adminID, err := getUserID(c)
@@ -316,9 +313,9 @@ func (h *AdminHandler) ApproveApplication(c *fiber.Ctx) error {
 		return fiber.ErrInternalServerError
 	}
 
-	// Yeni Guide'a ilk referans kodunu üret
-	if _, err := h.referralRepo.CreateCode(c.Context(), app.UserID); err != nil {
-		log.Printf("[ADMIN] referans kodu üretme hatası user=%s: %v", app.UserID, err)
+	// Rehberin aktif çalışma şehrini başvurudaki beyandan ayarla.
+	if err := h.userRepo.SetGuideCity(c.Context(), app.UserID, app.City); err != nil {
+		log.Printf("[ADMIN] guide_city ayarlama hatası user=%s: %v", app.UserID, err)
 	}
 
 	h.writeAuditLog(c, "approve_guide_application", "guide_application", id, nil)
@@ -407,11 +404,11 @@ func (h *AdminHandler) UpdateUser(c *fiber.Ctx) error {
 		return fiber.ErrInternalServerError
 	}
 
-	// Guide'dan başka role düşürülüyorsa aktif referans kodunu iptal et
+	// Guide'dan başka role düşürülüyorsa guide_city'yi temizle
 	// ve açık guide başvurularını kapat (kullanıcı yeniden başvurabilsin).
 	if prevRole == models.RoleGuide && req.Role != nil && *req.Role != models.RoleGuide {
-		if rerr := h.referralRepo.RevokeByGuideID(c.Context(), id); rerr != nil {
-			log.Printf("[ADMIN] referans kodu iptal hatası user=%s: %v", id, rerr)
+		if cerr := h.userRepo.ClearGuideCity(c.Context(), id); cerr != nil {
+			log.Printf("[ADMIN] guide_city temizleme hatası user=%s: %v", id, cerr)
 		}
 		if cerr := h.guideRepo.CancelOpenByUserID(c.Context(), id); cerr != nil {
 			log.Printf("[ADMIN] başvuru kapatma hatası user=%s: %v", id, cerr)
@@ -491,6 +488,15 @@ func (h *AdminHandler) VerificationLogs(c *fiber.Ctx) error {
 func (h *AdminHandler) RunSchedulerNow(c *fiber.Ctx) error {
 	go h.schedulerSvc.RunNow(context.Background())
 	return c.JSON(fiber.Map{"status": "started"})
+}
+
+// GET /admin/guides/by-city — şehir bazlı aktif rehber sayımı.
+func (h *AdminHandler) GuidesByCity(c *fiber.Ctx) error {
+	list, err := h.userRepo.CountGuidesByCity(c.Context())
+	if err != nil {
+		return fiber.ErrInternalServerError
+	}
+	return c.JSON(list)
 }
 
 // PUT /admin/venues/:id/reactivate
