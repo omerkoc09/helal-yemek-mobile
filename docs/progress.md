@@ -105,8 +105,8 @@ hem panelden hangi şehirlerde kaç tane rehber olduğunu görürüz (harita man
 
 | Değişiklik | Durum | Detay |
 |-----------|-------|-------|
-| Migration 032 | ✅ | users.guide_city kolonu eklendi |
-| Referral kodu tamamen kaldırıldı | ✅ | referral_codes tablosu migration ile silindi; referral_code alanı users'dan kaldırıldı |
+| Migration 032 | ✅ | guide_applications.city NOT NULL kolonu eklendi + users.guide_city kolonu eklendi |
+| Referral kodu tamamen kaldırıldı | ✅ | referral_codes tablosu migration ile silindi; guide_applications.referred_by kolonu kaldırıldı |
 | POST /guide/apply tekleştirildi | ✅ | City + terms → admin onay (tek yol); kodsuz başvuru varsayılan akış |
 | 81 il validator | ✅ | models.NormalizeCity() + backend kontrolü; mobil aramalı dropdown |
 | Admin panelde şehir bilgisi | ✅ | GET /admin/guides/by-city; başvuru listesinde şehir kolonu |
