@@ -40,50 +40,15 @@ class GuideApplicationNotifier extends Notifier<GuideApplicationState> {
   @override
   GuideApplicationState build() => const GuideApplicationState();
 
-  Future<void> apply(String referralCode) async {
+  Future<void> apply(String city) async {
     state = state.copyWith(isLoading: true, error: null, isSuccess: false);
     try {
       final apiClient = ref.read(apiClientProvider);
       await apiClient.post(
         ApiEndpoints.guideApply,
-        data: {'referral_code': referralCode},
+        data: {'city': city, 'terms_accepted': true},
       );
-
-      // Otomatik onay: kullanıcı artık guide. Auth state'i tazele ki UI güncellensin.
-      try {
-        final me = await apiClient.get(ApiEndpoints.me);
-        final user = User.fromJson(me.data as Map<String, dynamic>);
-        ref.read(authProvider.notifier).updateUser(user);
-      } catch (_) {
-        // Rol tazelenemese bile başvuru başarılı; kullanıcı tekrar girince güncellenir.
-      }
-
-      state = state.copyWith(
-        isLoading: false,
-        isSuccess: true,
-        currentStatus: 'approved',
-      );
-    } catch (e) {
-      String errorMsg = 'İşlem başarısız. Lütfen tekrar deneyin.';
-      if (e.toString().contains('400')) {
-        errorMsg = 'Geçersiz referans kodu.';
-      }
-      state = state.copyWith(
-        isLoading: false,
-        error: errorMsg,
-      );
-    }
-  }
-
-  Future<void> applyWithoutCode() async {
-    state = state.copyWith(isLoading: true, error: null, isSuccess: false);
-    try {
-      final apiClient = ref.read(apiClientProvider);
-      await apiClient.post(
-        ApiEndpoints.guideApply,
-        data: {'terms_accepted': true},
-      );
-      // Kodsuz başvuru pending'e düşer; rol değişmez, auth tazelenmez.
+      // Başvuru admin onayına pending düşer; rol değişmez.
       state = state.copyWith(
         isLoading: false,
         isSuccess: true,
@@ -93,11 +58,10 @@ class GuideApplicationNotifier extends Notifier<GuideApplicationState> {
       String errorMsg = 'Başvuru gönderilemedi. Lütfen tekrar deneyin.';
       if (e.toString().contains('409')) {
         errorMsg = 'Bekleyen bir başvurunuz zaten var.';
+      } else if (e.toString().contains('400')) {
+        errorMsg = 'Lütfen geçerli bir şehir seçip şartları kabul edin.';
       }
-      state = state.copyWith(
-        isLoading: false,
-        error: errorMsg,
-      );
+      state = state.copyWith(isLoading: false, error: errorMsg);
     }
   }
 
@@ -120,48 +84,6 @@ class GuideApplicationNotifier extends Notifier<GuideApplicationState> {
 final guideApplicationProvider =
     NotifierProvider<GuideApplicationNotifier, GuideApplicationState>(
   GuideApplicationNotifier.new,
-);
-
-// Guide referans kodu
-class ReferralCodeState {
-  final bool isLoading;
-  final String? code;
-  final String? error;
-
-  const ReferralCodeState({this.isLoading = false, this.code, this.error});
-
-  ReferralCodeState copyWith({bool? isLoading, String? code, String? error}) {
-    return ReferralCodeState(
-      isLoading: isLoading ?? this.isLoading,
-      code: code ?? this.code,
-      error: error,
-    );
-  }
-}
-
-class ReferralCodeNotifier extends Notifier<ReferralCodeState> {
-  @override
-  ReferralCodeState build() => const ReferralCodeState();
-
-  Future<void> fetch() async {
-    state = state.copyWith(isLoading: true, error: null);
-    try {
-      final apiClient = ref.read(apiClientProvider);
-      final response = await apiClient.get(ApiEndpoints.guideMyReferralCode);
-      final code = response.data['referral_code'] as String;
-      state = ReferralCodeState(code: code);
-    } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        error: 'Referans kodu alınamadı.',
-      );
-    }
-  }
-}
-
-final referralCodeProvider =
-    NotifierProvider<ReferralCodeNotifier, ReferralCodeState>(
-  ReferralCodeNotifier.new,
 );
 
 // Profil düzenleme
