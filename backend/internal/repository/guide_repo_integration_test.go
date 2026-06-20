@@ -35,7 +35,7 @@ func TestCancelOpenByUserID_CancelsPendingAndApproved(t *testing.T) {
 
 	// Açık (pending) ve onaylı (approved) iki kayıt ekle.
 	if _, err := testPool.Exec(ctx,
-		`INSERT INTO guide_applications (user_id, status) VALUES ($1, 'approved'), ($1, 'pending')`,
+		`INSERT INTO guide_applications (user_id, status, city) VALUES ($1, 'approved', 'İstanbul'), ($1, 'pending', 'İstanbul')`,
 		userID,
 	); err != nil {
 		t.Fatalf("başvuru eklenemedi: %v", err)
