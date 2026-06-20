@@ -8,14 +8,14 @@ abstract class GuideApplication with _$GuideApplication {
   const factory GuideApplication({
     required String id,
     @JsonKey(name: 'user_id') required String userId,
+    @JsonKey(name: 'city') String? city,
     @Default('pending') String status,
     String? note,
     @JsonKey(name: 'reviewed_by') String? reviewedBy,
     @JsonKey(name: 'reviewed_at') DateTime? reviewedAt,
+    @JsonKey(name: 'terms_accepted_at') DateTime? termsAcceptedAt,
     @JsonKey(name: 'user_name') String? userName,
     @JsonKey(name: 'user_email') String? userEmail,
-    @JsonKey(name: 'referred_by') String? referredBy,
-    @JsonKey(name: 'referrer_name') String? referrerName,
     @JsonKey(name: 'created_at') DateTime? createdAt,
   }) = _GuideApplication;
 
