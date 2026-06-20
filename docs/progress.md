@@ -99,6 +99,20 @@ hem panelden hangi şehirlerde kaç tane rehber olduğunu görürüz (harita man
 | Mobil | ✅ | Apply başarısında `/auth/me` ile rol tazeleniyor, "inceleniyor" kartı kaldırıldı |
 | Testler | ✅ | `ApproveGuideTx`, `RevokeByGuideID`, kullanıcı listesi kolonları için integration testleri (testcontainers) |
 
+### Rehber-Şehir Bağlama & Referans Kodu Kaldırma — YENİ
+
+> 2026-06-20'de eklendi. Rehberlik başvurusu artık tek yol: şehir beyanı + kullanım şartları → admin onayı. Referans kodu sistemi tamamıyla kaldırıldı (migration ile `referral_codes` tablo temizlendi). 81 il sabit listesi backend doğrulamada ve mobil seçicide kullanılıyor. Admin panelde şehir bazlı rehber sayımı ve başvuru onay ekranında şehir kolonu eklendi. Dev-only temizlik script'i (`backend/scripts/cleanup_referral_guides.sql`) demote işlemi için hazırlandı (şehirsiz eski rehberleri traveler'a indirir, veri korunur).
+
+| Değişiklik | Durum | Detay |
+|-----------|-------|-------|
+| Migration 032 | ✅ | users.guide_city kolonu eklendi |
+| Referral kodu tamamen kaldırıldı | ✅ | referral_codes tablosu migration ile silindi; referral_code alanı users'dan kaldırıldı |
+| POST /guide/apply tekleştirildi | ✅ | City + terms → admin onay (tek yol); kodsuz başvuru varsayılan akış |
+| 81 il validator | ✅ | models.NormalizeCity() + backend kontrolü; mobil aramalı dropdown |
+| Admin panelde şehir bilgisi | ✅ | GET /admin/guides/by-city; başvuru listesinde şehir kolonu |
+| Demote güvenliği | ✅ | Rehber demote'ta guide_city NULL (tutarsızlık yok) |
+| Dev-only cleanup | ✅ | backend/scripts/cleanup_referral_guides.sql (migrations'a gömülmez) |
+
 ### Web Admin Paneli (Vue 3 + Vuetify) — YENİ
 
 > 2026-06-12'de eklendi. Mobil uygulamadaki admin ekranları yerine, ayrı bir web tabanlı yönetim paneli. `admin-panel/` klasöründe, caiz_mi Fiber backend'ine (`/api/v1`) bağlanır, mobil ile aynı veritabanını kullanır. Sadece `admin` rolüne açıktır.
