@@ -41,20 +41,18 @@ func (r *GuideRepo) HasPendingApplication(ctx context.Context, userID string) (b
 
 func (r *GuideRepo) Create(ctx context.Context, app *models.GuideApplication) error {
 	return r.db.QueryRow(ctx,
-		`INSERT INTO guide_applications (user_id, referred_by, terms_accepted_at)
+		`INSERT INTO guide_applications (user_id, city, terms_accepted_at)
 		 VALUES ($1, $2, $3) RETURNING id, created_at`,
-		app.UserID, app.ReferredBy, app.TermsAcceptedAt,
+		app.UserID, app.City, app.TermsAcceptedAt,
 	).Scan(&app.ID, &app.CreatedAt)
 }
 
 func (r *GuideRepo) ListPending(ctx context.Context) ([]models.GuideApplication, error) {
 	rows, err := r.db.Query(ctx,
-		`SELECT ga.id, ga.user_id, ga.status, ga.note, ga.reviewed_by, ga.reviewed_at,
-		        ga.referred_by, r.name AS referrer_name, u.name AS user_name, u.email AS user_email,
-		        ga.created_at
+		`SELECT ga.id, ga.user_id, ga.city, ga.status, ga.note, ga.reviewed_by, ga.reviewed_at,
+		        u.name AS user_name, u.email AS user_email, ga.created_at
 		 FROM guide_applications ga
 		 JOIN users u ON u.id = ga.user_id
-		 LEFT JOIN users r ON r.id = ga.referred_by
 		 WHERE ga.status = 'pending'
 		 ORDER BY ga.created_at`,
 	)
@@ -67,9 +65,8 @@ func (r *GuideRepo) ListPending(ctx context.Context) ([]models.GuideApplication,
 	for rows.Next() {
 		app := models.GuideApplication{}
 		if err := rows.Scan(
-			&app.ID, &app.UserID, &app.Status, &app.Note, &app.ReviewedBy, &app.ReviewedAt,
-			&app.ReferredBy, &app.ReferrerName, &app.UserName, &app.UserEmail,
-			&app.CreatedAt,
+			&app.ID, &app.UserID, &app.City, &app.Status, &app.Note, &app.ReviewedBy, &app.ReviewedAt,
+			&app.UserName, &app.UserEmail, &app.CreatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -84,10 +81,10 @@ func (r *GuideRepo) ListPending(ctx context.Context) ([]models.GuideApplication,
 func (r *GuideRepo) FindByID(ctx context.Context, id string) (*models.GuideApplication, error) {
 	app := &models.GuideApplication{}
 	err := r.db.QueryRow(ctx,
-		`SELECT id, user_id, status, note, reviewed_by, reviewed_at, referred_by, created_at
+		`SELECT id, user_id, city, status, note, reviewed_by, reviewed_at, created_at
 		 FROM guide_applications WHERE id = $1`,
 		id,
-	).Scan(&app.ID, &app.UserID, &app.Status, &app.Note, &app.ReviewedBy, &app.ReviewedAt, &app.ReferredBy, &app.CreatedAt)
+	).Scan(&app.ID, &app.UserID, &app.City, &app.Status, &app.Note, &app.ReviewedBy, &app.ReviewedAt, &app.CreatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -98,14 +95,14 @@ func (r *GuideRepo) FindByID(ctx context.Context, id string) (*models.GuideAppli
 func (r *GuideRepo) FindLatestByUserID(ctx context.Context, userID string) (*models.GuideApplication, error) {
 	app := &models.GuideApplication{}
 	err := r.db.QueryRow(ctx,
-		`SELECT id, user_id, status, note, reviewed_by, reviewed_at, referred_by, terms_accepted_at, created_at
+		`SELECT id, user_id, city, status, note, reviewed_by, reviewed_at, terms_accepted_at, created_at
 		 FROM guide_applications
 		 WHERE user_id = $1
 		 ORDER BY created_at DESC
 		 LIMIT 1`,
 		userID,
-	).Scan(&app.ID, &app.UserID, &app.Status, &app.Note, &app.ReviewedBy, &app.ReviewedAt,
-		&app.ReferredBy, &app.TermsAcceptedAt, &app.CreatedAt)
+	).Scan(&app.ID, &app.UserID, &app.City, &app.Status, &app.Note, &app.ReviewedBy, &app.ReviewedAt,
+		&app.TermsAcceptedAt, &app.CreatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
 	}
