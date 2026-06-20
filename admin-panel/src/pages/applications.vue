@@ -11,6 +11,7 @@ const form = ref<any>({})
 const columns: ITableColumn[] = [
   { key: 'user_name', name: 'KULLANICI', sortable: true },
   { key: 'user_email', name: 'E-POSTA', sortable: true },
+  { key: 'city', name: 'ŞEHİR', sortable: true },
   { key: 'status', name: 'DURUM', sortable: true },
   { key: 'created_at', name: 'BAŞVURU TARİHİ', sortable: true, type: 'datetime' },
 ]

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import ApiService from '@/services/ApiService'
+import { ErrorPopup } from '@/utils/Popup'
 
 definePage({ meta: { role: ['admin'] } })
 
@@ -9,9 +10,10 @@ const loading = ref(true)
 
 onMounted(async () => {
   const [error, data] = await ApiService.get<CityCount[]>('admin/guides/by-city')
-  if (!error)
-    rows.value = data
   loading.value = false
+  if (error)
+    return ErrorPopup(error)
+  rows.value = data
 })
 </script>
 

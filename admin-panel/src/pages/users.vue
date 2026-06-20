@@ -14,7 +14,7 @@ const columns: ITableColumn[] = [
   { key: 'surname', name: 'SOYAD', sortable: true },
   { key: 'phone', name: 'TELEFON' },
   { key: 'role', name: 'ROL', sortable: true },
-{ key: 'is_active', name: 'AKTİF' },
+  { key: 'is_active', name: 'AKTİF' },
   { key: 'created_at', name: 'KAYIT TARİHİ', sortable: true, type: 'date' },
 ]
 
