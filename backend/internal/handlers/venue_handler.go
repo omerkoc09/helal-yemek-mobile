@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"errors"
 	"strings"
 
@@ -11,9 +12,15 @@ import (
 	"github.com/omerkoc/caiz-mi/internal/services"
 )
 
+// guideCityGetter — VenueHandler'ın guide_city sorgusunda ihtiyaç duyduğu minimal arayüz.
+// *repository.UserRepo bu arayüzü otomatik olarak karşılar; testte sahte (fake) uygulamalar kullanılabilir.
+type guideCityGetter interface {
+	GetGuideCity(ctx context.Context, userID string) (*string, error)
+}
+
 type VenueHandler struct {
 	venueRepo              *repository.VenueRepo
-	userRepo               *repository.UserRepo
+	userRepo               guideCityGetter
 	storageService         *services.StorageService
 	placesService          *services.PlacesService
 	verifLogRepo           *repository.VerificationLogRepo
@@ -106,6 +113,24 @@ func (h *VenueHandler) ListByCategory(c *fiber.Ctx) error {
 // GET /api/v1/venues/place-preview?place_id=ChIJ...  (Guide + Admin)
 // GET /api/v1/venues/place-preview?lat=41.0&lng=29.0 (place_id yoksa koordinatla)
 // Mekan adı, şehir ve semt bilgilerini döner.
+// cityAllowanceFor — preview yanıtı için şehir-uygunluk bayrağını ve rehberin şehrini hesaplar.
+// Guide olmayan roller için her zaman (true, nil) döner.
+func (h *VenueHandler) cityAllowanceFor(c *fiber.Ctx, venueCity string) (bool, *string) {
+	if getUserRole(c) != string(models.RoleGuide) {
+		return true, nil
+	}
+	userID, err := getUserID(c)
+	if err != nil {
+		return true, nil
+	}
+	guideCity, err := h.userRepo.GetGuideCity(c.Context(), userID)
+	if err != nil {
+		return true, nil // okunamadıysa engelleme; Create katmanı yine korur
+	}
+	allowed, _ := services.CheckCityAllowed(guideCity, venueCity)
+	return allowed, guideCity
+}
+
 func (h *VenueHandler) PlacePreview(c *fiber.Ctx) error {
 	if h.placesService == nil {
 		return c.Status(fiber.StatusServiceUnavailable).JSON(fiber.Map{
@@ -124,12 +149,15 @@ func (h *VenueHandler) PlacePreview(c *fiber.Ctx) error {
 			})
 		}
 		photoURLs := h.placesService.BuildPhotoURLs(components.PhotoReferences, 800)
+		allowed, guideCity := h.cityAllowanceFor(c, components.City)
 		return c.JSON(fiber.Map{
-			"place_id":   placeID,
-			"name":       components.Name,
-			"city":       components.City,
-			"district":   components.District,
-			"photo_urls": photoURLs,
+			"place_id":     placeID,
+			"name":         components.Name,
+			"city":         components.City,
+			"district":     components.District,
+			"photo_urls":   photoURLs,
+			"city_allowed": allowed,
+			"guide_city":   guideCity,
 		})
 	}
 
@@ -166,12 +194,15 @@ func (h *VenueHandler) PlacePreview(c *fiber.Ctx) error {
 	}
 
 	photoURLs := h.placesService.BuildPhotoURLs(components.PhotoReferences, 800)
+	allowed, guideCity := h.cityAllowanceFor(c, components.City)
 	return c.JSON(fiber.Map{
-		"place_id":   resolved,
-		"name":       components.Name,
-		"city":       components.City,
-		"district":   components.District,
-		"photo_urls": photoURLs,
+		"place_id":     resolved,
+		"name":         components.Name,
+		"city":         components.City,
+		"district":     components.District,
+		"photo_urls":   photoURLs,
+		"city_allowed": allowed,
+		"guide_city":   guideCity,
 	})
 }
 
@@ -224,6 +255,10 @@ func (h *VenueHandler) PreviewLocationFromLink(c *fiber.Ctx) error {
 		}
 	}
 
+	venueCity, _ := resp["city"].(string) // place_id yoksa boş kalır
+	allowed, guideCity := h.cityAllowanceFor(c, venueCity)
+	resp["city_allowed"] = allowed
+	resp["guide_city"] = guideCity
 	return c.JSON(resp)
 }
 
@@ -359,6 +394,21 @@ func (h *VenueHandler) Create(c *fiber.Ctx) error {
 			if components.District != "" {
 				district = components.District
 			}
+		}
+	}
+
+	// Şehir kısıtı: rehber yalnızca kendi guide_city'sindeki mekanı ekleyebilir.
+	// Admin muaftır. Belirsizlikte (guide_city NULL / şehir çözülemez) izin verilir.
+	if getUserRole(c) == string(models.RoleGuide) {
+		guideCity, gcErr := h.userRepo.GetGuideCity(c.Context(), userID)
+		if gcErr != nil {
+			return fiber.ErrInternalServerError
+		}
+		if allowed, resolved := services.CheckCityAllowed(guideCity, city); !allowed {
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+				"error": "Yalnızca rehberi olduğunuz şehirde mekan ekleyebilirsiniz. Bu mekan " +
+					resolved + "'da görünüyor.",
+			})
 		}
 	}
 
