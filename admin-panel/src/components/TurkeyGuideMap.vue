@@ -19,11 +19,12 @@ function paint() {
   if (!root)
     return
 
-  // SVG'yi konteyner içinde duyarlı kıl.
-  root.setAttribute('width', '100%')
-  root.setAttribute('height', 'auto')
-  root.style.maxHeight = '560px'
-  root.style.display = 'block'
+  // SVG'yi konteyner içinde duyarlı kıl: sabit width/height attribute'larını kaldır,
+  // boyutlandırmayı viewBox oranı + CSS yapsın (aksi halde harita dikeyde kırpılıyordu).
+  root.removeAttribute('width')
+  root.removeAttribute('height')
+  root.removeAttribute('style')
+  root.setAttribute('preserveAspectRatio', 'xMidYMid meet')
 
   for (const plate of Object.keys(PLATE_TO_CITY)) {
     const city = PLATE_TO_CITY[plate]
@@ -112,9 +113,14 @@ function legendStyle(count: number) {
 </template>
 
 <style scoped>
+.turkey-map-wrap {
+  inline-size: 100%;
+  text-align: center;
+}
 .turkey-map-wrap :deep(svg) {
-  width: 100%;
-  height: auto;
+  inline-size: 100%;
+  block-size: auto;
+  max-inline-size: 1000px;
 }
 .turkey-map-wrap :deep(g[data-plate]) {
   cursor: pointer;
