@@ -20,7 +20,7 @@ func CheckCityAllowed(guideCity *string, venueCity string) (allowed bool, resolv
 	}
 	guideCanonical, ok := models.NormalizeCity(*guideCity)
 	if !ok {
-		// guide_city beklenmedik biçimde çözülemiyorsa engelleme (savunmacı).
+		// guide_city beklenmedik biçimde çözülemiyorsa engelleme yapma, izin ver (savunmacı).
 		return true, ""
 	}
 	if venueCanonical == guideCanonical {
