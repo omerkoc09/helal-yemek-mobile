@@ -62,7 +62,7 @@ func main() {
 
 	// Handler katmanı
 	authHandler := handlers.NewAuthHandler(authService)
-	venueHandler := handlers.NewVenueHandler(venueRepo, storageService, placesService, verifLogRepo, cfg.VerificationPeriodDays)
+	venueHandler := handlers.NewVenueHandler(venueRepo, userRepo, storageService, placesService, verifLogRepo, cfg.VerificationPeriodDays)
 	reviewHandler := handlers.NewReviewHandler(reviewRepo)
 	favoriteHandler := handlers.NewFavoriteHandler(favoriteRepo)
 	correctionHandler := handlers.NewCorrectionHandler(correctionRepo, auditRepo)

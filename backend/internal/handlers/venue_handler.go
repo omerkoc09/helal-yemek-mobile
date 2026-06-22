@@ -13,6 +13,7 @@ import (
 
 type VenueHandler struct {
 	venueRepo              *repository.VenueRepo
+	userRepo               *repository.UserRepo
 	storageService         *services.StorageService
 	placesService          *services.PlacesService
 	verifLogRepo           *repository.VerificationLogRepo
@@ -21,6 +22,7 @@ type VenueHandler struct {
 
 func NewVenueHandler(
 	venueRepo *repository.VenueRepo,
+	userRepo *repository.UserRepo,
 	storageService *services.StorageService,
 	placesService *services.PlacesService,
 	verifLogRepo *repository.VerificationLogRepo,
@@ -28,6 +30,7 @@ func NewVenueHandler(
 ) *VenueHandler {
 	return &VenueHandler{
 		venueRepo:              venueRepo,
+		userRepo:               userRepo,
 		storageService:         storageService,
 		placesService:          placesService,
 		verifLogRepo:           verifLogRepo,
