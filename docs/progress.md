@@ -37,7 +37,7 @@ mobil:
 -seyyahın rehberliği onaylanınca uygulamadan çıkıp  geri girmesi gerekiyor? (bildirim atılabilir)
 -~~status rehber->seyyah yapınca rehber başvurunuz inceleniyor sayfası geliyor ama tekrar bir guide başvurusu yapılmıyor otomatik olarak.~~ ✅ (2026-06-19)
 
-rehberlere yeni bir özellik ekleyelim:
+rehberlere yeni bir özellik ekleyelim: ✅
 hangi şehir için rehberlik yapacağını belirleyelim.
 hali hazırda ikamet ettiği şehirde rehberlik yapabilsin. (semt seçmeli mi)
 bunu rehberlik başvurusunda şart koşalım. Referans kodu ile rehber ekleme mantığını kaldırsak mı? o tarafı kontrol etmek zor. Hem aynı kontrolleri iki defa yapmış olacağız. Herkes bizim kontrolümüzden geçse daha iyi gibi. 
@@ -46,6 +46,28 @@ hem panelden hangi şehirlerde kaç tane rehber olduğunu görürüz (harita man
 
 
 ## Tamamlanan İşler
+
+### Admin Panel: Türkiye Rehber Yoğunluk Haritası — YENİ
+
+> 2026-06-22'de yapıldı. Admin panelindeki "Şehir Bazlı Rehberler" sayfasına etkileşimli Türkiye choropleth haritası eklendi. Her il rehber sayısına göre renkleniyor: 0 → gri, sayı arttıkça primary tonu koyulaşıyor (sabit 5 kademe opaklık). İl üstünde rehber sayısı yazıyor (0 ise yazılmıyor), hover'da `İl: N rehber` tooltip çıkıyor; altta lejant. Mevcut tablo korundu (harita üstte, tablo altta). Backend değişmedi (mevcut `GET /admin/guides/by-city`). Sadece frontend: gömülü Türkiye SVG (`vite-svg-loader` + `?component`), plaka→kanonik il + centroid statik haritaları, `TurkeyGuideMap.vue`. Plaka→il eşlemesi `backend/internal/models/cities.go` (81 il) ile birebir doğrulandı; centroid'ler SVG geometrisinden hesaplandı. Tasarım: `docs/superpowers/specs/2026-06-22-admin-turkey-guide-map-design.md`, Plan: `docs/superpowers/plans/2026-06-22-admin-turkey-guide-map.md`.
+
+| Değişiklik | Durum | Detay |
+|-----------|-------|-------|
+| Türkiye SVG | ✅ | `admin-panel/src/assets/turkey-map.svg` (81 il, `data-plate` 01–81) |
+| Plaka/il/centroid/opaklık | ✅ | `admin-panel/src/utils/turkeyPlates.ts` (81 il backend cities.go ile birebir) |
+| Choropleth bileşeni | ✅ | `admin-panel/src/components/TurkeyGuideMap.vue` (renk + sayı + tooltip + lejant) |
+| Sayfa entegrasyonu | ✅ | `guides-by-city.vue`: harita üstte, mevcut tablo altta |
+| `*.svg?component` tipi | ✅ | `shims.d.ts`'e ambient modül bildirimi eklendi |
+| Doğrulama | ✅ | `pnpm build` hatasız; headless Chrome render testi (10 örnek il doğru renk/sayı/konum) |
+
+### Profil: Dinamik Rehber Rozeti + Harita "Mekan Ekle" Butonu Kaldırma — YENİ
+
+> 2026-06-22'de yapıldı. İki küçük iş:
+>
+> 1. **Harita "Mekan Ekle" butonu kaldırıldı:** `map_screen.dart` içindeki `FloatingActionButton.extended` ("Mekan Ekle") + ilgili `authState`/`showAddButton` ve artık kullanılmayan `go_router`/`auth_provider` importları temizlendi. `/add-venue` route'u duruyor; sadece haritadaki giriş noktası kaldırıldı.
+> 2. **Dinamik rehber rozeti:** Rozet artık rehberin şehrini gösteriyor → `<Şehir> Rehberi` (ör. "İstanbul Rehberi"). `guide_city` NULL ise sade "Rehber".
+>    - **Backend:** `models.User`'a `guide_city` (`json:"guide_city,omitempty"`) eklendi; `UserRepo.FindByID` SELECT/Scan'ine `guide_city` kolonu eklendi → `/me` yanıtı artık şehri döner. Migration gerekmedi (kolon `032` ile mevcut).
+>    - **Mobil:** `User` modeline `guideCity` (`@JsonKey(name: 'guide_city')`) eklendi (build_runner ile yeniden üretildi); `_RoleBadge` `guideCity` alıp `guide` rolünde dinamik etiket gösteriyor.
 
 ### Mobil Refactor 3 Madde (Profil + Yorum İsmi + Demote Başvuru) — YENİ
 
