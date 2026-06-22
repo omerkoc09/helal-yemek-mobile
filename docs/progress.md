@@ -103,6 +103,8 @@ hem panelden hangi şehirlerde kaç tane rehber olduğunu görürüz (harita man
 
 > 2026-06-20'de eklendi. Rehberlik başvurusu artık tek yol: şehir beyanı + kullanım şartları → admin onayı. Referans kodu sistemi tamamıyla kaldırıldı (migration ile `referral_codes` tablo temizlendi). 81 il sabit listesi backend doğrulamada ve mobil seçicide kullanılıyor. Admin panelde şehir bazlı rehber sayımı ve başvuru onay ekranında şehir kolonu eklendi. Dev-only temizlik script'i (`backend/scripts/cleanup_referral_guides.sql`) demote işlemi için hazırlandı (şehirsiz eski rehberleri traveler'a indirir, veri korunur).
 
+> 2026-06-22'de eklendi (mekan ekleme şehir kısıtı — enforcement). Rehber artık yalnızca kendi `guide_city`'sindeki mekanı ekleyebilir. Çekirdek mantık tek yerde: `services.CheckCityAllowed` (saf, `NormalizeCity` ile Türkçe-duyarsız karşılaştırma). Preview yanıtına `city_allowed` + `guide_city` eklendi → mobil, farklı şehirde uyarı bandı gösterip detay adımını kilitliyor. `Create` endpoint'inde guide farklı ilde mekan eklerse 403 döner (güvenlik hattı). Admin muaf. Belirsizlikte (guide_city NULL / mekan şehri 81 ilden birine çözülemez) izin verilir → admin onayına kalır. Düzenleme (Edit) kapsam dışı.
+
 | Değişiklik | Durum | Detay |
 |-----------|-------|-------|
 | Migration 032 | ✅ | guide_applications.city NOT NULL kolonu eklendi + users.guide_city kolonu eklendi |
