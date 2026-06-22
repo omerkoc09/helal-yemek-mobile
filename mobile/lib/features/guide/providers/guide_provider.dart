@@ -34,6 +34,10 @@ class AddVenueState {
   final List<String> excludedProducts; // sakıncalı ürünler (except modunda)
   final bool isManualMode; // Link yok, bilgiler elle girilecek
 
+  // Şehir kısıtı: mekanın şehri rehberin şehriyle uyumlu mu (backend preview'den gelir).
+  final bool cityAllowed;
+  final String? guideCity; // Rehberin çalışma şehri (uyumsuzlukta mesajda kullanılır)
+
   const AddVenueState({
     this.isLoading = false,
     this.error,
@@ -56,6 +60,8 @@ class AddVenueState {
     this.foodHalalMode = 'selected',
     this.excludedProducts = const [],
     this.isManualMode = false,
+    this.cityAllowed = true,
+    this.guideCity,
   });
 
   AddVenueState copyWith({
@@ -80,6 +86,8 @@ class AddVenueState {
     String? foodHalalMode,
     List<String>? excludedProducts,
     bool? isManualMode,
+    bool? cityAllowed,
+    String? guideCity,
   }) {
     return AddVenueState(
       isLoading: isLoading ?? this.isLoading,
@@ -103,6 +111,8 @@ class AddVenueState {
       foodHalalMode: foodHalalMode ?? this.foodHalalMode,
       excludedProducts: excludedProducts ?? this.excludedProducts,
       isManualMode: isManualMode ?? this.isManualMode,
+      cityAllowed: cityAllowed ?? this.cityAllowed,
+      guideCity: guideCity ?? this.guideCity,
     );
   }
 
@@ -110,12 +120,14 @@ class AddVenueState {
   bool get canProceedStep0 =>
       (latitude != null && longitude != null) || isManualMode;
   // Adım 1 = Detay doğrulama: ad + il + ilçe + koordinat zorunlu
+  // Şehir kısıtı: mekan rehberin şehrinde değilse ilerlenemez.
   bool get canProceedStep1 =>
       name.trim().isNotEmpty &&
       city.isNotEmpty &&
       district.isNotEmpty &&
       latitude != null &&
-      longitude != null;
+      longitude != null &&
+      cityAllowed;
   // Step 2 (helal kriterleri + not) — kriter seçimi zorunlu, not opsiyonel
   bool get canProceedStep2 => selectedCriteriaIds.isNotEmpty;
   // Step 3 (yemek kategorileri) — tüm modlarda yemek seçimi zorunlu
@@ -237,6 +249,9 @@ class AddVenueNotifier extends Notifier<AddVenueState> {
           .map((e) => e as String)
           .where((url) => url.isNotEmpty)
           .toList();
+      // Şehir kısıtı: backend mekanın şehri rehberin şehriyle uyumlu mu döner.
+      final cityAllowed = data['city_allowed'] as bool? ?? true;
+      final guideCity = data['guide_city'] as String?;
 
       state = state.copyWith(
         // Eğer state'te zaten bir isim varsa (URL'den geldiyse) koru,
@@ -249,6 +264,8 @@ class AddVenueNotifier extends Notifier<AddVenueState> {
         googlePhotoUrls: fetchedPhotoUrls,
         selectedPhotoUrl: fetchedPhotoUrls.isNotEmpty ? fetchedPhotoUrls.first : null,
         isLoadingPlaceDetails: false,
+        cityAllowed: cityAllowed,
+        guideCity: guideCity,
       );
     } catch (_) {
       state = state.copyWith(isLoadingPlaceDetails: false);

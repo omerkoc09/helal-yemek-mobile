@@ -277,6 +277,31 @@ class _AddVenueLocationStepState extends ConsumerState<AddVenueLocationStep> {
             if (state.district.isNotEmpty)
               _infoRow('Semt', state.district),
           ],
+          if (!state.cityAllowed) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.red.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.red.shade200),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.error_outline, color: Colors.red.shade700, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Yalnızca rehberi olduğunuz şehirde (${state.guideCity ?? "-"}) '
+                      'mekan ekleyebilirsiniz. Bu mekan ${state.city} şehrinde görünüyor.',
+                      style: TextStyle(color: Colors.red.shade700, fontSize: 12),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: 8),
           const Text(
             'Devam\'a basın — bir sonraki adımda bilgileri doğrulayabilirsiniz.',
