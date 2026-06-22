@@ -200,6 +200,19 @@ func (r *UserRepo) ClearGuideCity(ctx context.Context, userID string) error {
 	return err
 }
 
+// GetGuideCity — kullanıcının guide_city'sini döner (NULL ise nil). Kullanıcı yoksa ErrNotFound.
+func (r *UserRepo) GetGuideCity(ctx context.Context, userID string) (*string, error) {
+	var city *string
+	err := r.db.QueryRow(ctx,
+		`SELECT guide_city FROM users WHERE id = $1`,
+		userID,
+	).Scan(&city)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, ErrNotFound
+	}
+	return city, err
+}
+
 // CountGuidesByCity — şehir bazlı aktif rehber sayısını azalan döndürür.
 func (r *UserRepo) CountGuidesByCity(ctx context.Context) ([]CityGuideCount, error) {
 	rows, err := r.db.Query(ctx,
