@@ -13,3 +13,9 @@ declare module 'vue-prism-component' {
 }
 declare module 'vue-shepherd';
 declare module '@videojs-player/vue';
+
+declare module '*.svg?component' {
+  import type { FunctionalComponent, SVGAttributes } from 'vue'
+  const src: FunctionalComponent<SVGAttributes>
+  export default src
+}
