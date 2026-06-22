@@ -19,8 +19,11 @@ function paint() {
   if (!root)
     return
 
-  // Boyutlandırma viewBox oranı + CSS ile yapılır (SVG kökünde width/height yok).
-  // preserveAspectRatio dosyada zaten var; güvenlik için tekrar uygula.
+  // SVG'yi konteyner içinde duyarlı kıl: sabit width/height attribute'larını kaldır,
+  // boyutlandırmayı viewBox oranı + CSS yapsın (aksi halde harita dikeyde kırpılıyordu).
+  root.removeAttribute('width')
+  root.removeAttribute('height')
+  root.removeAttribute('style')
   root.setAttribute('preserveAspectRatio', 'xMidYMid meet')
 
   for (const plate of Object.keys(PLATE_TO_CITY)) {
