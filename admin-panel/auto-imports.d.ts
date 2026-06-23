@@ -7,6 +7,7 @@
 export {}
 declare global {
   const $api: typeof import('./src/utils/api')['$api']
+  const CITY_CENTROID: typeof import('./src/utils/turkeyPlates')['CITY_CENTROID']
   const COOKIE_MAX_AGE_1_YEAR: typeof import('./src/utils/constants')['COOKIE_MAX_AGE_1_YEAR']
   const ConfirmPopup: typeof import('./src/utils/Popup')['ConfirmPopup']
   const CreateUrl: typeof import('./src/@core/composable/CreateUrl')['CreateUrl']
@@ -14,6 +15,8 @@ declare global {
   const ErrorPopup: typeof import('./src/utils/Popup')['ErrorPopup']
   const ErrorToast: typeof import('./src/utils/Popup')['ErrorToast']
   const ExDate: typeof import('./src/utils/ExDate')['default']
+  const PLATE_CENTROID: typeof import('./src/utils/turkeyPlates')['PLATE_CENTROID']
+  const PLATE_TO_CITY: typeof import('./src/utils/turkeyPlates')['PLATE_TO_CITY']
   const SuccessPopup: typeof import('./src/utils/Popup')['SuccessPopup']
   const SuccessToast: typeof import('./src/utils/Popup')['SuccessToast']
   const Truncate: typeof import('./src/utils/String')['Truncate']
@@ -25,6 +28,7 @@ declare global {
   const autoResetRef: typeof import('@vueuse/core')['autoResetRef']
   const avatarText: typeof import('./src/@core/utils/formatters')['avatarText']
   const betweenValidator: typeof import('./src/@core/utils/validators')['betweenValidator']
+  const colorForCount: typeof import('./src/utils/turkeyPlates')['colorForCount']
   const computed: typeof import('vue')['computed']
   const computedAsync: typeof import('@vueuse/core')['computedAsync']
   const computedEager: typeof import('@vueuse/core')['computedEager']
@@ -113,6 +117,7 @@ declare global {
   const onUnmounted: typeof import('vue')['onUnmounted']
   const onUpdated: typeof import('vue')['onUpdated']
   const onWatcherCleanup: typeof import('vue')['onWatcherCleanup']
+  const opacityForCount: typeof import('./src/utils/turkeyPlates')['opacityForCount']
   const paginationMeta: typeof import('./src/utils/paginationMeta')['paginationMeta']
   const passwordValidator: typeof import('./src/@core/utils/validators')['passwordValidator']
   const pathJoin: typeof import('./src/utils/Path')['pathJoin']
@@ -153,6 +158,7 @@ declare global {
   const syncRefs: typeof import('@vueuse/core')['syncRefs']
   const tarihSaatFormat: typeof import('./src/utils/ExDate')['tarihSaatFormat']
   const templateRef: typeof import('@vueuse/core')['templateRef']
+  const textColorForCount: typeof import('./src/utils/turkeyPlates')['textColorForCount']
   const throttledRef: typeof import('@vueuse/core')['throttledRef']
   const throttledWatch: typeof import('@vueuse/core')['throttledWatch']
   const toRaw: typeof import('vue')['toRaw']
@@ -387,6 +393,7 @@ declare module 'vue' {
   interface GlobalComponents {}
   interface ComponentCustomProperties {
     readonly $api: UnwrapRef<typeof import('./src/utils/api')['$api']>
+    readonly CITY_CENTROID: UnwrapRef<typeof import('./src/utils/turkeyPlates')['CITY_CENTROID']>
     readonly COOKIE_MAX_AGE_1_YEAR: UnwrapRef<typeof import('./src/utils/constants')['COOKIE_MAX_AGE_1_YEAR']>
     readonly ConfirmPopup: UnwrapRef<typeof import('./src/utils/Popup')['ConfirmPopup']>
     readonly EffectScope: UnwrapRef<typeof import('vue')['EffectScope']>
@@ -404,6 +411,7 @@ declare module 'vue' {
     readonly autoResetRef: UnwrapRef<typeof import('@vueuse/core')['autoResetRef']>
     readonly avatarText: UnwrapRef<typeof import('./src/@core/utils/formatters')['avatarText']>
     readonly betweenValidator: UnwrapRef<typeof import('./src/@core/utils/validators')['betweenValidator']>
+    readonly colorForCount: UnwrapRef<typeof import('./src/utils/turkeyPlates')['colorForCount']>
     readonly computed: UnwrapRef<typeof import('vue')['computed']>
     readonly computedAsync: UnwrapRef<typeof import('@vueuse/core')['computedAsync']>
     readonly computedEager: UnwrapRef<typeof import('@vueuse/core')['computedEager']>
