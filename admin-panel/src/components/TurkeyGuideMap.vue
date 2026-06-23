@@ -1,17 +1,20 @@
 <script setup lang="ts">
-import { useTheme } from 'vuetify'
-import TurkeyMap from '@/assets/turkey-map.svg?component'
-import { PLATE_TO_CITY, PLATE_CENTROID, opacityForCount } from '@/utils/turkeyPlates'
+// ?skipsvgo: svgo'yu atla. Varsayılan svgo, il <g data-city-name> gruplarını birleştirip
+// (collapseGroups) attribute'leri kaldırıyor → boyama/eşleşme bozuluyordu. skipsvgo ile
+// SVG'nin grup yapısı ve viewBox aynen korunur (yalnızca bu SVG; global config etkilenmez).
+import TurkeyMap from '@/assets/turkey-map.svg?skipsvgo'
+import { CITY_CENTROID, colorForCount } from '@/utils/turkeyPlates'
 
 const props = defineProps<{ counts: Record<string, number> }>()
 
 const svgWrap = ref<HTMLElement | null>(null)
-const theme = useTheme()
 
-// Vuetify tema rengini ('primary', 'grey-lighten-2' ...) hex'e çevirir; yoksa gri döner.
-function tokenToHex(token: string): string {
-  const colors = theme.current.value.colors as Record<string, string>
-  return colors[token] ?? '#cccccc'
+// İmleci takip eden HTML tooltip durumu.
+const tooltip = reactive({ show: false, text: '', x: 0, y: 0 })
+
+// Açık zeminli illerde koyu, koyu zeminli illerde beyaz yazı (kontrast).
+function textColorFor(count: number): string {
+  return count >= 4 ? '#ffffff' : '#1a1a2e'
 }
 
 function paint() {
@@ -19,63 +22,95 @@ function paint() {
   if (!root)
     return
 
-  // SVG'yi konteyner içinde duyarlı kıl: sabit width/height attribute'larını kaldır,
-  // boyutlandırmayı viewBox oranı + CSS yapsın (aksi halde harita dikeyde kırpılıyordu).
+  // SVG'yi konteyner içinde duyarlı kıl: sabit boyutu kaldır, viewBox oranını koru.
   root.removeAttribute('width')
   root.removeAttribute('height')
-  root.removeAttribute('style')
   root.setAttribute('preserveAspectRatio', 'xMidYMid meet')
+  root.style.maxHeight = '560px'
+  root.style.display = 'block'
 
-  for (const plate of Object.keys(PLATE_TO_CITY)) {
-    const city = PLATE_TO_CITY[plate]
+  // İller SVG'de <g data-city-name="..."> ile işaretli; kanonik ad ile birebir eşleşir.
+  for (const city of Object.keys(CITY_CENTROID)) {
     const count = props.counts[city] ?? 0
-    const group = root.querySelector<SVGGElement>(`g[data-plate="${plate}"]`)
+    const group = root.querySelector<SVGGElement>(`g[data-city-name="${city}"]`)
     if (!group)
       continue
 
-    const fill = count > 0 ? tokenToHex('primary') : tokenToHex('grey-lighten-2')
-    const op = opacityForCount(count)
+    const fill = colorForCount(count)
 
-    // Tüm il path'lerini boya + ince beyaz kenarlık.
+    // Tüm il path'lerini boya + ince beyaz kenarlık. SVG path'lerinde inline
+    // style="fill: rgb(175,175,175)" var; presentation attribute bunu ezemez,
+    // bu yüzden boyamayı yine inline style ile yapıyoruz (aynı özgüllük, sonradan kazanır).
     group.querySelectorAll<SVGPathElement>('path').forEach(p => {
-      p.setAttribute('fill', fill)
-      p.setAttribute('fill-opacity', String(op))
-      p.setAttribute('stroke', '#ffffff')
-      p.setAttribute('stroke-width', '1')
+      p.style.fill = fill
+      p.style.opacity = '1'
+      p.style.stroke = '#ffffff'
+      p.style.strokeWidth = '0.5'
     })
 
-    // Tooltip (native): "İstanbul: 5 rehber".
-    let title = group.querySelector('title')
-    if (!title) {
-      title = document.createElementNS('http://www.w3.org/2000/svg', 'title')
-      group.insertBefore(title, group.firstChild)
-    }
-    title.textContent = `${city}: ${count} rehber`
+    // Hover tooltip için veriyi grup üzerine işaretle (listener delegasyonu paint dışında).
+    group.dataset.tooltip = `${city} — ${count} rehber`
 
-    // Sayı etiketi (yalnızca count > 0). Centroid'e <text> ekle/güncelle.
-    const c = PLATE_CENTROID[plate]
+    // Sadece rehberi olan illerin ad + sayı etiketi (centroid'e iki satır <text>).
+    const c = CITY_CENTROID[city]
     let label = group.querySelector<SVGTextElement>('text[data-label="1"]')
-    if (count > 0 && c) {
+    if (count > 0) {
+      const textFill = textColorFor(count)
       if (!label) {
         label = document.createElementNS('http://www.w3.org/2000/svg', 'text')
         label.setAttribute('data-label', '1')
         label.setAttribute('text-anchor', 'middle')
-        label.setAttribute('dominant-baseline', 'central')
         label.setAttribute('pointer-events', 'none')
-        label.setAttribute('font-size', '22')
         label.setAttribute('font-weight', '700')
+        // İlk satır: il adı, ikinci satır: sayı.
+        const nameTspan = document.createElementNS('http://www.w3.org/2000/svg', 'tspan')
+        nameTspan.setAttribute('data-name', '1')
+        nameTspan.setAttribute('font-size', '7')
+        const countTspan = document.createElementNS('http://www.w3.org/2000/svg', 'tspan')
+        countTspan.setAttribute('data-count', '1')
+        countTspan.setAttribute('font-size', '11')
+        label.append(nameTspan, countTspan)
         group.appendChild(label)
       }
       label.setAttribute('x', String(c.cx))
       label.setAttribute('y', String(c.cy))
-      // Koyu illerde beyaz, açık illerde koyu yazı.
-      label.setAttribute('fill', op >= 0.7 ? '#ffffff' : '#1a1a2e')
-      label.textContent = String(count)
+      label.setAttribute('fill', textFill)
+
+      const nameTspan = label.querySelector<SVGTSpanElement>('tspan[data-name]')!
+      nameTspan.setAttribute('x', String(c.cx))
+      nameTspan.setAttribute('dy', '-2')
+      nameTspan.textContent = city
+
+      const countTspan = label.querySelector<SVGTSpanElement>('tspan[data-count]')!
+      countTspan.setAttribute('x', String(c.cx))
+      countTspan.setAttribute('dy', '10')
+      countTspan.textContent = String(count)
     }
     else if (label) {
       label.remove()
     }
   }
+}
+
+// Hover popup — olay delegasyonu ile (her ile ayrı listener bağlamadan).
+function onMove(e: MouseEvent) {
+  const wrap = svgWrap.value
+  if (!wrap)
+    return
+  const group = (e.target as Element).closest<SVGGElement>('g[data-city-name]')
+  if (!group || !group.dataset.tooltip) {
+    tooltip.show = false
+
+    return
+  }
+  const rect = wrap.getBoundingClientRect()
+  tooltip.text = group.dataset.tooltip
+  tooltip.x = e.clientX - rect.left
+  tooltip.y = e.clientY - rect.top
+  tooltip.show = true
+}
+function onLeave() {
+  tooltip.show = false
 }
 
 onMounted(paint)
@@ -91,16 +126,26 @@ const legend = [
   { label: '11+', count: 11 },
 ]
 function legendStyle(count: number) {
-  const fill = count > 0 ? tokenToHex('primary') : tokenToHex('grey-lighten-2')
-
-  return { backgroundColor: fill, opacity: opacityForCount(count) }
+  return { backgroundColor: colorForCount(count) }
 }
 </script>
 
 <template>
   <div>
-    <div ref="svgWrap" class="turkey-map-wrap">
+    <div
+      ref="svgWrap"
+      class="turkey-map-wrap"
+      @mousemove="onMove"
+      @mouseleave="onLeave"
+    >
       <TurkeyMap />
+      <div
+        v-show="tooltip.show"
+        class="map-tooltip"
+        :style="{ left: `${tooltip.x}px`, top: `${tooltip.y}px` }"
+      >
+        {{ tooltip.text }}
+      </div>
     </div>
     <div class="d-flex align-center flex-wrap gap-3 mt-4 px-2">
       <span class="text-caption text-medium-emphasis me-2">Rehber sayısı:</span>
@@ -114,20 +159,32 @@ function legendStyle(count: number) {
 
 <style scoped>
 .turkey-map-wrap {
-  inline-size: 100%;
-  text-align: center;
+  position: relative;
 }
 .turkey-map-wrap :deep(svg) {
-  inline-size: 100%;
-  block-size: auto;
-  max-inline-size: 1000px;
+  width: 100%;
+  height: auto;
 }
-.turkey-map-wrap :deep(g[data-plate]) {
+.turkey-map-wrap :deep(g[data-city-name]) {
   cursor: pointer;
-  transition: fill-opacity 0.15s ease;
+  transition: filter 0.15s ease;
 }
-.turkey-map-wrap :deep(g[data-plate]:hover path) {
-  fill-opacity: 1 !important;
+/* Hover'da rengi gri'ye kaydırmadan hafifçe vurgula (mavi mavi kalır). */
+.turkey-map-wrap :deep(g[data-city-name]:hover) {
+  filter: brightness(0.92);
+}
+.map-tooltip {
+  position: absolute;
+  z-index: 10;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: rgba(30, 30, 46, 0.92);
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
+  transform: translate(12px, -50%);
 }
 .legend-swatch {
   display: inline-block;

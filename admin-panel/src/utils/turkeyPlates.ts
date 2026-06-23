@@ -1,62 +1,49 @@
-// Türkiye plaka kodu → kanonik il adı (backend cities.go TurkishCities ile birebir).
-export const PLATE_TO_CITY: Record<string, string> = {
-  '01': 'Adana', '02': 'Adıyaman', '03': 'Afyonkarahisar', '04': 'Ağrı', '05': 'Amasya',
-  '06': 'Ankara', '07': 'Antalya', '08': 'Artvin', '09': 'Aydın', '10': 'Balıkesir',
-  '11': 'Bilecik', '12': 'Bingöl', '13': 'Bitlis', '14': 'Bolu', '15': 'Burdur',
-  '16': 'Bursa', '17': 'Çanakkale', '18': 'Çankırı', '19': 'Çorum', '20': 'Denizli',
-  '21': 'Diyarbakır', '22': 'Edirne', '23': 'Elazığ', '24': 'Erzincan', '25': 'Erzurum',
-  '26': 'Eskişehir', '27': 'Gaziantep', '28': 'Giresun', '29': 'Gümüşhane', '30': 'Hakkâri',
-  '31': 'Hatay', '32': 'Isparta', '33': 'Mersin', '34': 'İstanbul', '35': 'İzmir',
-  '36': 'Kars', '37': 'Kastamonu', '38': 'Kayseri', '39': 'Kırklareli', '40': 'Kırşehir',
-  '41': 'Kocaeli', '42': 'Konya', '43': 'Kütahya', '44': 'Malatya', '45': 'Manisa',
-  '46': 'Kahramanmaraş', '47': 'Mardin', '48': 'Muğla', '49': 'Muş', '50': 'Nevşehir',
-  '51': 'Niğde', '52': 'Ordu', '53': 'Rize', '54': 'Sakarya', '55': 'Samsun',
-  '56': 'Siirt', '57': 'Sinop', '58': 'Sivas', '59': 'Tekirdağ', '60': 'Tokat',
-  '61': 'Trabzon', '62': 'Tunceli', '63': 'Şanlıurfa', '64': 'Uşak', '65': 'Van',
-  '66': 'Yozgat', '67': 'Zonguldak', '68': 'Aksaray', '69': 'Bayburt', '70': 'Karaman',
-  '71': 'Kırıkkale', '72': 'Batman', '73': 'Şırnak', '74': 'Bartın', '75': 'Ardahan',
-  '76': 'Iğdır', '77': 'Yalova', '78': 'Karabük', '79': 'Kilis', '80': 'Osmaniye', '81': 'Düzce',
+// İl sayı etiketinin yerleşeceği nokta — SVG (ali-han/Turkey-SVG-Map) viewBox
+// "0 0 1005 490" uzayında her ilin (data-city-name) bounding-box merkezi.
+// Çok parçalı iller (ör. İstanbul) tek merkeze indirgenir. İsimler backend
+// cities.go TurkishCities ve SVG data-city-name ile birebir aynı.
+export const CITY_CENTROID: Record<string, { cx: number; cy: number }> = {
+  'Adana': { cx: 511.5, cy: 332.4 }, 'Adıyaman': { cx: 658.9, cy: 307.3 }, 'Afyonkarahisar': { cx: 252.0, cy: 253.0 },
+  'Aksaray': { cx: 418.1, cy: 261.8 }, 'Amasya': { cx: 520.9, cy: 116.9 }, 'Ankara': { cx: 344.1, cy: 180.7 },
+  'Antalya': { cx: 257.5, cy: 375.5 }, 'Ardahan': { cx: 885.3, cy: 73.5 }, 'Artvin': { cx: 834.2, cy: 82.9 },
+  'Aydın': { cx: 102.1, cy: 294.2 }, 'Ağrı': { cx: 919.2, cy: 183.3 }, 'Balıkesir': { cx: 106.3, cy: 151.8 },
+  'Bartın': { cx: 355.2, cy: 52.4 }, 'Batman': { cx: 824.5, cy: 286.3 }, 'Bayburt': { cx: 751.4, cy: 140.0 },
+  'Bilecik': { cx: 232.1, cy: 146.2 }, 'Bingöl': { cx: 778.0, cy: 224.5 }, 'Bitlis': { cx: 868.4, cy: 253.6 },
+  'Bolu': { cx: 305.1, cy: 116.7 }, 'Burdur': { cx: 217.1, cy: 329.1 }, 'Bursa': { cx: 173.6, cy: 142.6 },
+  'Denizli': { cx: 176.0, cy: 306.3 }, 'Diyarbakır': { cx: 759.1, cy: 282.9 }, 'Düzce': { cx: 293.2, cy: 97.1 },
+  'Edirne': { cx: 52.0, cy: 49.8 }, 'Elazığ': { cx: 711.7, cy: 243.0 }, 'Erzincan': { cx: 719.6, cy: 188.8 },
+  'Erzurum': { cx: 816.1, cy: 149.2 }, 'Eskişehir': { cx: 274.8, cy: 180.8 }, 'Gaziantep': { cx: 601.9, cy: 354.9 },
+  'Giresun': { cx: 665.8, cy: 122.7 }, 'Gümüşhane': { cx: 711.0, cy: 135.9 }, 'Hakkâri': { cx: 967.4, cy: 316.8 },
+  'Hatay': { cx: 546.8, cy: 402.8 }, 'Isparta': { cx: 258.3, cy: 295.5 }, 'Iğdır': { cx: 950.8, cy: 149.9 },
+  'Kahramanmaraş': { cx: 586.8, cy: 304.4 }, 'Karabük': { cx: 361.8, cy: 77.8 }, 'Karaman': { cx: 384.6, cy: 360.7 },
+  'Kars': { cx: 891.2, cy: 112.8 }, 'Kastamonu': { cx: 416.9, cy: 64.4 }, 'Kayseri': { cx: 529.8, cy: 262.3 },
+  'Kilis': { cx: 595.0, cy: 374.1 }, 'Kocaeli': { cx: 220.0, cy: 93.0 }, 'Konya': { cx: 365.9, cy: 294.1 },
+  'Kütahya': { cx: 194.6, cy: 195.4 }, 'Kırklareli': { cx: 103.5, cy: 28.7 }, 'Kırıkkale': { cx: 414.9, cy: 170.6 },
+  'Kırşehir': { cx: 433.2, cy: 207.7 }, 'Malatya': { cx: 651.4, cy: 259.9 }, 'Manisa': { cx: 116.5, cy: 228.5 },
+  'Mardin': { cx: 795.6, cy: 336.3 }, 'Mersin': { cx: 417.7, cy: 380.8 }, 'Muğla': { cx: 128.6, cy: 350.8 },
+  'Muş': { cx: 845.4, cy: 221.4 }, 'Nevşehir': { cx: 461.7, cy: 238.2 }, 'Niğde': { cx: 463.1, cy: 305.3 },
+  'Ordu': { cx: 608.1, cy: 111.0 }, 'Osmaniye': { cx: 549.0, cy: 341.7 }, 'Rize': { cx: 784.1, cy: 93.2 },
+  'Sakarya': { cx: 250.2, cy: 103.9 }, 'Samsun': { cx: 534.1, cy: 75.0 }, 'Siirt': { cx: 864.5, cy: 292.3 },
+  'Sinop': { cx: 477.7, cy: 50.0 }, 'Sivas': { cx: 603.1, cy: 192.4 }, 'Tekirdağ': { cx: 96.9, cy: 70.3 },
+  'Tokat': { cx: 561.8, cy: 131.6 }, 'Trabzon': { cx: 729.5, cy: 103.4 }, 'Tunceli': { cx: 722.1, cy: 212.1 },
+  'Uşak': { cx: 182.6, cy: 245.8 }, 'Van': { cx: 937.9, cy: 243.8 }, 'Yalova': { cx: 183.3, cy: 108.6 },
+  'Yozgat': { cx: 487.6, cy: 188.1 }, 'Zonguldak': { cx: 319.6, cy: 70.8 }, 'Çanakkale': { cx: 47.7, cy: 129.0 },
+  'Çankırı': { cx: 398.1, cy: 115.6 }, 'Çorum': { cx: 468.4, cy: 118.5 }, 'İstanbul': { cx: 173.0, cy: 66.6 },
+  'İzmir': { cx: 75.7, cy: 232.0 }, 'Şanlıurfa': { cx: 697.6, cy: 338.3 }, 'Şırnak': { cx: 885.0, cy: 321.9 },
 }
 
-// İl sayı etiketinin yerleşeceği nokta (SVG viewBox 0 0 1871.824 952.756 uzayında,
-// her <g data-plate> grubunun bounding-box merkezi).
-export const PLATE_CENTROID: Record<string, { cx: number; cy: number }> = {
-  '01': { cx: 970.3, cy: 583.7 }, '02': { cx: 1240.6, cy: 543.5 }, '03': { cx: 492.8, cy: 453.3 },
-  '04': { cx: 1730.9, cy: 334.4 }, '05': { cx: 983.0, cy: 184.7 }, '06': { cx: 654.6, cy: 301.0 },
-  '07': { cx: 515.7, cy: 673.6 }, '08': { cx: 1582.5, cy: 136.4 }, '09': { cx: 223.9, cy: 551.2 },
-  '10': { cx: 210.1, cy: 293.2 }, '11': { cx: 445.0, cy: 253.2 }, '12': { cx: 1459.6, cy: 391.5 },
-  '13': { cx: 1629.8, cy: 455.9 }, '14': { cx: 581.4, cy: 191.0 }, '15': { cx: 436.5, cy: 601.3 },
-  '16': { cx: 328.0, cy: 253.9 }, '17': { cx: 95.1, cy: 252.7 }, '18': { cx: 753.8, cy: 180.8 },
-  '19': { cx: 887.5, cy: 186.0 }, '20': { cx: 360.3, cy: 557.2 }, '21': { cx: 1423.2, cy: 504.1 },
-  '22': { cx: 85.0, cy: 103.2 }, '23': { cx: 1338.3, cy: 429.8 }, '24': { cx: 1354.8, cy: 323.4 },
-  '25': { cx: 1541.0, cy: 259.0 }, '26': { cx: 522.9, cy: 316.9 }, '27': { cx: 1133.7, cy: 627.5 },
-  '28': { cx: 1261.0, cy: 198.5 }, '29': { cx: 1344.4, cy: 226.5 }, '30': { cx: 1797.3, cy: 594.2 },
-  '31': { cx: 1034.5, cy: 715.7 }, '32': { cx: 512.6, cy: 527.1 }, '33': { cx: 799.7, cy: 676.3 },
-  '34': { cx: 321.7, cy: 115.4 }, '35': { cx: 166.7, cy: 442.1 }, '36': { cx: 1686.5, cy: 203.2 },
-  '37': { cx: 784.8, cy: 88.3 }, '38': { cx: 998.8, cy: 461.3 }, '39': { cx: 179.4, cy: 56.5 },
-  '40': { cx: 818.2, cy: 353.9 }, '41': { cx: 411.1, cy: 156.4 }, '42': { cx: 702.1, cy: 514.7 },
-  '43': { cx: 378.2, cy: 350.5 }, '44': { cx: 1224.9, cy: 454.2 }, '45': { cx: 240.2, cy: 424.6 },
-  '46': { cx: 1105.7, cy: 533.0 }, '47': { cx: 1486.9, cy: 602.9 }, '48': { cx: 278.1, cy: 648.3 },
-  '49': { cx: 1587.4, cy: 393.0 }, '50': { cx: 882.5, cy: 414.0 }, '51': { cx: 874.7, cy: 536.3 },
-  '52': { cx: 1147.2, cy: 175.8 }, '53': { cx: 1484.0, cy: 151.6 }, '54': { cx: 475.1, cy: 173.5 },
-  '55': { cx: 1014.6, cy: 106.6 }, '56': { cx: 1608.2, cy: 528.7 }, '57': { cx: 898.1, cy: 61.3 },
-  '58': { cx: 1138.4, cy: 326.4 }, '59': { cx: 171.2, cy: 130.0 }, '60': { cx: 1063.2, cy: 215.9 },
-  '61': { cx: 1382.9, cy: 165.8 }, '62': { cx: 1355.1, cy: 371.3 }, '63': { cx: 1306.5, cy: 601.5 },
-  '64': { cx: 363.9, cy: 449.9 }, '65': { cx: 1749.5, cy: 450.6 }, '66': { cx: 923.9, cy: 315.6 },
-  '67': { cx: 602.4, cy: 103.5 }, '68': { cx: 797.2, cy: 447.9 }, '69': { cx: 1418.8, cy: 234.0 },
-  '70': { cx: 753.1, cy: 641.9 }, '71': { cx: 785.5, cy: 284.4 }, '72': { cx: 1534.0, cy: 516.0 },
-  '73': { cx: 1646.9, cy: 588.0 }, '74': { cx: 672.7, cy: 69.4 }, '75': { cx: 1684.3, cy: 127.4 },
-  '76': { cx: 1797.1, cy: 283.4 }, '77': { cx: 344.0, cy: 190.2 }, '78': { cx: 674.7, cy: 115.1 },
-  '79': { cx: 1123.0, cy: 664.8 }, '80': { cx: 1039.7, cy: 600.4 }, '81': { cx: 557.7, cy: 156.7 },
-}
+// Rehber sayısına göre dolgu rengi (sabit 5 kademe + gri). Opaklık değil, doğrudan
+// mavi ton kademeleri kullanılır → düşük opaklıkta gri'ye kayma sorunu olmaz.
+// 0 → gri; 1 → en açık mavi; 11+ → en koyu mavi.
+const GREY = '#d5d8de'
+const BLUE_STEPS = ['#cfe3fb', '#90c0f4', '#4a90e2', '#1f6fd0', '#0b4a9c'] // açık → koyu
 
-// Rehber sayısına göre dolgu opaklığı (sabit 5 kademe). Renk koyuluğu primary token +
-// bu opaklıkla elde edilir. 0 → gri zemin tam opak; 1..10 arası açıktan koyuya; 11+ doygun.
-export function opacityForCount(count: number): number {
-  if (count <= 0) return 1
-  if (count === 1) return 0.30
-  if (count <= 3) return 0.50
-  if (count <= 6) return 0.70
-  if (count <= 10) return 0.85
-  return 1
+export function colorForCount(count: number): string {
+  if (count <= 0) return GREY
+  if (count === 1) return BLUE_STEPS[0]
+  if (count <= 3) return BLUE_STEPS[1]
+  if (count <= 6) return BLUE_STEPS[2]
+  if (count <= 10) return BLUE_STEPS[3]
+
+  return BLUE_STEPS[4]
 }
