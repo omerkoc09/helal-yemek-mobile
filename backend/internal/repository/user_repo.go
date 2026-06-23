@@ -64,11 +64,11 @@ func (r *UserRepo) FindByProviderID(ctx context.Context, provider, providerID st
 func (r *UserRepo) FindByID(ctx context.Context, id string) (*models.User, error) {
 	u := &models.User{}
 	query := `
-		SELECT id, email, password_hash, name, surname, phone, avatar_url, role, provider, provider_id, is_active, created_at, updated_at
+		SELECT id, email, password_hash, name, surname, phone, avatar_url, role, provider, provider_id, is_active, guide_city, created_at, updated_at
 		FROM users WHERE id = $1`
 	err := r.db.QueryRow(ctx, query, id).Scan(
 		&u.ID, &u.Email, &u.PasswordHash, &u.Name, &u.Surname, &u.Phone, &u.AvatarURL,
-		&u.Role, &u.Provider, &u.ProviderID, &u.IsActive, &u.CreatedAt, &u.UpdatedAt,
+		&u.Role, &u.Provider, &u.ProviderID, &u.IsActive, &u.GuideCity, &u.CreatedAt, &u.UpdatedAt,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound

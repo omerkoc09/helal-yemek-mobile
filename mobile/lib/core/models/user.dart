@@ -15,6 +15,7 @@ abstract class User with _$User {
     required String role,
     @Default('email') String provider,
     @JsonKey(name: 'is_active') @Default(true) bool isActive,
+    @JsonKey(name: 'guide_city') String? guideCity,
     @JsonKey(name: 'created_at') DateTime? createdAt,
     @JsonKey(name: 'updated_at') DateTime? updatedAt,
   }) = _User;

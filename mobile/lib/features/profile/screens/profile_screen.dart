@@ -40,7 +40,7 @@ class ProfileScreen extends ConsumerWidget {
           const SizedBox(height: 12),
 
           // Rol bilgisi
-          _RoleBadge(role: user.role),
+          _RoleBadge(role: user.role, guideCity: user.guideCity),
           const SizedBox(height: 24),
 
           // Guide başvurusu (sadece Traveler için)
@@ -153,14 +153,20 @@ class _ProfileHeader extends StatelessWidget {
 
 class _RoleBadge extends StatelessWidget {
   final String role;
+  final String? guideCity;
 
-  const _RoleBadge({required this.role});
+  const _RoleBadge({required this.role, this.guideCity});
 
   @override
   Widget build(BuildContext context) {
+    // Rehber için şehir atanmışsa "<Şehir> Rehberi", yoksa sade "Rehber".
+    final guideLabel = (guideCity != null && guideCity!.trim().isNotEmpty)
+        ? '${guideCity!.trim()} Rehberi'
+        : 'Rehber';
+
     final (label, icon, color) = switch (role) {
       'admin' => ('Admin', Icons.admin_panel_settings, Colors.deepPurple),
-      'guide' => ('Rehber', Icons.tour, AppTheme.primary),
+      'guide' => (guideLabel, Icons.tour, AppTheme.primary),
       _ => ('Gezgin', Icons.explore, Colors.blue),
     };
 

@@ -22,6 +22,7 @@ type User struct {
 	Provider     string    `json:"provider"`
 	ProviderID   *string   `json:"-"`
 	IsActive     bool      `json:"is_active"`
+	GuideCity    *string   `json:"guide_city,omitempty"`
 	CreatedAt    time.Time `json:"created_at"`
 	UpdatedAt    time.Time `json:"updated_at"`
 }
