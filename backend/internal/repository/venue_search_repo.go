@@ -569,3 +569,39 @@ func (r *VenueRepo) FindDistinctCities(ctx context.Context) ([]string, error) {
 	}
 	return cities, nil
 }
+
+// CityVenueCount — şehir bazlı onaylı mekan sayımı (admin paneli haritası).
+type CityVenueCount struct {
+	City  string `json:"city"`
+	Count int    `json:"count"`
+}
+
+// CountApprovedVenuesByCity — şehir bazlı onaylı mekan sayısını azalan döndürür.
+func (r *VenueRepo) CountApprovedVenuesByCity(ctx context.Context) ([]CityVenueCount, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT city, COUNT(*) AS cnt
+		FROM venues
+		WHERE status = 'approved'
+		  AND deleted_at IS NULL
+		  AND city != ''
+		GROUP BY city
+		ORDER BY cnt DESC, city
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var list []CityVenueCount
+	for rows.Next() {
+		var c CityVenueCount
+		if err := rows.Scan(&c.City, &c.Count); err != nil {
+			return nil, err
+		}
+		list = append(list, c)
+	}
+	if list == nil {
+		list = []CityVenueCount{}
+	}
+	return list, rows.Err()
+}

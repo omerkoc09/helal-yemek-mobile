@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import ApiService from '@/services/ApiService'
 import { ErrorPopup } from '@/utils/Popup'
-import TurkeyGuideMap from '@/components/TurkeyGuideMap.vue'
+import TurkeyCityMap from '@/components/TurkeyCityMap.vue'
 
 definePage({ meta: { role: ['admin'] } })
 
@@ -33,7 +33,7 @@ onMounted(async () => {
       <VCard title="Türkiye Rehber Yoğunluğu">
         <VCardText>
           <VProgressLinear v-if="loading" indeterminate color="primary" />
-          <TurkeyGuideMap v-else :counts="counts" />
+          <TurkeyCityMap v-else :counts="counts" unit="rehber" />
         </VCardText>
       </VCard>
     </VCol>

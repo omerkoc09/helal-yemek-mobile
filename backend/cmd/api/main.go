@@ -248,6 +248,7 @@ func main() {
 	admin.Put("/applications/:id/approve", adminHandler.ApproveApplication)
 	admin.Put("/applications/:id/reject", adminHandler.RejectApplication)
 	admin.Get("/guides/by-city", adminHandler.GuidesByCity)
+	admin.Get("/venues/by-city", adminHandler.VenuesByCity)
 
 	// Venue reports
 	admin.Get("/venue-reports", venueReportHandler.AdminList)

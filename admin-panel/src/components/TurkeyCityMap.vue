@@ -5,17 +5,17 @@
 import TurkeyMap from '@/assets/turkey-map.svg?skipsvgo'
 import { CITY_CENTROID, colorForCount } from '@/utils/turkeyPlates'
 
-const props = defineProps<{ counts: Record<string, number> }>()
+// unit: tooltip ve lejantta gösterilen birim (ör. 'rehber', 'mekan').
+const props = withDefaults(
+  defineProps<{ counts: Record<string, number>; unit?: string }>(),
+  { unit: 'rehber' },
+)
 
 const svgWrap = ref<HTMLElement | null>(null)
 
 // İmleci takip eden HTML tooltip durumu.
 const tooltip = reactive({ show: false, text: '', x: 0, y: 0 })
 
-// Açık zeminli illerde koyu, koyu zeminli illerde beyaz yazı (kontrast).
-function textColorFor(count: number): string {
-  return count >= 4 ? '#ffffff' : '#1a1a2e'
-}
 
 function paint() {
   const root = svgWrap.value?.querySelector('svg')
@@ -49,46 +49,41 @@ function paint() {
     })
 
     // Hover tooltip için veriyi grup üzerine işaretle (listener delegasyonu paint dışında).
-    group.dataset.tooltip = `${city} — ${count} rehber`
+    group.dataset.tooltip = `${city} — ${count} ${props.unit}`
 
-    // Sadece rehberi olan illerin ad + sayı etiketi (centroid'e iki satır <text>).
+    // Sayısı olan illerde centroid'e sadece sayı yaz (şehir adı yok).
     const c = CITY_CENTROID[city]
-    let label = group.querySelector<SVGTextElement>('text[data-label="1"]')
+    const label = group.querySelector<SVGTextElement>('text[data-label="1"]')
     if (count > 0) {
-      const textFill = textColorFor(count)
-      if (!label) {
-        label = document.createElementNS('http://www.w3.org/2000/svg', 'text')
-        label.setAttribute('data-label', '1')
-        label.setAttribute('text-anchor', 'middle')
-        label.setAttribute('pointer-events', 'none')
-        label.setAttribute('font-weight', '700')
-        // İlk satır: il adı, ikinci satır: sayı.
-        const nameTspan = document.createElementNS('http://www.w3.org/2000/svg', 'tspan')
-        nameTspan.setAttribute('data-name', '1')
-        nameTspan.setAttribute('font-size', '7')
-        const countTspan = document.createElementNS('http://www.w3.org/2000/svg', 'tspan')
-        countTspan.setAttribute('data-count', '1')
-        countTspan.setAttribute('font-size', '11')
-        label.append(nameTspan, countTspan)
-        group.appendChild(label)
+      // Yuvarlak arka plan + sayı: mevcut <g data-badge> varsa güncelle, yoksa oluştur.
+      let badge = group.querySelector<SVGGElement>('g[data-badge="1"]')
+      if (!badge) {
+        badge = document.createElementNS('http://www.w3.org/2000/svg', 'g')
+        badge.setAttribute('data-badge', '1')
+        badge.setAttribute('pointer-events', 'none')
+        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle')
+        circle.setAttribute('r', '9')
+        circle.setAttribute('fill', 'rgba(255,0, 0, 1)')
+        circle.setAttribute('stroke', 'rgba(0,0,0,0.15)')
+        circle.setAttribute('stroke-width', '0.5')
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
+        text.setAttribute('text-anchor', 'middle')
+        text.setAttribute('dominant-baseline', 'central')
+        text.setAttribute('font-size', '9')
+        text.setAttribute('font-weight', '700')
+        badge.append(circle, text)
+        group.appendChild(badge)
       }
-      label.setAttribute('x', String(c.cx))
-      label.setAttribute('y', String(c.cy))
-      label.setAttribute('fill', textFill)
-
-      const nameTspan = label.querySelector<SVGTSpanElement>('tspan[data-name]')!
-      nameTspan.setAttribute('x', String(c.cx))
-      nameTspan.setAttribute('dy', '-2')
-      nameTspan.textContent = city
-
-      const countTspan = label.querySelector<SVGTSpanElement>('tspan[data-count]')!
-      countTspan.setAttribute('x', String(c.cx))
-      countTspan.setAttribute('dy', '10')
-      countTspan.textContent = String(count)
+      badge.setAttribute('transform', `translate(${c.cx},${c.cy})`)
+      const badgeText = badge.querySelector('text')!
+      badgeText.setAttribute('fill', '#ffffff')
+      badgeText.textContent = String(count)
     }
-    else if (label) {
-      label.remove()
+    else {
+      group.querySelector('g[data-badge="1"]')?.remove()
     }
+    // eski düz label varsa temizle
+    label?.remove()
   }
 }
 
@@ -128,6 +123,9 @@ const legend = [
 function legendStyle(count: number) {
   return { backgroundColor: colorForCount(count) }
 }
+
+// Lejant başlığı için birimi büyük harfle başlat ('rehber' → 'Rehber').
+const unitLabel = computed(() => props.unit.charAt(0).toLocaleUpperCase('tr-TR') + props.unit.slice(1))
 </script>
 
 <template>
@@ -148,7 +146,7 @@ function legendStyle(count: number) {
       </div>
     </div>
     <div class="d-flex align-center flex-wrap gap-3 mt-4 px-2">
-      <span class="text-caption text-medium-emphasis me-2">Rehber sayısı:</span>
+      <span class="text-caption text-medium-emphasis me-2">{{ unitLabel }} sayısı:</span>
       <div v-for="item in legend" :key="item.label" class="d-flex align-center gap-1">
         <span class="legend-swatch" :style="legendStyle(item.count)" />
         <span class="text-caption">{{ item.label }}</span>

@@ -499,6 +499,15 @@ func (h *AdminHandler) GuidesByCity(c *fiber.Ctx) error {
 	return c.JSON(list)
 }
 
+// GET /admin/venues/by-city — şehir bazlı onaylı mekan sayımı.
+func (h *AdminHandler) VenuesByCity(c *fiber.Ctx) error {
+	list, err := h.venueRepo.CountApprovedVenuesByCity(c.Context())
+	if err != nil {
+		return fiber.ErrInternalServerError
+	}
+	return c.JSON(list)
+}
+
 // PUT /admin/venues/:id/reactivate
 func (h *AdminHandler) ReactivateVenue(c *fiber.Ctx) error {
 	id := c.Params("id")
