@@ -117,6 +117,32 @@ class VenueDetailScreen extends ConsumerWidget {
                         child: IconButton(
                           padding: EdgeInsets.zero,
                           iconSize: 20,
+                          icon: const Icon(
+                            Icons.warning_amber_rounded,
+                            color: Colors.amber,
+                          ),
+                          tooltip: 'Bildir',
+                          onPressed: () => showReportVenueSheet(
+                            context,
+                            venueId: venueId,
+                          ),
+                        ),
+                      ),
+                    ),
+                  if (authState.isAuthenticated)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                      child: Container(
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(color: Colors.black26, blurRadius: 4),
+                          ],
+                        ),
+                        child: IconButton(
+                          padding: EdgeInsets.zero,
+                          iconSize: 20,
                           icon: Icon(
                             isFav ? Icons.favorite : Icons.favorite_border,
                             color: isFav ? AppTheme.error : Colors.black,
@@ -162,52 +188,13 @@ class VenueDetailScreen extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Durum badge'leri
-                      Row(
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
                         children: [
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: [
-                              VenueStatusBadge(status: venue.status),
-                              if (venue.verifiedAt != null)
-                                _VerifiedAtBadge(date: venue.verifiedAt!),
-                            ],
-                          ),
-                          const Spacer(),
-                          if (authState.isAuthenticated)
-                            TextButton.icon(
-                              onPressed: () => showReportVenueSheet(
-                                context,
-                                venueId: venueId,
-                              ),
-                              icon: const Icon(
-                                Icons.warning_amber_rounded,
-                                size: 14,
-                                color: Colors.amber,
-                              ),
-                              label: const Text(
-                                'Bildir',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.amber,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              style: TextButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 10, vertical: 5),
-                                minimumSize: Size.zero,
-                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                backgroundColor:
-                                    Colors.amber.withValues(alpha: 0.12),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(20),
-                                  side: BorderSide(
-                                    color: Colors.amber.withValues(alpha: 0.4),
-                                  ),
-                                ),
-                              ),
-                            ),
+                          VenueStatusBadge(status: venue.status),
+                          if (venue.verifiedAt != null)
+                            _VerifiedAtBadge(date: venue.verifiedAt!),
                         ],
                       ),
                       const SizedBox(height: 16),

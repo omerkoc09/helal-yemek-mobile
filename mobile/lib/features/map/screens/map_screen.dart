@@ -3,10 +3,8 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:go_router/go_router.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
-import '../../../core/auth/auth_provider.dart';
 import '../../../core/models/venue.dart';
 import '../../../core/theme/app_theme.dart';
 import '../providers/venues_provider.dart';
@@ -123,8 +121,6 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   @override
   Widget build(BuildContext context) {
     final venuesState = ref.watch(venuesProvider);
-    final authState = ref.watch(authProvider);
-    final showAddButton = authState.isGuide || authState.isAdmin;
 
     return Scaffold(
       body: Stack(
@@ -213,19 +209,6 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           ),
         ],
       ),
-      // Guide/Admin için mekan ekle butonu
-      floatingActionButton: showAddButton
-          ? FloatingActionButton.extended(
-              heroTag: 'add_venue_btn',
-              onPressed: () async {
-                await context.push('/add-venue');
-                _fetchVenuesForVisibleRegion(force: true);
-              },
-              icon: const Icon(Icons.add_location_alt),
-              label: const Text('Mekan Ekle'),
-            )
-          : null,
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
   }
 
