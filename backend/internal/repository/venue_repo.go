@@ -168,3 +168,31 @@ func (r *VenueRepo) SoftDelete(ctx context.Context, id string) error {
 	}
 	return nil
 }
+
+// FindByUserID — kullanıcının eklediği mekanları liste döner.
+func (r *VenueRepo) FindByUserID(ctx context.Context, userID string) ([]models.Venue, error) {
+	rows, err := r.db.Query(ctx,
+		`SELECT id, name, city, status, created_at
+		 FROM venues
+		 WHERE added_by = $1 AND deleted_at IS NULL
+		 ORDER BY created_at DESC`,
+		userID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var list []models.Venue
+	for rows.Next() {
+		v := models.Venue{}
+		if err := rows.Scan(&v.ID, &v.Name, &v.City, &v.Status, &v.CreatedAt); err != nil {
+			return nil, err
+		}
+		list = append(list, v)
+	}
+	if list == nil {
+		list = []models.Venue{}
+	}
+	return list, rows.Err()
+}

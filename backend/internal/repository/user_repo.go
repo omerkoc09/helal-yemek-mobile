@@ -240,3 +240,18 @@ func (r *UserRepo) CountGuidesByCity(ctx context.Context) ([]CityGuideCount, err
 	}
 	return list, rows.Err()
 }
+
+// UpdatePassword — kullanıcının şifresini günceller.
+func (r *UserRepo) UpdatePassword(ctx context.Context, id, hashedPassword string) error {
+	tag, err := r.db.Exec(ctx,
+		`UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2`,
+		hashedPassword, id,
+	)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}

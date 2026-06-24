@@ -14,6 +14,11 @@ type ReviewRepo struct {
 	db *pgxpool.Pool
 }
 
+type ReviewWithVenue struct {
+	models.Review
+	VenueName string `json:"venue_name"`
+}
+
 func NewReviewRepo(db *pgxpool.Pool) *ReviewRepo {
 	return &ReviewRepo{db: db}
 }
@@ -133,4 +138,37 @@ func (r *ReviewRepo) Delete(ctx context.Context, id, userID string, isAdmin bool
 		return ErrNotFound
 	}
 	return nil
+}
+
+// FindByUserID — kullanıcının yazdığı yorumları mekan adıyla birlikte döner.
+func (r *ReviewRepo) FindByUserID(ctx context.Context, userID string) ([]ReviewWithVenue, error) {
+	rows, err := r.db.Query(ctx,
+		`SELECT r.id, r.venue_id, r.user_id, r.rating, r.comment, r.created_at, r.updated_at,
+		        v.name
+		 FROM reviews r
+		 LEFT JOIN venues v ON v.id = r.venue_id
+		 WHERE r.user_id = $1
+		 ORDER BY r.created_at DESC`,
+		userID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var list []ReviewWithVenue
+	for rows.Next() {
+		var rv ReviewWithVenue
+		if err := rows.Scan(
+			&rv.ID, &rv.VenueID, &rv.UserID, &rv.Rating, &rv.Comment,
+			&rv.CreatedAt, &rv.UpdatedAt, &rv.VenueName,
+		); err != nil {
+			return nil, err
+		}
+		list = append(list, rv)
+	}
+	if list == nil {
+		list = []ReviewWithVenue{}
+	}
+	return list, rows.Err()
 }
