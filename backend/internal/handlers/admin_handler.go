@@ -537,6 +537,9 @@ func (h *AdminHandler) UpdateUserPassword(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "şifre hashlenemedi"})
 	}
 	if err := h.userRepo.UpdatePassword(c.Context(), id, string(hash)); err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "kullanıcı bulunamadı"})
+		}
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "şifre güncellenemedi"})
 	}
 	return c.JSON(fiber.Map{"message": "şifre güncellendi"})
