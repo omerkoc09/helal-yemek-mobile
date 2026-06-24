@@ -209,7 +209,12 @@ func (s *AuthService) RefreshTokens(ctx context.Context, refreshToken string) (*
 		return nil, errors.New("hesabınız devre dışı bırakılmıştır")
 	}
 
-	return jwtpkg.GenerateTokenPair(user.ID, user.Email, string(user.Role), s.jwtSecret)
+	pair, err := jwtpkg.GenerateTokenPair(user.ID, user.Email, string(user.Role), s.jwtSecret)
+	if err != nil {
+		return nil, err
+	}
+	go func() { _ = s.loginRepo.Record(context.Background(), user.ID) }()
+	return pair, nil
 }
 
 // GetUser — JWT'den alınan userID ile kullanıcıyı döndürür.

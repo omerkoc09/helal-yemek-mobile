@@ -23,7 +23,7 @@ func NewLoginRepo(db *pgxpool.Pool) *LoginRepo {
 // Record — başarılı girişi kaydeder.
 func (r *LoginRepo) Record(ctx context.Context, userID string) error {
 	_, err := r.db.Exec(ctx,
-		`INSERT INTO user_logins (user_id) VALUES ($1)`,
+		`INSERT INTO user_logins (user_id) VALUES ($1) ON CONFLICT DO NOTHING`,
 		userID,
 	)
 	return err

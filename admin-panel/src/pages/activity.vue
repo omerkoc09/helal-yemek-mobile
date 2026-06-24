@@ -66,7 +66,7 @@ const loginChartData = computed(() => ({
 const cards = computed(() => [
   { title: 'Yeni Kullanıcı', value: today.value.new_users, icon: 'tabler-user-plus', color: 'info' },
   { title: 'Yeni Mekan', value: today.value.new_venues, icon: 'tabler-building-store', color: 'primary' },
-  { title: 'Giriş Sayısı', value: today.value.logins, icon: 'tabler-login', color: 'success' },
+  { title: 'Günlük Aktif Kullanıcı', value: today.value.logins, icon: 'tabler-users', color: 'success' },
 ])
 </script>
 
@@ -127,7 +127,7 @@ const cards = computed(() => [
       </VCol>
 
       <VCol cols="12" md="4">
-        <VCard title="Günlük Giriş Sayısı">
+        <VCard title="Günlük Aktif Kullanıcı">
           <VCardText>
             <BarChart
               chart-id="login-chart"
