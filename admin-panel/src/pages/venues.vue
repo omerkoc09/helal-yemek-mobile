@@ -7,6 +7,7 @@ definePage({ meta: { role: ['admin'] } })
 
 const tableRef = ref()
 const form = ref<any>({})
+const isCreate = ref(false)
 
 const columns: ITableColumn[] = [
   { key: 'name', name: 'AD', sortable: true },
@@ -166,7 +167,28 @@ async function onDelete(row: any) {
   tableRef.value?.refresh?.()
 }
 
+async function openCreate() {
+  await loadLookups()
+  isCreate.value = true
+  activeFoodCategoryId.value = null
+  locationPreview.value = null
+  form.value = {
+    name: '',
+    city: '',
+    district: '',
+    notes: '',
+    status: 'pending',
+    food_halal_mode: 'all',
+    criteria_ids: [],
+    food_item_ids: [],
+    excluded_products_text: '',
+    maps_link: '',
+  }
+  tableRef.value?.openCreateModal?.()
+}
+
 async function openEdit(row: any) {
+  isCreate.value = false
   loadLookups()
   activeFoodCategoryId.value = null
   locationPreview.value = null
@@ -284,8 +306,6 @@ async function onSubmit() {
     excluded_products: parseExcludedProducts(),
   }
 
-  // Konum: önizleme onaylandıysa doğrudan parse edilmiş değerleri gönder;
-  // aksi halde (önizlemeden) link doluysa onu gönder, backend parse eder.
   const mapsLink = (form.value.maps_link ?? '').trim()
   if (form.value._locationApplied) {
     payload.latitude = form.value.latitude
@@ -296,8 +316,12 @@ async function onSubmit() {
     payload.maps_link = mapsLink
   }
 
-  const [error] = await ApiService.put(`admin/venues/${form.value.id}`, payload)
+  if (isCreate.value) {
+    const [error] = await ApiService.post('venues', payload)
+    return error
+  }
 
+  const [error] = await ApiService.put(`admin/venues/${form.value.id}`, payload)
   return error
 }
 </script>
@@ -325,6 +349,9 @@ async function onSubmit() {
         style="max-inline-size: 200px;"
         @update:model-value="applyStatusFilter"
       />
+      <VBtn color="primary" prepend-icon="tabler-plus" class="ms-3" @click="openCreate">
+        Mekan Ekle
+      </VBtn>
     </template>
     <template #status="{ row }">
       <VChip

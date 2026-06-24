@@ -32,24 +32,29 @@ function paint() {
   // İller SVG'de <g data-city-name="..."> ile işaretli; kanonik ad ile birebir eşleşir.
   for (const city of Object.keys(CITY_CENTROID)) {
     const count = props.counts[city] ?? 0
-    const group = root.querySelector<SVGGElement>(`g[data-city-name="${city}"]`)
-    if (!group)
+
+    // Bazı iller (ör. İstanbul) birden çok <g> parçasına bölünmüş; hepsini yakala ki
+    // boyama ve hover tooltip her parçada çalışsın. İlki etiket/badge için referans grup.
+    const groups = root.querySelectorAll<SVGGElement>(`g[data-city-name="${city}"]`)
+    if (groups.length === 0)
       continue
+    const group = groups[0]
 
     const fill = colorForCount(count)
 
-    // Tüm il path'lerini boya + ince beyaz kenarlık. SVG path'lerinde inline
+    // İlin TÜM parçalarını boya + tooltip işaretle. SVG path'lerinde inline
     // style="fill: rgb(175,175,175)" var; presentation attribute bunu ezemez,
     // bu yüzden boyamayı yine inline style ile yapıyoruz (aynı özgüllük, sonradan kazanır).
-    group.querySelectorAll<SVGPathElement>('path').forEach(p => {
-      p.style.fill = fill
-      p.style.opacity = '1'
-      p.style.stroke = '#ffffff'
-      p.style.strokeWidth = '0.5'
+    groups.forEach(g => {
+      g.querySelectorAll<SVGPathElement>('path').forEach(p => {
+        p.style.fill = fill
+        p.style.opacity = '1'
+        p.style.stroke = '#ffffff'
+        p.style.strokeWidth = '0.5'
+      })
+      // Hover tooltip için veriyi her parçaya işaretle (listener delegasyonu paint dışında).
+      g.dataset.tooltip = `${city} — ${count} ${props.unit}`
     })
-
-    // Hover tooltip için veriyi grup üzerine işaretle (listener delegasyonu paint dışında).
-    group.dataset.tooltip = `${city} — ${count} ${props.unit}`
 
     // Sayısı olan illerde centroid'e sadece sayı yaz (şehir adı yok).
     const c = CITY_CENTROID[city]

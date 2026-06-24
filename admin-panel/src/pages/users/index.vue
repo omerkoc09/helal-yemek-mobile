@@ -1,10 +1,12 @@
 <script setup lang="ts">
+import { useRouter } from 'vue-router'
 import ApiService from '@/services/ApiService'
 import { SuccessToast, WarningPopup, ErrorPopup } from '@/utils/Popup'
 import type { ITableColumn } from '@/model/table'
 
 definePage({ meta: { role: ['admin'] } })
 
+const router = useRouter()
 const tableRef = ref()
 const form = ref<any>({})
 const isCreate = ref(false)
@@ -102,7 +104,7 @@ async function onDelete(row: any) {
       <VIcon :icon="row.is_active ? 'tabler-circle-check' : 'tabler-circle-x'" :color="row.is_active ? 'success' : 'error'" />
     </template>
     <template #actions="{ row }">
-      <VBtn icon size="small" variant="text" :to="`/users/${row.id}`">
+      <VBtn icon size="small" variant="text" @click="router.push(`/users/${row.id}`)">
         <VIcon icon="tabler-eye" size="22" />
       </VBtn>
       <VBtn icon size="small" variant="text" @click="openEdit(row)">

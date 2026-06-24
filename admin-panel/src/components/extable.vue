@@ -415,7 +415,17 @@ const openEditModal = () => {
   isModalOpen.value = true
 }
 
-defineExpose({ refresh, openEditModal })
+const openCreateModal = () => {
+  props.resetForm?.()
+  isCreateForm.value = true
+  isModalOpen.value = true
+  nextTick(() => {
+    formRef.value?.reset()
+    props.resetForm?.()
+  })
+}
+
+defineExpose({ refresh, openEditModal, openCreateModal })
 </script>
 
 <template>

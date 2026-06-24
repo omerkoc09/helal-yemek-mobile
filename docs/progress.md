@@ -22,6 +22,8 @@ add cta button in the bottom navigation (for guides it can be adding new venue f
 
 ## Öncelikli Olarak Yapılması Gerekenler
 
+admin panel üzerinden manuel notification atma
+
 smtp env yi doldur.
 
 mekan puanlamasını çeşitlendirme?

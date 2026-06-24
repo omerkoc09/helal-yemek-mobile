@@ -2,7 +2,7 @@ class ApiEndpoints {
   ApiEndpoints._();
 
   // Base URL — geliştirme ortamı için
-  static const String baseUrl = 'http://localhost:8080/api/v1';
+  static const String baseUrl = 'http://localhost:3000/api/v1';
 
   // Auth
   static const String register = '/auth/register';
