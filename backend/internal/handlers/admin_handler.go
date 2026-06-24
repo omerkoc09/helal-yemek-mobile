@@ -10,7 +10,10 @@ import (
 	"github.com/omerkoc/caiz-mi/internal/models"
 	"github.com/omerkoc/caiz-mi/internal/repository"
 	"github.com/omerkoc/caiz-mi/internal/services"
+	"golang.org/x/crypto/bcrypt"
 )
+
+func strPtr(s string) *string { return &s }
 
 type SchedulerRunner interface {
 	RunNow(ctx context.Context)
@@ -361,6 +364,58 @@ func (h *AdminHandler) ListAuditLogs(c *fiber.Ctx) error {
 }
 
 // ── Kullanıcılar ──────────────────────────────────────────────────────────────
+
+// POST /admin/users
+func (h *AdminHandler) CreateUser(c *fiber.Ctx) error {
+	var req struct {
+		Email    string      `json:"email"`
+		Password string      `json:"password"`
+		Name     string      `json:"name"`
+		Surname  string      `json:"surname"`
+		Phone    string      `json:"phone"`
+		Role     models.Role `json:"role"`
+	}
+	if err := c.BodyParser(&req); err != nil {
+		return fiber.ErrBadRequest
+	}
+	if req.Email == "" || req.Password == "" || req.Name == "" || req.Surname == "" || req.Phone == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "email, şifre, ad, soyad ve telefon zorunludur"})
+	}
+	if req.Role == "" {
+		req.Role = models.RoleTraveler
+	}
+
+	exists, err := h.userRepo.EmailExists(c.Context(), req.Email)
+	if err != nil {
+		return fiber.ErrInternalServerError
+	}
+	if exists {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "bu email adresi zaten kullanılıyor"})
+	}
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+	if err != nil {
+		return fiber.ErrInternalServerError
+	}
+	hashStr := string(hash)
+
+	user := &models.User{
+		Email:        strings.ToLower(strings.TrimSpace(req.Email)),
+		PasswordHash: &hashStr,
+		Name:         strings.TrimSpace(req.Name),
+		Surname:      strPtr(strings.TrimSpace(req.Surname)),
+		Phone:        strPtr(strings.TrimSpace(req.Phone)),
+		Role:         req.Role,
+		Provider:     "email",
+		IsActive:     true,
+	}
+	if err := h.userRepo.Create(c.Context(), user); err != nil {
+		return fiber.ErrInternalServerError
+	}
+
+	h.writeAuditLog(c, "create_user", "user", user.ID, nil)
+	return c.Status(fiber.StatusCreated).JSON(user)
+}
 
 // GET /admin/users
 func (h *AdminHandler) ListUsers(c *fiber.Ctx) error {

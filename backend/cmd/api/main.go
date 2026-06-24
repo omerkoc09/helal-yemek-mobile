@@ -257,6 +257,7 @@ func main() {
 	// Audit log + kullanıcılar
 	admin.Get("/audit-logs", adminHandler.ListAuditLogs)
 	admin.Get("/users", adminHandler.ListUsers)
+	admin.Post("/users", adminHandler.CreateUser)
 	admin.Put("/users/:id", adminHandler.UpdateUser)
 	admin.Delete("/users/:id", adminHandler.DeleteUser)
 
