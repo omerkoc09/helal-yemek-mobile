@@ -25,6 +25,7 @@ type AdminHandler struct {
 	userRepo               *repository.UserRepo
 	auditRepo              *repository.AuditRepo
 	verifLogRepo           *repository.VerificationLogRepo
+	reviewRepo             *repository.ReviewRepo
 	schedulerSvc           SchedulerRunner
 	verificationPeriodDays int
 }
@@ -35,6 +36,7 @@ func NewAdminHandler(
 	userRepo *repository.UserRepo,
 	auditRepo *repository.AuditRepo,
 	verifLogRepo *repository.VerificationLogRepo,
+	reviewRepo *repository.ReviewRepo,
 	schedulerSvc SchedulerRunner,
 	verificationPeriodDays int,
 ) *AdminHandler {
@@ -44,6 +46,7 @@ func NewAdminHandler(
 		userRepo:               userRepo,
 		auditRepo:              auditRepo,
 		verifLogRepo:           verifLogRepo,
+		reviewRepo:             reviewRepo,
 		schedulerSvc:           schedulerSvc,
 		verificationPeriodDays: verificationPeriodDays,
 	}
@@ -502,6 +505,58 @@ func (h *AdminHandler) DeleteUser(c *fiber.Ctx) error {
 
 	h.writeAuditLog(c, "delete_user", "user", id, nil)
 	return c.JSON(fiber.Map{"status": "deleted"})
+}
+
+// GET /admin/users/:id
+func (h *AdminHandler) GetUser(c *fiber.Ctx) error {
+	id := c.Params("id")
+	user, err := h.userRepo.FindByID(c.Context(), id)
+	if err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "kullanıcı bulunamadı"})
+	}
+	return c.JSON(user)
+}
+
+// PUT /admin/users/:id/password
+func (h *AdminHandler) UpdateUserPassword(c *fiber.Ctx) error {
+	id := c.Params("id")
+	var req struct {
+		Password string `json:"password"`
+	}
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "geçersiz istek"})
+	}
+	if len(req.Password) < 6 {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "şifre en az 6 karakter olmalıdır"})
+	}
+	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "şifre hashlenemedi"})
+	}
+	if err := h.userRepo.UpdatePassword(c.Context(), id, string(hash)); err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+	}
+	return c.JSON(fiber.Map{"message": "şifre güncellendi"})
+}
+
+// GET /admin/users/:id/venues
+func (h *AdminHandler) GetUserVenues(c *fiber.Ctx) error {
+	id := c.Params("id")
+	venues, err := h.venueRepo.FindByUserID(c.Context(), id)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+	}
+	return c.JSON(venues)
+}
+
+// GET /admin/users/:id/reviews
+func (h *AdminHandler) GetUserReviews(c *fiber.Ctx) error {
+	id := c.Params("id")
+	reviews, err := h.reviewRepo.FindByUserID(c.Context(), id)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+	}
+	return c.JSON(reviews)
 }
 
 // GET /admin/verification-logs?tab=verified|suspended|upcoming
