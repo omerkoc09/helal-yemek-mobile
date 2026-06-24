@@ -14,15 +14,17 @@ import (
 )
 
 type AuthService struct {
-	userRepo        *repository.UserRepo
-	jwtSecret       string
-	googleClientID  string
-	appleService    *AppleService
+	userRepo       *repository.UserRepo
+	loginRepo      *repository.LoginRepo
+	jwtSecret      string
+	googleClientID string
+	appleService   *AppleService
 }
 
-func NewAuthService(userRepo *repository.UserRepo, jwtSecret, googleClientID string) *AuthService {
+func NewAuthService(userRepo *repository.UserRepo, loginRepo *repository.LoginRepo, jwtSecret, googleClientID string) *AuthService {
 	return &AuthService{
 		userRepo:       userRepo,
+		loginRepo:      loginRepo,
 		jwtSecret:      jwtSecret,
 		googleClientID: googleClientID,
 		appleService:   NewAppleService(),
@@ -85,7 +87,12 @@ func (s *AuthService) Login(ctx context.Context, email, password string) (*jwtpk
 	if !user.IsActive {
 		return nil, errors.New("hesabınız devre dışı bırakılmıştır")
 	}
-	return jwtpkg.GenerateTokenPair(user.ID, user.Email, string(user.Role), s.jwtSecret)
+	pair, err := jwtpkg.GenerateTokenPair(user.ID, user.Email, string(user.Role), s.jwtSecret)
+	if err != nil {
+		return nil, err
+	}
+	go func() { _ = s.loginRepo.Record(context.Background(), user.ID) }()
+	return pair, nil
 }
 
 // LoginWithGoogle — Google ID token'ını doğrular, kullanıcı yoksa oluşturur.
@@ -132,7 +139,12 @@ func (s *AuthService) LoginWithGoogle(ctx context.Context, idToken string) (*jwt
 	if !user.IsActive {
 		return nil, errors.New("hesabınız devre dışı bırakılmıştır")
 	}
-	return jwtpkg.GenerateTokenPair(user.ID, user.Email, string(user.Role), s.jwtSecret)
+	pair, err := jwtpkg.GenerateTokenPair(user.ID, user.Email, string(user.Role), s.jwtSecret)
+	if err != nil {
+		return nil, err
+	}
+	go func() { _ = s.loginRepo.Record(context.Background(), user.ID) }()
+	return pair, nil
 }
 
 // LoginWithApple — Apple identity token'ını doğrular, kullanıcı yoksa oluşturur.

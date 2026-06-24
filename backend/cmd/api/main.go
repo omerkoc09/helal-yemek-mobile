@@ -45,9 +45,10 @@ func main() {
 	venueReportRepo := repository.NewVenueReportRepo(pool)
 	notifRepo    := repository.NewNotificationRepo(pool)
 	verifLogRepo := repository.NewVerificationLogRepo(pool)
+	loginRepo    := repository.NewLoginRepo(pool)
 
 	// Service katmanı
-	authService := services.NewAuthService(userRepo, cfg.JWTSecret, cfg.GoogleClientID)
+	authService := services.NewAuthService(userRepo, loginRepo, cfg.JWTSecret, cfg.GoogleClientID)
 	storageService := services.NewStorageService("./uploads", cfg.StorageURL+"/static")
 	placesService := services.NewPlacesService(cfg.GoogleMapsAPIKey)
 
