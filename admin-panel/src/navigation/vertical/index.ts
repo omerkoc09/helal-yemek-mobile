@@ -6,6 +6,7 @@ export default [
   { title: 'Şehir Bazlı Rehberler', to: { name: 'guides-by-city' }, icon: { icon: 'tabler-map-pin' }, role: ['admin'] },
   { title: 'Düzeltmeler', to: { name: 'corrections' }, icon: { icon: 'tabler-edit' }, role: ['admin'] },
   { title: 'Mekan Raporları', to: { name: 'venue-reports' }, icon: { icon: 'tabler-flag' }, role: ['admin'] },
+  { title: 'Aktivite Raporu', to: { name: 'activity' }, icon: { icon: 'tabler-chart-bar' }, role: ['admin'] },
   { title: 'Audit Log', to: { name: 'audit-logs' }, icon: { icon: 'tabler-history' }, role: ['admin'] },
   { title: 'Doğrulama Logları', to: { name: 'verification-logs' }, icon: { icon: 'tabler-checks' }, role: ['admin'] },
 ]
