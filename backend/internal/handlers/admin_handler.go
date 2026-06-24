@@ -512,7 +512,10 @@ func (h *AdminHandler) GetUser(c *fiber.Ctx) error {
 	id := c.Params("id")
 	user, err := h.userRepo.FindByID(c.Context(), id)
 	if err != nil {
-		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "kullanıcı bulunamadı"})
+		if errors.Is(err, repository.ErrNotFound) {
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "kullanıcı bulunamadı"})
+		}
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "kullanıcı alınamadı"})
 	}
 	return c.JSON(user)
 }
@@ -534,7 +537,7 @@ func (h *AdminHandler) UpdateUserPassword(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "şifre hashlenemedi"})
 	}
 	if err := h.userRepo.UpdatePassword(c.Context(), id, string(hash)); err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "şifre güncellenemedi"})
 	}
 	return c.JSON(fiber.Map{"message": "şifre güncellendi"})
 }
@@ -546,6 +549,9 @@ func (h *AdminHandler) GetUserVenues(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
+	if venues == nil {
+		venues = []models.Venue{}
+	}
 	return c.JSON(venues)
 }
 
@@ -555,6 +561,9 @@ func (h *AdminHandler) GetUserReviews(c *fiber.Ctx) error {
 	reviews, err := h.reviewRepo.FindByUserID(c.Context(), id)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+	}
+	if reviews == nil {
+		reviews = []repository.ReviewWithVenue{}
 	}
 	return c.JSON(reviews)
 }
