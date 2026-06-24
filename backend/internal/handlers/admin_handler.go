@@ -547,7 +547,7 @@ func (h *AdminHandler) GetUserVenues(c *fiber.Ctx) error {
 	id := c.Params("id")
 	venues, err := h.venueRepo.FindByUserID(c.Context(), id)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "mekanlar alınamadı"})
 	}
 	if venues == nil {
 		venues = []models.Venue{}
@@ -560,7 +560,7 @@ func (h *AdminHandler) GetUserReviews(c *fiber.Ctx) error {
 	id := c.Params("id")
 	reviews, err := h.reviewRepo.FindByUserID(c.Context(), id)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "yorumlar alınamadı"})
 	}
 	if reviews == nil {
 		reviews = []repository.ReviewWithVenue{}
