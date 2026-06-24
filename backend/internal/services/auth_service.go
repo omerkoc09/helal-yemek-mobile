@@ -67,7 +67,12 @@ func (s *AuthService) Register(ctx context.Context, email, password, name, surna
 	if err := s.userRepo.Create(ctx, user); err != nil {
 		return nil, err
 	}
-	return jwtpkg.GenerateTokenPair(user.ID, user.Email, string(user.Role), s.jwtSecret)
+	pair, err := jwtpkg.GenerateTokenPair(user.ID, user.Email, string(user.Role), s.jwtSecret)
+	if err != nil {
+		return nil, err
+	}
+	go func() { _ = s.loginRepo.Record(context.Background(), user.ID) }()
+	return pair, nil
 }
 
 // Login — email/şifre ile giriş yapar.
@@ -181,7 +186,12 @@ func (s *AuthService) LoginWithApple(ctx context.Context, identityToken, name st
 	if !user.IsActive {
 		return nil, errors.New("hesabınız devre dışı bırakılmıştır")
 	}
-	return jwtpkg.GenerateTokenPair(user.ID, user.Email, string(user.Role), s.jwtSecret)
+	pair, err := jwtpkg.GenerateTokenPair(user.ID, user.Email, string(user.Role), s.jwtSecret)
+	if err != nil {
+		return nil, err
+	}
+	go func() { _ = s.loginRepo.Record(context.Background(), user.ID) }()
+	return pair, nil
 }
 
 // RefreshTokens — refresh token ile yeni access + refresh token çifti döndürür.

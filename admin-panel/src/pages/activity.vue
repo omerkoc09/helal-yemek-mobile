@@ -10,9 +10,12 @@ const loading = ref(true)
 const today = ref({ new_users: 0, new_venues: 0, logins: 0 })
 const trend = ref({ labels: [] as string[], new_users: [] as number[], new_venues: [] as number[], logins: [] as number[] })
 
+let loadSeq = 0
 async function load() {
+  const seq = ++loadSeq
   loading.value = true
   const [error, data] = await ApiService.get(`admin/stats/activity?days=${days.value}`)
+  if (seq !== loadSeq) return
   if (error) {
     ErrorPopup(error)
     loading.value = false

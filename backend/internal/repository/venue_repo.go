@@ -202,7 +202,7 @@ func (r *VenueRepo) FindByUserID(ctx context.Context, userID string) ([]models.V
 func (r *VenueRepo) CountToday(ctx context.Context, todayStart, tomorrow time.Time) (int, error) {
 	var count int
 	err := r.db.QueryRow(ctx,
-		`SELECT COUNT(*) FROM venues WHERE created_at >= $1 AND created_at < $2`,
+		`SELECT COUNT(*) FROM venues WHERE created_at >= $1 AND created_at < $2 AND deleted_at IS NULL`,
 		todayStart, tomorrow,
 	).Scan(&count)
 	return count, err
@@ -212,7 +212,7 @@ func (r *VenueRepo) CountToday(ctx context.Context, todayStart, tomorrow time.Ti
 func (r *VenueRepo) CountByDay(ctx context.Context, from, to time.Time) ([]DayCount, error) {
 	rows, err := r.db.Query(ctx,
 		`SELECT DATE(created_at AT TIME ZONE 'UTC') AS day, COUNT(*)::int
-		 FROM venues WHERE created_at >= $1 AND created_at < $2
+		 FROM venues WHERE created_at >= $1 AND created_at < $2 AND deleted_at IS NULL
 		 GROUP BY day ORDER BY day`,
 		from, to,
 	)
