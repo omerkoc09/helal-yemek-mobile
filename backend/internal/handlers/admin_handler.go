@@ -3,8 +3,11 @@ package handlers
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/omerkoc/caiz-mi/internal/models"
@@ -26,6 +29,7 @@ type AdminHandler struct {
 	auditRepo              *repository.AuditRepo
 	verifLogRepo           *repository.VerificationLogRepo
 	reviewRepo             *repository.ReviewRepo
+	loginRepo              *repository.LoginRepo
 	schedulerSvc           SchedulerRunner
 	verificationPeriodDays int
 }
@@ -37,6 +41,7 @@ func NewAdminHandler(
 	auditRepo *repository.AuditRepo,
 	verifLogRepo *repository.VerificationLogRepo,
 	reviewRepo *repository.ReviewRepo,
+	loginRepo *repository.LoginRepo,
 	schedulerSvc SchedulerRunner,
 	verificationPeriodDays int,
 ) *AdminHandler {
@@ -47,6 +52,7 @@ func NewAdminHandler(
 		auditRepo:              auditRepo,
 		verifLogRepo:           verifLogRepo,
 		reviewRepo:             reviewRepo,
+		loginRepo:              loginRepo,
 		schedulerSvc:           schedulerSvc,
 		verificationPeriodDays: verificationPeriodDays,
 	}
@@ -648,4 +654,83 @@ func (h *AdminHandler) ReactivateVenue(c *fiber.Ctx) error {
 	h.writeAuditLog(c, "reactivate_venue", "venue", id, nil)
 	_ = adminID
 	return c.JSON(fiber.Map{"status": "reactivated"})
+}
+
+// ── Activity Stats ────────────────────────────────────────────────────────────
+
+// GET /admin/stats/activity?days=N
+func (h *AdminHandler) GetActivityStats(c *fiber.Ctx) error {
+	days := 7
+	if d, err := strconv.Atoi(c.Query("days", "7")); err == nil && d > 0 && d <= 90 {
+		days = d
+	}
+
+	now := time.Now().UTC()
+	todayStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
+	trendStart := todayStart.AddDate(0, 0, -(days - 1))
+	tomorrow := todayStart.AddDate(0, 0, 1)
+
+	todayUsers, err := h.userRepo.CountToday(c.Context(), todayStart, tomorrow)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "istatistikler alınamadı"})
+	}
+	todayVenues, err := h.venueRepo.CountToday(c.Context(), todayStart, tomorrow)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "istatistikler alınamadı"})
+	}
+
+	userDays, err := h.userRepo.CountByDay(c.Context(), trendStart, tomorrow)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "istatistikler alınamadı"})
+	}
+	venueDays, err := h.venueRepo.CountByDay(c.Context(), trendStart, tomorrow)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "istatistikler alınamadı"})
+	}
+	loginDays, err := h.loginRepo.CountByDay(c.Context(), trendStart, tomorrow)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "istatistikler alınamadı"})
+	}
+
+	trMonths := []string{"", "Oca", "Şub", "Mar", "Nis", "May", "Haz", "Tem", "Ağu", "Eyl", "Eki", "Kas", "Ara"}
+
+	toMap := func(counts []repository.DayCount) map[string]int {
+		m := make(map[string]int, len(counts))
+		for _, dc := range counts {
+			m[dc.Date] = dc.Count
+		}
+		return m
+	}
+	userMap := toMap(userDays)
+	venueMap := toMap(venueDays)
+	loginMap := toMap(loginDays)
+
+	todayStr := todayStart.Format("2006-01-02")
+	labels := make([]string, days)
+	newUsers := make([]int, days)
+	newVenues := make([]int, days)
+	logins := make([]int, days)
+
+	for i := 0; i < days; i++ {
+		d := trendStart.AddDate(0, 0, i)
+		key := d.Format("2006-01-02")
+		labels[i] = fmt.Sprintf("%d %s", d.Day(), trMonths[d.Month()])
+		newUsers[i] = userMap[key]
+		newVenues[i] = venueMap[key]
+		logins[i] = loginMap[key]
+	}
+
+	return c.JSON(fiber.Map{
+		"today": fiber.Map{
+			"new_users":  todayUsers,
+			"new_venues": todayVenues,
+			"logins":     loginMap[todayStr],
+		},
+		"trend": fiber.Map{
+			"labels":     labels,
+			"new_users":  newUsers,
+			"new_venues": newVenues,
+			"logins":     logins,
+		},
+	})
 }

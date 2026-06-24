@@ -68,7 +68,7 @@ func main() {
 	favoriteHandler := handlers.NewFavoriteHandler(favoriteRepo)
 	correctionHandler := handlers.NewCorrectionHandler(correctionRepo, auditRepo)
 	guideHandler := handlers.NewGuideHandler(guideRepo, venueRepo)
-	adminHandler := handlers.NewAdminHandler(venueRepo, guideRepo, userRepo, auditRepo, verifLogRepo, reviewRepo, schedulerSvc, cfg.VerificationPeriodDays)
+	adminHandler := handlers.NewAdminHandler(venueRepo, guideRepo, userRepo, auditRepo, verifLogRepo, reviewRepo, loginRepo, schedulerSvc, cfg.VerificationPeriodDays)
 	venueReportHandler := handlers.NewVenueReportHandler(venueReportRepo)
 	notifHandler := handlers.NewNotificationHandler(notifRepo)
 
@@ -265,6 +265,9 @@ func main() {
 	admin.Put("/users/:id/password", adminHandler.UpdateUserPassword)
 	admin.Get("/users/:id/venues", adminHandler.GetUserVenues)
 	admin.Get("/users/:id/reviews", adminHandler.GetUserReviews)
+
+	// Stats
+	admin.Get("/stats/activity", adminHandler.GetActivityStats)
 
 	// Verification scheduler'ı başlat
 	ctx, cancel := context.WithCancel(context.Background())

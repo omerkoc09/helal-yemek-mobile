@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -193,6 +194,44 @@ func (r *VenueRepo) FindByUserID(ctx context.Context, userID string) ([]models.V
 	}
 	if list == nil {
 		list = []models.Venue{}
+	}
+	return list, rows.Err()
+}
+
+// CountToday — [todayStart, tomorrow) aralığında oluşturulan mekan sayısını döner.
+func (r *VenueRepo) CountToday(ctx context.Context, todayStart, tomorrow time.Time) (int, error) {
+	var count int
+	err := r.db.QueryRow(ctx,
+		`SELECT COUNT(*) FROM venues WHERE created_at >= $1 AND created_at < $2`,
+		todayStart, tomorrow,
+	).Scan(&count)
+	return count, err
+}
+
+// CountByDay — [from, to) aralığında gün bazlı yeni mekan sayılarını döner.
+func (r *VenueRepo) CountByDay(ctx context.Context, from, to time.Time) ([]DayCount, error) {
+	rows, err := r.db.Query(ctx,
+		`SELECT DATE(created_at AT TIME ZONE 'UTC') AS day, COUNT(*)::int
+		 FROM venues WHERE created_at >= $1 AND created_at < $2
+		 GROUP BY day ORDER BY day`,
+		from, to,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var list []DayCount
+	for rows.Next() {
+		var dc DayCount
+		var day time.Time
+		if err := rows.Scan(&day, &dc.Count); err != nil {
+			return nil, err
+		}
+		dc.Date = day.Format("2006-01-02")
+		list = append(list, dc)
+	}
+	if list == nil {
+		list = []DayCount{}
 	}
 	return list, rows.Err()
 }
