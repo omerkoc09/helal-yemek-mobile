@@ -43,9 +43,10 @@ func main() {
 	guideRepo := repository.NewGuideRepo(pool)
 	auditRepo := repository.NewAuditRepo(pool)
 	venueReportRepo := repository.NewVenueReportRepo(pool)
-	notifRepo    := repository.NewNotificationRepo(pool)
-	verifLogRepo := repository.NewVerificationLogRepo(pool)
-	loginRepo    := repository.NewLoginRepo(pool)
+	notifRepo     := repository.NewNotificationRepo(pool)
+	verifLogRepo  := repository.NewVerificationLogRepo(pool)
+	loginRepo     := repository.NewLoginRepo(pool)
+	directionRepo := repository.NewDirectionClickRepo(pool)
 
 	// Service katmanı
 	authService := services.NewAuthService(userRepo, loginRepo, cfg.JWTSecret, cfg.GoogleClientID)
@@ -63,7 +64,7 @@ func main() {
 
 	// Handler katmanı
 	authHandler := handlers.NewAuthHandler(authService)
-	venueHandler := handlers.NewVenueHandler(venueRepo, userRepo, storageService, placesService, verifLogRepo, cfg.VerificationPeriodDays)
+	venueHandler := handlers.NewVenueHandler(venueRepo, userRepo, storageService, placesService, verifLogRepo, directionRepo, cfg.VerificationPeriodDays)
 	reviewHandler := handlers.NewReviewHandler(reviewRepo)
 	favoriteHandler := handlers.NewFavoriteHandler(favoriteRepo)
 	correctionHandler := handlers.NewCorrectionHandler(correctionRepo, auditRepo)
@@ -132,6 +133,10 @@ func main() {
 		venueHandler.PreviewLocationFromLink,
 	)
 	api.Get("/venues/:id", venueHandler.Detail)
+	api.Post("/venues/:id/direction-click",
+		middleware.OptionalAuth(cfg.JWTSecret),
+		venueHandler.TrackDirectionClick,
+	)
 	api.Get("/criteria", venueHandler.ListCriteria)
 	api.Get("/food-categories", venueHandler.ListFoodCategories)
 

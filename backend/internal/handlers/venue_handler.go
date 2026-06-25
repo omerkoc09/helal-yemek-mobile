@@ -18,12 +18,19 @@ type guideCityGetter interface {
 	GetGuideCity(ctx context.Context, userID string) (*string, error)
 }
 
+// directionClickCreator — yol tarifi tıklamasını kaydeden minimal arayüz.
+// *repository.DirectionClickRepo bu arayüzü otomatik olarak karşılar; testte sahte uygulamalar kullanılabilir.
+type directionClickCreator interface {
+	Create(ctx context.Context, venueID string, userID *string) error
+}
+
 type VenueHandler struct {
 	venueRepo              *repository.VenueRepo
 	userRepo               guideCityGetter
 	storageService         *services.StorageService
 	placesService          *services.PlacesService
 	verifLogRepo           *repository.VerificationLogRepo
+	directionRepo          directionClickCreator
 	verificationPeriodDays int
 }
 
@@ -33,6 +40,7 @@ func NewVenueHandler(
 	storageService *services.StorageService,
 	placesService *services.PlacesService,
 	verifLogRepo *repository.VerificationLogRepo,
+	directionRepo *repository.DirectionClickRepo,
 	verificationPeriodDays int,
 ) *VenueHandler {
 	return &VenueHandler{
@@ -41,6 +49,7 @@ func NewVenueHandler(
 		storageService:         storageService,
 		placesService:          placesService,
 		verifLogRepo:           verifLogRepo,
+		directionRepo:          directionRepo,
 		verificationPeriodDays: verificationPeriodDays,
 	}
 }
@@ -751,6 +760,24 @@ func (h *VenueHandler) CreateCustomFoodItem(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "yemek çeşidi eklenemedi"})
 	}
 	return c.Status(fiber.StatusCreated).JSON(item)
+}
+
+// TrackDirectionClick godoc
+// POST /api/v1/venues/:id/direction-click
+// Yol tarifi butonuna basıldığını kaydeder. Auth opsiyonel — token varsa user_id,
+// yoksa anonim (NULL). Fire-and-forget; her zaman 204 döner.
+func (h *VenueHandler) TrackDirectionClick(c *fiber.Ctx) error {
+	venueID := c.Params("id")
+
+	var userID *string
+	if uid, ok := c.Locals("userID").(string); ok && uid != "" {
+		userID = &uid
+	}
+
+	// Hata olsa bile kullanıcı akışını bozmamak için sessizce yut; yine de 204 dön.
+	_ = h.directionRepo.Create(c.Context(), venueID, userID)
+
+	return c.SendStatus(fiber.StatusNoContent)
 }
 
 // ListCriteria godoc
