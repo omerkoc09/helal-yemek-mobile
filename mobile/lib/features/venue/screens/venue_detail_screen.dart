@@ -11,6 +11,7 @@ import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/star_rating_widget.dart';
 import '../../favorites/providers/favorites_provider.dart';
 import '../../guide/providers/guide_provider.dart';
+import '../providers/direction_tracking_provider.dart';
 import '../providers/venue_detail_provider.dart';
 import '../widgets/add_review_sheet.dart';
 import '../widgets/halal_criteria_chip.dart';
@@ -169,12 +170,15 @@ class VenueDetailScreen extends ConsumerWidget {
                         iconSize: 20,
                         icon: const Icon(Icons.directions, color: Colors.black),
                         tooltip: 'Yol Tarifi',
-                        onPressed: () => MapLauncher.openDirections(
-                          latitude: venue.latitude,
-                          longitude: venue.longitude,
-                          label: venue.name,
-                          googlePlaceId: venue.googlePlaceId,
-                        ),
+                        onPressed: () {
+                          trackDirectionClick(ref, venue.id);
+                          MapLauncher.openDirections(
+                            latitude: venue.latitude,
+                            longitude: venue.longitude,
+                            label: venue.name,
+                            googlePlaceId: venue.googlePlaceId,
+                          );
+                        },
                       ),
                     ),
                   ),

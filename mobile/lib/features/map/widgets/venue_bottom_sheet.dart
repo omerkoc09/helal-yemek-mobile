@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/models/venue.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/map_launcher.dart';
 import '../../../shared/widgets/star_rating_widget.dart';
+import '../../venue/providers/direction_tracking_provider.dart';
 import '../../venue/widgets/halal_criteria_chip.dart';
 import '../../venue/widgets/venue_status_badge.dart';
 
@@ -18,13 +20,13 @@ void showVenueBottomSheet(BuildContext context, Venue venue) {
   );
 }
 
-class _VenueBottomSheetContent extends StatelessWidget {
+class _VenueBottomSheetContent extends ConsumerWidget {
   final Venue venue;
 
   const _VenueBottomSheetContent({required this.venue});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Padding(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -137,6 +139,7 @@ class _VenueBottomSheetContent extends StatelessWidget {
                 child: OutlinedButton.icon(
                   onPressed: () {
                     Navigator.of(context).pop();
+                    trackDirectionClick(ref, venue.id);
                     MapLauncher.openDirections(
                       latitude: venue.latitude,
                       longitude: venue.longitude,

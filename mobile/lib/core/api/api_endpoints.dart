@@ -16,6 +16,8 @@ class ApiEndpoints {
   // Venues
   static const String venues = '/venues';
   static String venueDetail(String id) => '/venues/$id';
+  static String venueDirectionClick(String venueId) =>
+      '/venues/$venueId/direction-click';
 
   // Reviews
   static String venueReviews(String venueId) => '/venues/$venueId/reviews';
