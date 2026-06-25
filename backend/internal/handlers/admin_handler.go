@@ -30,6 +30,7 @@ type AdminHandler struct {
 	verifLogRepo           *repository.VerificationLogRepo
 	reviewRepo             *repository.ReviewRepo
 	loginRepo              *repository.LoginRepo
+	directionRepo          *repository.DirectionClickRepo
 	schedulerSvc           SchedulerRunner
 	verificationPeriodDays int
 }
@@ -42,6 +43,7 @@ func NewAdminHandler(
 	verifLogRepo *repository.VerificationLogRepo,
 	reviewRepo *repository.ReviewRepo,
 	loginRepo *repository.LoginRepo,
+	directionRepo *repository.DirectionClickRepo,
 	schedulerSvc SchedulerRunner,
 	verificationPeriodDays int,
 ) *AdminHandler {
@@ -53,6 +55,7 @@ func NewAdminHandler(
 		verifLogRepo:           verifLogRepo,
 		reviewRepo:             reviewRepo,
 		loginRepo:              loginRepo,
+		directionRepo:          directionRepo,
 		schedulerSvc:           schedulerSvc,
 		verificationPeriodDays: verificationPeriodDays,
 	}
@@ -691,6 +694,14 @@ func (h *AdminHandler) GetActivityStats(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "istatistikler alınamadı"})
 	}
+	directionDays, err := h.directionRepo.CountByDay(c.Context(), trendStart, tomorrow)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "istatistikler alınamadı"})
+	}
+	topDirectionVenues, err := h.directionRepo.TopVenues(c.Context(), trendStart, tomorrow, 10)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "istatistikler alınamadı"})
+	}
 
 	trMonths := []string{"", "Oca", "Şub", "Mar", "Nis", "May", "Haz", "Tem", "Ağu", "Eyl", "Eki", "Kas", "Ara"}
 
@@ -704,12 +715,14 @@ func (h *AdminHandler) GetActivityStats(c *fiber.Ctx) error {
 	userMap := toMap(userDays)
 	venueMap := toMap(venueDays)
 	loginMap := toMap(loginDays)
+	directionMap := toMap(directionDays)
 
 	todayStr := todayStart.Format("2006-01-02")
 	labels := make([]string, days)
 	newUsers := make([]int, days)
 	newVenues := make([]int, days)
 	logins := make([]int, days)
+	directionClicks := make([]int, days)
 
 	for i := 0; i < days; i++ {
 		d := trendStart.AddDate(0, 0, i)
@@ -718,6 +731,7 @@ func (h *AdminHandler) GetActivityStats(c *fiber.Ctx) error {
 		newUsers[i] = userMap[key]
 		newVenues[i] = venueMap[key]
 		logins[i] = loginMap[key]
+		directionClicks[i] = directionMap[key]
 	}
 
 	return c.JSON(fiber.Map{
@@ -727,10 +741,12 @@ func (h *AdminHandler) GetActivityStats(c *fiber.Ctx) error {
 			"logins":     loginMap[todayStr],
 		},
 		"trend": fiber.Map{
-			"labels":     labels,
-			"new_users":  newUsers,
-			"new_venues": newVenues,
-			"logins":     logins,
+			"labels":           labels,
+			"new_users":        newUsers,
+			"new_venues":       newVenues,
+			"logins":           logins,
+			"direction_clicks": directionClicks,
 		},
+		"top_direction_venues": topDirectionVenues,
 	})
 }
