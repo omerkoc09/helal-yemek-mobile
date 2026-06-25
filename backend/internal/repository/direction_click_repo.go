@@ -69,6 +69,7 @@ func (r *DirectionClickRepo) TopVenues(ctx context.Context, from, to time.Time, 
 		 FROM venue_direction_clicks dc
 		 JOIN venues v ON v.id = dc.venue_id
 		 WHERE dc.created_at >= $1 AND dc.created_at < $2
+		   AND v.deleted_at IS NULL
 		 GROUP BY v.id, v.name, v.city
 		 ORDER BY cnt DESC, v.name ASC
 		 LIMIT $3`,
