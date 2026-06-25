@@ -71,7 +71,9 @@ func (s *AuthService) Register(ctx context.Context, email, password, name, surna
 	if err != nil {
 		return nil, err
 	}
-	go func() { _ = s.loginRepo.Record(context.Background(), user.ID) }()
+	if user.Role != models.RoleAdmin {
+		go func() { _ = s.loginRepo.Record(context.Background(), user.ID) }()
+	}
 	return pair, nil
 }
 
@@ -96,7 +98,9 @@ func (s *AuthService) Login(ctx context.Context, email, password string) (*jwtpk
 	if err != nil {
 		return nil, err
 	}
-	go func() { _ = s.loginRepo.Record(context.Background(), user.ID) }()
+	if user.Role != models.RoleAdmin {
+		go func() { _ = s.loginRepo.Record(context.Background(), user.ID) }()
+	}
 	return pair, nil
 }
 
@@ -148,7 +152,9 @@ func (s *AuthService) LoginWithGoogle(ctx context.Context, idToken string) (*jwt
 	if err != nil {
 		return nil, err
 	}
-	go func() { _ = s.loginRepo.Record(context.Background(), user.ID) }()
+	if user.Role != models.RoleAdmin {
+		go func() { _ = s.loginRepo.Record(context.Background(), user.ID) }()
+	}
 	return pair, nil
 }
 
@@ -213,7 +219,9 @@ func (s *AuthService) RefreshTokens(ctx context.Context, refreshToken string) (*
 	if err != nil {
 		return nil, err
 	}
-	go func() { _ = s.loginRepo.Record(context.Background(), user.ID) }()
+	if user.Role != models.RoleAdmin {
+		go func() { _ = s.loginRepo.Record(context.Background(), user.ID) }()
+	}
 	return pair, nil
 }
 
