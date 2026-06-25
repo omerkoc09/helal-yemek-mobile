@@ -30,8 +30,11 @@ mekan puanlamasını çeşitlendirme?
 
 kullanıcının şehrine veya yakınına yeni mekan eklenirse bildirim? uygulama arka planda konum çekmeye devam edecek mi?
 
-
+**
 birden fazla rehberin onaylamasıyla yeni rozet takdimi 
+
+popüler restoran metriği zengileştirilmesi yani sadece puan değil. tıklama sayısı veya yol tarifi alma sayısı gibi istatistikler.
+**
 
 mobil:
 -~~profili düzenle zenginleştirilecek.~~ ✅ (2026-06-19)
@@ -48,6 +51,19 @@ hem panelden hangi şehirlerde kaç tane rehber olduğunu görürüz (harita man
 
 
 ## Tamamlanan İşler
+
+### Yol Tarifi Tıklama Takibi — YENİ
+
+> 2026-06-26'da yapıldı. Mobil "Yol Tarifi" butonuna her basılış artık kaydediliyor ve admin panelin aktivite raporunda günlük trend + "en çok yol tarifi alınan mekanlar" olarak görünüyor. Mevcut `user_logins`/`GetActivityStats` aktivite altyapısının birebir uzantısı. Tasarım: `docs/superpowers/specs/2026-06-25-venue-direction-click-tracking-design.md`, Plan: `docs/superpowers/plans/2026-06-25-venue-direction-click-tracking.md`.
+
+| Değişiklik | Durum | Detay |
+|-----------|-------|-------|
+| `venue_direction_clicks` tablosu | ✅ | Migration 035. Her tıklama ayrı satır: `venue_id` (FK, CASCADE), opsiyonel `user_id` (FK, SET NULL → anonim tıklamalar NULL, kullanıcı silinse de sayım korunur), `created_at`. venue_id + created_at index'leri. |
+| `DirectionClickRepo` | ✅ | `Create` / `CountByDay` / `TopVenues`. `login_repo` desenini takip eder. Integration test testcontainers'da PASS. |
+| `POST /venues/:id/direction-click` | ✅ | Opsiyonel auth (`OptionalAuth`): token varsa user_id, yoksa anonim. Fire-and-forget, her zaman 204 döner. Handler testi (anonim + auth'lu) PASS. |
+| Admin `GET /admin/stats/activity` genişletme | ✅ | Yanıta `trend.direction_clicks` (günlük dizi, `logins` ile aynı format) ve `top_direction_venues` (top 10) eklendi. Mevcut alanlar korundu. |
+| Mobil tracking | ✅ | `trackDirectionClick(ref, venueId)` — beklemeden çağrı, hata yutulur, Google Maps her durumda açılır. İki çağrı noktası: venue detay + harita bottom sheet (StatelessWidget → ConsumerWidget). |
+| Admin panel raporu | ✅ | `activity.vue`'ya "Günlük Yol Tarifi" bar grafiği + "En Çok Yol Tarifi Alınan Mekanlar" listesi (ad, şehir, sayı). Mevcut gün aralığı toggle'ıyla çalışır. |
 
 ### Admin Panel: Türkiye Rehber Yoğunluk Haritası — YENİ
 
