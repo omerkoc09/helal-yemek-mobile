@@ -8,7 +8,8 @@ definePage({ meta: { role: ['admin'] } })
 const days = ref(7)
 const loading = ref(true)
 const today = ref({ new_users: 0, new_venues: 0, logins: 0 })
-const trend = ref({ labels: [] as string[], new_users: [] as number[], new_venues: [] as number[], logins: [] as number[] })
+const trend = ref({ labels: [] as string[], new_users: [] as number[], new_venues: [] as number[], logins: [] as number[], direction_clicks: [] as number[] })
+const topVenues = ref([] as { venue_id: string; name: string; city: string; count: number }[])
 
 let loadSeq = 0
 async function load() {
@@ -23,6 +24,7 @@ async function load() {
   }
   today.value = data.today
   trend.value = data.trend
+  topVenues.value = data.top_direction_venues ?? []
   loading.value = false
 }
 
@@ -60,6 +62,15 @@ const loginChartData = computed(() => ({
     label: 'Giriş Sayısı',
     data: trend.value.logins,
     backgroundColor: 'rgba(0, 207, 232, 0.7)',
+  }],
+}))
+
+const directionChartData = computed(() => ({
+  labels: trend.value.labels,
+  datasets: [{
+    label: 'Yol Tarifi',
+    data: trend.value.direction_clicks,
+    backgroundColor: 'rgba(255, 159, 67, 0.7)',
   }],
 }))
 
@@ -135,6 +146,45 @@ const cards = computed(() => [
               :chart-options="chartOptions"
               :height="220"
             />
+          </VCardText>
+        </VCard>
+      </VCol>
+    </VRow>
+
+    <!-- Yol Tarifi: trend + en çok alınan mekanlar -->
+    <VRow class="mt-2">
+      <VCol cols="12" md="6">
+        <VCard title="Günlük Yol Tarifi">
+          <VCardText>
+            <BarChart
+              chart-id="direction-chart"
+              :chart-data="directionChartData"
+              :chart-options="chartOptions"
+              :height="220"
+            />
+          </VCardText>
+        </VCard>
+      </VCol>
+
+      <VCol cols="12" md="6">
+        <VCard title="En Çok Yol Tarifi Alınan Mekanlar">
+          <VCardText>
+            <div v-if="loading" class="text-disabled">...</div>
+            <div v-else-if="topVenues.length === 0" class="text-disabled">
+              Bu dönemde yol tarifi kaydı yok.
+            </div>
+            <VList v-else>
+              <VListItem
+                v-for="(v, i) in topVenues"
+                :key="v.venue_id"
+                :title="`${i + 1}. ${v.name}`"
+                :subtitle="v.city"
+              >
+                <template #append>
+                  <VChip color="warning" size="small">{{ v.count }}</VChip>
+                </template>
+              </VListItem>
+            </VList>
           </VCardText>
         </VCard>
       </VCol>
