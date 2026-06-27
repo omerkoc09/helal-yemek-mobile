@@ -334,6 +334,20 @@ JWT Middleware Validation
 User Context in Request
 ```
 
+### 4. Mekan Dönemsel Doğrulama Akışı (VerifyByGuide)
+```
+Mekan Ekleyen (Adder) Yeniden Onaylıyor
+    ↓
+VerifyByGuide (Tek Transaction):
+  - venue_confirmations'daki diğer rehberlerin onaylarını sil (adder hariç)
+  - confirmation_count = 0 sıfırla
+  - is_double_verified = false sıfırla
+    ↓
+Düşen Rehberlere `confirmation_reset` Bildirimi
+    ↓
+verification_due_at / suspend Davranışı Değişmez (TEK PERIYOT)
+```
+
 ## Coğrafi Veri Yönetimi
 
 ### PostGIS Sorguları

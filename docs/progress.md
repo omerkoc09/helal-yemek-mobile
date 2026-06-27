@@ -52,6 +52,17 @@ hem panelden hangi şehirlerde kaç tane rehber olduğunu görürüz (harita man
 
 ## Tamamlanan İşler
 
+### Mekan Dönemsel Onay Reset — VerifyByGuide Reset + Düşen Rehber Bildirimi — YENİ
+
+> 2026-06-27'de tamamlandı. Mekan ekleyen rehber yeniden doğruladığında (re-verify), diğer rehberlerin dönemsel onayları sıfırlanıyor; etkilenen rehberlere `confirmation_reset` bildirimi gönderiliyor.
+
+| Değişiklik | Durum | Detay |
+|-----------|-------|-------|
+| VerifyByGuide reset mantığı | ✅ | Mekan adder re-verify → tek transaction'da diğer rehberlerin `venue_confirmations` satırları silinir, `confirmation_count=0`, `is_double_verified=false`. verification_due_at / suspend davranışı değişmez. |
+| Düşen rehber bildirimi | ✅ | Reset yapılan rehberlere `confirmation_reset` in-app notification gönderilir. |
+
+---
+
 ### Venue Rozet & Dönemsel Doğrulama — Backend Çekirdek — YENİ
 
 > 2026-06-27'de tamamlandı. Mekan güven rozeti altyapısının tüm backend çekirdeği tamamlandı.
