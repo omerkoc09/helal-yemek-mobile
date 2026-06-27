@@ -206,16 +206,16 @@ func (r *VenueRepo) ResetToPending(ctx context.Context, id string) error {
 	return nil
 }
 
-// ConfirmVenue — başka bir Guide onaylı mekana doğrulama verir.
-// Aynı guide kendi eklediği mekanı veya zaten doğruladığı mekanı tekrar doğrulayamaz.
-func (r *VenueRepo) ConfirmVenue(ctx context.Context, venueID, guideID string) error {
-	// Mekanı bul ve kontrol et
+// ConfirmVenue — başka bir Guide onaylı mekana dönemsel doğrulama verir.
+// guideCity boşsa şehir kontrolü atlanır (admin / belirsizlik).
+func (r *VenueRepo) ConfirmVenue(ctx context.Context, venueID, guideID, guideCity string) error {
 	var addedBy string
 	var status string
+	var venueCity string
 	err := r.db.QueryRow(ctx,
-		`SELECT added_by, status FROM venues WHERE id = $1 AND deleted_at IS NULL`,
+		`SELECT added_by, status, city FROM venues WHERE id = $1 AND deleted_at IS NULL`,
 		venueID,
-	).Scan(&addedBy, &status)
+	).Scan(&addedBy, &status, &venueCity)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return ErrNotFound
 	}
@@ -228,6 +228,13 @@ func (r *VenueRepo) ConfirmVenue(ctx context.Context, venueID, guideID string) e
 	if addedBy == guideID {
 		return fmt.Errorf("kendi eklediğiniz mekanı doğrulayamazsınız")
 	}
+	if guideCity != "" {
+		venueCanonical, vOK := models.NormalizeCity(venueCity)
+		guideCanonical, gOK := models.NormalizeCity(guideCity)
+		if vOK && gOK && venueCanonical != guideCanonical {
+			return fmt.Errorf("yalnızca rehberi olduğunuz şehirdeki mekanı doğrulayabilirsiniz")
+		}
+	}
 
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
@@ -235,7 +242,6 @@ func (r *VenueRepo) ConfirmVenue(ctx context.Context, venueID, guideID string) e
 	}
 	defer tx.Rollback(ctx) //nolint
 
-	// Tekrar doğrulama kontrolü
 	var alreadyConfirmed bool
 	_ = tx.QueryRow(ctx,
 		`SELECT EXISTS(SELECT 1 FROM venue_confirmations WHERE venue_id = $1 AND guide_id = $2)`,
@@ -245,18 +251,18 @@ func (r *VenueRepo) ConfirmVenue(ctx context.Context, venueID, guideID string) e
 		return fmt.Errorf("bu mekanı zaten doğrulamışsınız")
 	}
 
-	// Doğrulama kaydını ekle
 	if _, err := tx.Exec(ctx,
-		`INSERT INTO venue_confirmations (venue_id, guide_id) VALUES ($1, $2)`,
+		`INSERT INTO venue_confirmations (venue_id, guide_id, period_start) VALUES ($1, $2, NOW())`,
 		venueID, guideID,
 	); err != nil {
 		return fmt.Errorf("doğrulama kaydı eklenemedi: %w", err)
 	}
 
-	// Doğrulama tarihini güncelle
 	if _, err := tx.Exec(ctx,
 		`UPDATE venues
-		 SET verified_at = NOW(),
+		 SET confirmation_count = confirmation_count + 1,
+		     is_double_verified = true,
+		     verified_at = NOW(),
 		     updated_at = NOW()
 		 WHERE id = $1`,
 		venueID,

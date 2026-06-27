@@ -35,7 +35,8 @@ func (r *VenueRepo) FindByID(ctx context.Context, id string) (*models.Venue, err
 			v.rejection_note, v.approved_by,
 			v.food_halal_mode, v.excluded_products,
 			COALESCE(AVG(rv.rating), 0)::float8 AS average_rating,
-			COUNT(rv.id)::int AS review_count
+			COUNT(rv.id)::int AS review_count,
+			v.confirmation_count, v.is_double_verified
 		FROM venues v
 		LEFT JOIN users u ON u.id = v.added_by
 		LEFT JOIN reviews rv ON rv.venue_id = v.id
@@ -54,6 +55,7 @@ func (r *VenueRepo) FindByID(ctx context.Context, id string) (*models.Venue, err
 		&v.RejectionNote, &v.ApprovedBy,
 		&v.FoodHalalMode, &v.ExcludedProducts,
 		&v.AverageRating, &v.ReviewCount,
+		&v.ConfirmationCount, &v.IsDoubleVerified,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
