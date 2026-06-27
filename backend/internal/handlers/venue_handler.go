@@ -31,6 +31,7 @@ type VenueHandler struct {
 	placesService          *services.PlacesService
 	verifLogRepo           *repository.VerificationLogRepo
 	directionRepo          directionClickCreator
+	notifService           *services.NotificationService
 	verificationPeriodDays int
 }
 
@@ -41,6 +42,7 @@ func NewVenueHandler(
 	placesService *services.PlacesService,
 	verifLogRepo *repository.VerificationLogRepo,
 	directionRepo *repository.DirectionClickRepo,
+	notifService *services.NotificationService,
 	verificationPeriodDays int,
 ) *VenueHandler {
 	return &VenueHandler{
@@ -50,6 +52,7 @@ func NewVenueHandler(
 		placesService:          placesService,
 		verifLogRepo:           verifLogRepo,
 		directionRepo:          directionRepo,
+		notifService:           notifService,
 		verificationPeriodDays: verificationPeriodDays,
 	}
 }
@@ -840,7 +843,8 @@ func (h *VenueHandler) Verify(c *fiber.Ctx) error {
 		return err
 	}
 
-	if err := h.venueRepo.VerifyByGuide(c.Context(), venueID, guideID, h.verificationPeriodDays); err != nil {
+	dropped, err := h.venueRepo.VerifyByGuide(c.Context(), venueID, guideID, h.verificationPeriodDays)
+	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
 			return fiber.ErrNotFound
 		}
@@ -848,6 +852,17 @@ func (h *VenueHandler) Verify(c *fiber.Ctx) error {
 	}
 
 	_ = h.verifLogRepo.Create(c.Context(), venueID, guideID, "verified")
+
+	// Düşen rehberlere bildirim (fire-and-forget; mekan adını detaydan al).
+	if len(dropped) > 0 && h.notifService != nil {
+		venueName := ""
+		if v, vErr := h.venueRepo.FindByID(c.Context(), venueID); vErr == nil {
+			venueName = v.Name
+		}
+		for _, gid := range dropped {
+			_ = h.notifService.SendConfirmationReset(c.Context(), gid, venueID, venueName)
+		}
+	}
 
 	return c.JSON(fiber.Map{"status": "verified"})
 }
