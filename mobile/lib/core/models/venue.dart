@@ -28,6 +28,8 @@ abstract class Venue with _$Venue {
     @JsonKey(name: 'food_items') @Default([]) List<FoodItem> foodItems,
     @JsonKey(name: 'average_rating') double? avgRating,
     @JsonKey(name: 'review_count') @Default(0) int reviewCount,
+    @JsonKey(name: 'confirmation_count') @Default(0) int confirmationCount,
+    Badge? badge,
     double? distance,
     @JsonKey(name: 'categories_str') String? categoriesStr,
     @JsonKey(name: 'created_at') DateTime? createdAt,
@@ -100,4 +102,49 @@ abstract class FoodItem with _$FoodItem {
 
   factory FoodItem.fromJson(Map<String, dynamic> json) =>
       _$FoodItemFromJson(json);
+}
+
+@freezed
+abstract class Badge with _$Badge {
+  const factory Badge({
+    required String level, // base | bronze | silver | gold | platinum
+    @Default(0) int count,
+  }) = _Badge;
+
+  const Badge._();
+
+  factory Badge.fromJson(Map<String, dynamic> json) => _$BadgeFromJson(json);
+
+  String get labelTr {
+    switch (level) {
+      case 'bronze':
+        return 'Bronz';
+      case 'silver':
+        return 'Gümüş';
+      case 'gold':
+        return 'Altın';
+      case 'platinum':
+        return 'Platin';
+      default:
+        return 'Temel';
+    }
+  }
+
+  /// Rozet rengi (ARGB int). UI Color(badge.colorValue) ile kullanır.
+  int get colorValue {
+    switch (level) {
+      case 'bronze':
+        return 0xFFCD7F32;
+      case 'silver':
+        return 0xFF9E9E9E;
+      case 'gold':
+        return 0xFFFFB300;
+      case 'platinum':
+        return 0xFF7E57C2;
+      default:
+        return 0xFFBDBDBD;
+    }
+  }
+
+  bool get isBase => level == 'base';
 }
