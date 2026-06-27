@@ -52,6 +52,21 @@ hem panelden hangi şehirlerde kaç tane rehber olduğunu görürüz (harita man
 
 ## Tamamlanan İşler
 
+### Venue Rozet & Dönemsel Doğrulama — Backend Çekirdek — YENİ
+
+> 2026-06-27'de tamamlandı. Mekan güven rozeti altyapısının tüm backend çekirdeği tamamlandı.
+
+| Değişiklik | Durum | Detay |
+|-----------|-------|-------|
+| Migration 036 | ✅ | `venues.confirmation_count` ve `is_double_verified` dönemsel anlamla yeniden eklendi; `venue_confirmations.period_start` kolonu eklendi. |
+| Badge modeli | ✅ | `models.Badge` (level/count) + `BadgeFromCount` (0=Temel, 1=Bronz, 2-5=Gümüş, 6-10=Altın, 11+=Platin). |
+| ConfirmVenue genişletme | ✅ | `ConfirmVenueRepo`: şehir doğrulaması, `confirmation_count++`, periyot kontrolü (`period_start`). |
+| FindByGooglePlaceID + check-duplicate endpoint | ✅ | Duplicate önleme için Google Place ID sorgulama ve `/venues/check-duplicate` endpoint'i. |
+| FindByID + liste sorgularında badge | ✅ | `FindByID`, `FindByCity`, `FindNearby`, `FindNearbyApproved`, `FindPopular` — tümünde `confirmation_count`/`is_double_verified` SELECT edilir, `BadgeFromCount` ile `Badge` alanı doldurulur. Admin listeleri (FindAll, FindPending, FindByAddedBy, FindByUserID, FindByFoodCategory) badge gerektirmediğinden değiştirilmedi (YAGNI). |
+| Testler | ✅ | `TestConfirmVenueIncrementsCount`, `TestConfirmVenueRejectsWrongCity`, `TestFindByIDIncludesBadge`, `TestFindByGooglePlaceID` — tümü PASS (testcontainers). |
+
+---
+
 ### Yol Tarifi Tıklama Takibi — YENİ
 
 > 2026-06-26'da yapıldı. Mobil "Yol Tarifi" butonuna her basılış artık kaydediliyor ve admin panelin aktivite raporunda günlük trend + "en çok yol tarifi alınan mekanlar" olarak görünüyor. Mevcut `user_logins`/`GetActivityStats` aktivite altyapısının birebir uzantısı. Tasarım: `docs/superpowers/specs/2026-06-25-venue-direction-click-tracking-design.md`, Plan: `docs/superpowers/plans/2026-06-25-venue-direction-click-tracking.md`.

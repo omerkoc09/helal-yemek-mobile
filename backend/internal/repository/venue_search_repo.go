@@ -22,7 +22,8 @@ func (r *VenueRepo) FindNearby(ctx context.Context, lat, lng, radiusMeters float
 			v.notes, v.status,
 			v.added_by, v.verified_at,
 			v.created_at, v.updated_at,
-			ST_Distance(v.location, ST_MakePoint($2, $1)::geography) AS distance
+			ST_Distance(v.location, ST_MakePoint($2, $1)::geography) AS distance,
+			v.confirmation_count, v.is_double_verified
 		FROM venues v
 		WHERE v.status IN ('approved', 'pending')
 		  AND v.deleted_at IS NULL
@@ -36,7 +37,7 @@ func (r *VenueRepo) FindNearby(ctx context.Context, lat, lng, radiusMeters float
 	}
 	defer rows.Close()
 
-	return r.scanVenueRowsWithPhotos(ctx, rows, true)
+	return r.scanVenueRowsNearbyWithPhotos(ctx, rows)
 }
 
 // escapeILIKE — ILIKE meta-karakterlerini (%_\) escape eder.
@@ -109,7 +110,8 @@ func (r *VenueRepo) FindByCity(ctx context.Context, city string, lat, lng float6
 					WHERE vfi2.venue_id = v.id
 					LIMIT 2
 				) fc
-			) AS categories_str
+			) AS categories_str,
+			v.confirmation_count, v.is_double_verified
 		FROM venues v
 		LEFT JOIN reviews rv ON rv.venue_id = v.id
 		WHERE v.city ILIKE $1
@@ -315,7 +317,8 @@ func (r *VenueRepo) FindNearbyApproved(ctx context.Context, lat, lng, radiusMete
 					WHERE vfi2.venue_id = v.id
 					LIMIT 2
 				) fc
-			) AS categories_str
+			) AS categories_str,
+			v.confirmation_count, v.is_double_verified
 		FROM venues v
 		LEFT JOIN reviews rv ON rv.venue_id = v.id
 		WHERE v.status = 'approved'
@@ -363,7 +366,8 @@ func (r *VenueRepo) FindPopular(ctx context.Context, lat, lng, radiusMeters floa
 					WHERE vfi2.venue_id = v.id
 					LIMIT 2
 				) fc
-			) AS categories_str
+			) AS categories_str,
+			v.confirmation_count, v.is_double_verified
 		FROM venues v
 		LEFT JOIN reviews rv ON rv.venue_id = v.id
 		WHERE v.status = 'approved'
@@ -382,7 +386,53 @@ func (r *VenueRepo) FindPopular(ctx context.Context, lat, lng, radiusMeters floa
 	return r.scanVenueRowsWithRatingAndPhotos(ctx, rows)
 }
 
-// scanVenueRowsWithRatingAndPhotos — distance + avg_rating + review_count + categories_str içeren satırları tarar.
+// scanVenueRowsNearbyWithPhotos — FindNearby sorgusundan dönen satırları tarar.
+// Sütun sırası: id, name, city, lat, lng, google_place_id,
+//               notes, status, added_by, verified_at, created_at, updated_at,
+//               distance, confirmation_count, is_double_verified
+func (r *VenueRepo) scanVenueRowsNearbyWithPhotos(ctx context.Context, rows pgx.Rows) ([]models.Venue, error) {
+	var venues []models.Venue
+	for rows.Next() {
+		v := models.Venue{}
+		err := rows.Scan(
+			&v.ID, &v.Name, &v.City,
+			&v.Latitude, &v.Longitude,
+			&v.GooglePlaceID,
+			&v.Notes, &v.Status,
+			&v.AddedBy, &v.VerifiedAt,
+			&v.CreatedAt, &v.UpdatedAt,
+			&v.Distance,
+			&v.ConfirmationCount, &v.IsDoubleVerified,
+		)
+		if err != nil {
+			return nil, err
+		}
+		badge := models.BadgeFromCount(v.ConfirmationCount)
+		v.Badge = &badge
+		v.Criteria = []models.HalalCriteria{}
+		v.Photos = []models.VenuePhoto{}
+		venues = append(venues, v)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	if venues == nil {
+		venues = []models.Venue{}
+	}
+
+	for i := range venues {
+		photos, err := r.GetPhotosByVenueID(ctx, venues[i].ID)
+		if err != nil {
+			return nil, err
+		}
+		venues[i].Photos = photos
+	}
+	return venues, nil
+}
+
+// scanVenueRowsWithRatingAndPhotos — distance + avg_rating + review_count + categories_str +
+// confirmation_count + is_double_verified içeren satırları tarar.
+// FindNearbyApproved ve FindPopular tarafından kullanılır.
 func (r *VenueRepo) scanVenueRowsWithRatingAndPhotos(ctx context.Context, rows pgx.Rows) ([]models.Venue, error) {
 	var venues []models.Venue
 	for rows.Next() {
@@ -398,10 +448,13 @@ func (r *VenueRepo) scanVenueRowsWithRatingAndPhotos(ctx context.Context, rows p
 			&v.AverageRating,
 			&v.ReviewCount,
 			&v.CategoriesStr,
+			&v.ConfirmationCount, &v.IsDoubleVerified,
 		)
 		if err != nil {
 			return nil, err
 		}
+		badge := models.BadgeFromCount(v.ConfirmationCount)
+		v.Badge = &badge
 		v.Criteria = []models.HalalCriteria{}
 		v.Photos = []models.VenuePhoto{}
 		venues = append(venues, v)
@@ -432,7 +485,8 @@ func (r *VenueRepo) scanVenueRowsWithRatingAndPhotos(ctx context.Context, rows p
 // scanVenueCityRows — FindByCity sorgusundan dönen satırları tarar.
 // Sütun sırası: id, name, city, district, lat, lng, google_place_id,
 //               notes, status, added_by, verified_at, created_at, updated_at,
-//               distance, avg_rating, review_count, categories_str
+//               distance, avg_rating, review_count, categories_str,
+//               confirmation_count, is_double_verified
 func (r *VenueRepo) scanVenueCityRows(ctx context.Context, rows pgx.Rows) ([]models.Venue, error) {
 	var venues []models.Venue
 	for rows.Next() {
@@ -448,10 +502,13 @@ func (r *VenueRepo) scanVenueCityRows(ctx context.Context, rows pgx.Rows) ([]mod
 			&v.AverageRating,
 			&v.ReviewCount,
 			&v.CategoriesStr,
+			&v.ConfirmationCount, &v.IsDoubleVerified,
 		)
 		if err != nil {
 			return nil, err
 		}
+		badge := models.BadgeFromCount(v.ConfirmationCount)
+		v.Badge = &badge
 		v.Criteria = []models.HalalCriteria{}
 		v.Photos = []models.VenuePhoto{}
 		venues = append(venues, v)
