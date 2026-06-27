@@ -3,7 +3,9 @@ package services
 import (
 	"context"
 	"errors"
+	"log"
 	"strings"
+	"time"
 
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/api/idtoken"
@@ -28,6 +30,18 @@ func NewAuthService(userRepo *repository.UserRepo, loginRepo *repository.LoginRe
 		jwtSecret:      jwtSecret,
 		googleClientID: googleClientID,
 		appleService:   NewAppleService(),
+	}
+}
+
+// recordLogin — login kaydını request akışını bloklamadan, arka planda yazar.
+// Kendi timeout'lu context'ini kullanır (request iptal olsa bile kayıt sürer ama
+// DB takılırsa goroutine sonsuza kadar asılı kalmaz) ve hatayı yutmaz, loglar.
+// "go s.recordLogin(userID)" şeklinde çağrılır.
+func (s *AuthService) recordLogin(userID string) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := s.loginRepo.Record(ctx, userID); err != nil {
+		log.Printf("login kaydı yazılamadı (user=%s): %v", userID, err)
 	}
 }
 
@@ -72,7 +86,7 @@ func (s *AuthService) Register(ctx context.Context, email, password, name, surna
 		return nil, err
 	}
 	if user.Role != models.RoleAdmin {
-		go func() { _ = s.loginRepo.Record(context.Background(), user.ID) }()
+		go s.recordLogin(user.ID)
 	}
 	return pair, nil
 }
@@ -99,7 +113,7 @@ func (s *AuthService) Login(ctx context.Context, email, password string) (*jwtpk
 		return nil, err
 	}
 	if user.Role != models.RoleAdmin {
-		go func() { _ = s.loginRepo.Record(context.Background(), user.ID) }()
+		go s.recordLogin(user.ID)
 	}
 	return pair, nil
 }
@@ -153,7 +167,7 @@ func (s *AuthService) LoginWithGoogle(ctx context.Context, idToken string) (*jwt
 		return nil, err
 	}
 	if user.Role != models.RoleAdmin {
-		go func() { _ = s.loginRepo.Record(context.Background(), user.ID) }()
+		go s.recordLogin(user.ID)
 	}
 	return pair, nil
 }
@@ -196,7 +210,7 @@ func (s *AuthService) LoginWithApple(ctx context.Context, identityToken, name st
 	if err != nil {
 		return nil, err
 	}
-	go func() { _ = s.loginRepo.Record(context.Background(), user.ID) }()
+	go s.recordLogin(user.ID)
 	return pair, nil
 }
 
@@ -220,7 +234,7 @@ func (s *AuthService) RefreshTokens(ctx context.Context, refreshToken string) (*
 		return nil, err
 	}
 	if user.Role != models.RoleAdmin {
-		go func() { _ = s.loginRepo.Record(context.Background(), user.ID) }()
+		go s.recordLogin(user.ID)
 	}
 	return pair, nil
 }

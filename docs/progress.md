@@ -31,7 +31,7 @@ mekan puanlamasını çeşitlendirme?
 kullanıcının şehrine veya yakınına yeni mekan eklenirse bildirim? uygulama arka planda konum çekmeye devam edecek mi?
 
 **
-birden fazla rehberin onaylamasıyla yeni rozet takdimi 
+birden fazla rehberin onaylamasıyla yeni rozet takdimi ✅
 
 popüler restoran metriği zengileştirilmesi yani sadece puan değil. tıklama sayısı veya yol tarifi alma sayısı gibi istatistikler.
 **
@@ -51,6 +51,19 @@ hem panelden hangi şehirlerde kaç tane rehber olduğunu görürüz (harita man
 
 
 ## Tamamlanan İşler
+
+### Auth Hardening — Arka Plan Login Kaydı Güvenli Hale Getirildi — YENİ
+
+> 2026-06-28'de yapıldı. Üretim davranışı odaklı küçük bir sağlamlaştırma (hardening). Yeni özellik değil; mevcut "fire-and-forget" login kaydı pattern'indeki iki gizli üretim riski kapatıldı.
+
+| Değişiklik | Durum | Detay |
+|-----------|-------|-------|
+| `recordLogin` helper | ✅ | `AuthService` içindeki 5 ayrı `go func() { _ = s.loginRepo.Record(context.Background(), user.ID) }()` çağrısı tek bir `recordLogin(userID)` helper'ında toplandı (DRY). Çağrı yerleri `go s.recordLogin(user.ID)` oldu. |
+| Goroutine leak koruması | ✅ | `context.Background()` timeout'suzdu → DB takılırsa goroutine sonsuza asılı kalabilirdi. Artık `context.WithTimeout(..., 5*time.Second)` + `defer cancel()`. |
+| Yutulan hata loglanıyor | ✅ | `_ =` ile DB hatası sessizce kayboluyordu; artık `log.Printf("login kaydı yazılamadı (user=%s): %v", ...)`. Mevcut `log` paketi idiomu korundu, yeni bağımlılık yok. |
+| Doğrulama | ✅ | `go build ./...` ve `go vet ./internal/services/` temiz (vet `lostcancel` analizi `defer cancel()`'i doğruladı). |
+
+---
 
 ### Mekan Dönemsel Onay Reset — VerifyByGuide Reset + Düşen Rehber Bildirimi — YENİ
 
