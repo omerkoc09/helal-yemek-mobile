@@ -578,14 +578,26 @@ func (h *VenueHandler) ConfirmVenue(c *fiber.Ctx) error {
 		return err
 	}
 
-	if err := h.venueRepo.ConfirmVenue(c.Context(), venueID, guideID); err != nil {
+	guideCity := ""
+	if getUserRole(c) == string(models.RoleGuide) {
+		gc, gcErr := h.userRepo.GetGuideCity(c.Context(), guideID)
+		if gcErr != nil {
+			return fiber.ErrInternalServerError
+		}
+		if gc != nil {
+			guideCity = *gc
+		}
+	}
+
+	if err := h.venueRepo.ConfirmVenue(c.Context(), venueID, guideID, guideCity); err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
 			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "mekan bulunamadı"})
 		}
 		msg := err.Error()
 		if strings.Contains(msg, "doğrulamışsınız") ||
 			strings.Contains(msg, "kendi eklediğiniz") ||
-			strings.Contains(msg, "yalnızca onaylı") {
+			strings.Contains(msg, "yalnızca onaylı") ||
+			strings.Contains(msg, "rehberi olduğunuz") {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": msg})
 		}
 		return fiber.ErrInternalServerError
