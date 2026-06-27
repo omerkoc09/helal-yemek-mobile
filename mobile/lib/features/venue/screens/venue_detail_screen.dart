@@ -19,6 +19,7 @@ import '../widgets/report_venue_sheet.dart';
 import '../widgets/venue_status_badge.dart';
 import '../widgets/review_card.dart';
 import '../widgets/venue_photo_gallery.dart';
+import '../widgets/venue_badge_chip.dart';
 import '../widgets/verify_button_visibility.dart';
 
 class VenueDetailScreen extends ConsumerWidget {
@@ -201,7 +202,9 @@ class VenueDetailScreen extends ConsumerWidget {
                             _VerifiedAtBadge(date: venue.verifiedAt!),
                         ],
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 8),
+                      VenueBadgeChip(badge: venue.badge, compact: false),
+                      const SizedBox(height: 8),
 
                       // Puan
                       if (venue.avgRating != null)
