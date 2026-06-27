@@ -1,0 +1,6 @@
+ALTER TABLE venues
+    ADD COLUMN IF NOT EXISTS confirmation_count INT NOT NULL DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS is_double_verified BOOLEAN NOT NULL DEFAULT false;
+
+ALTER TABLE venue_confirmations
+    ADD COLUMN IF NOT EXISTS period_start TIMESTAMPTZ NOT NULL DEFAULT NOW();
