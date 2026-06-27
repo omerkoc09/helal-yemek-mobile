@@ -45,6 +45,27 @@
 - **Fotoğraf Galerisi**: Mekan fotoğrafları
 - **Güven Göstergeleri**: Son doğrulanma tarihi, çift doğrulanmış badge
 
+#### Venue Rozet Sistemi (Dönemsel Doğrulama)
+
+**Rozet seviyeleri** (mevcut periyottaki ekleyen-hariç onay sayısına göre):
+
+| Sayı | Seviye  |
+|------|---------|
+| 0    | Temel   |
+| 1    | Bronz   |
+| 2–5  | Gümüş   |
+| 6–10 | Altın   |
+| 11+  | Platin  |
+
+**Dağıtık sahiplik modeli:**
+- **Silme**: Yalnızca admin silebilir; guide'lar kendi ekledikleri mekanı silemez.
+- **Düzenleme**: Guide'lar `correction_suggestions` üzerinden öneri gönderir; admin onaylar.
+
+**Dönemsel tazelik doğrulaması:**
+- Mekânı ekleyen guide kalıcı sorumludur (ilk ekleyenin onayı her zaman sayılır).
+- Diğer guide'ların onayları periyot başına bir kez geçerlidir.
+- Periyot dolduğunda ekleyen hariç tüm onaylar sıfırlanır; rozet bir sonraki dönem yeniden kazanılır.
+
 #### 3. Kullanıcı Yönetimi
 - **Çoklu Giriş**: Email/şifre, Google
 - **Rol Sistemi**: Traveler → Guide → Admin hiyerarşisi

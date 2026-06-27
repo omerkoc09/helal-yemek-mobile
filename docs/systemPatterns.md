@@ -82,7 +82,11 @@ CREATE TABLE venues (
     added_by        UUID NOT NULL REFERENCES users(id),
     approved_by     UUID REFERENCES users(id),
     verified_at     TIMESTAMPTZ,                       -- son onay tarihi
-    confirmation_count INT NOT NULL DEFAULT 0,         -- kaç guide onayladı
+    -- confirmation_count ve is_double_verified: migration 014'te kaldırıldı,
+    -- migration 036'da DÖNEMSEL (periyot başına) anlamıyla yeniden eklendi.
+    -- confirmation_count: mevcut periyottaki ekleyen-hariç onay sayısı (rozet hesabı için).
+    -- is_double_verified: dönemsel onay sayısı ≥ 2 ise true (geriye dönük uyumluluk).
+    confirmation_count INT NOT NULL DEFAULT 0,
     is_double_verified BOOLEAN NOT NULL DEFAULT false,
     deleted_at      TIMESTAMPTZ,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -92,6 +96,22 @@ CREATE TABLE venues (
 CREATE INDEX venues_location_idx ON venues USING GIST (location);
 CREATE INDEX venues_city_idx ON venues (city);
 CREATE INDEX venues_status_idx ON venues (status);
+```
+
+#### venue_confirmations
+```sql
+-- Her guide'ın bir mekana verdiği periyodik onayı tutar.
+-- period_start (migration 036): hangi dönemin onayı olduğunu işaretler;
+-- aynı guide aynı periyotta tekrar onaylayamaz (UNIQUE venue_id, guide_id, period_start).
+CREATE TABLE venue_confirmations (
+    id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    venue_id     UUID NOT NULL REFERENCES venues(id) ON DELETE CASCADE,
+    guide_id     UUID NOT NULL REFERENCES users(id),
+    city         VARCHAR(100) NOT NULL,
+    period_start DATE NOT NULL,          -- dönem başlangıcı (periyodik tazelik için)
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (venue_id, guide_id, period_start)
+);
 ```
 
 ### İlişki Tabloları
