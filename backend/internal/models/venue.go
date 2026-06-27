@@ -72,7 +72,32 @@ type Venue struct {
 	FoodItems        []FoodItem      `json:"food_items"`
 	AverageRating    *float64        `json:"average_rating,omitempty"`
 	ReviewCount      int             `json:"review_count"`
+	ConfirmationCount int             `json:"confirmation_count"`
+	IsDoubleVerified bool            `json:"is_double_verified"`
+	Badge            *Badge          `json:"badge,omitempty"`
 	CategoriesStr    *string         `json:"categories_str,omitempty"`
 	CreatedAt        time.Time       `json:"created_at"`
 	UpdatedAt        time.Time       `json:"updated_at"`
+}
+
+// Badge — mekanın dönemsel taze onay sayısından türetilen güven rozeti.
+type Badge struct {
+	Level string `json:"level"` // base | bronze | silver | gold | platinum
+	Count int    `json:"count"` // ekleyen hariç dönemsel onay sayısı
+}
+
+// BadgeFromCount — dönemsel onay sayısını rozet seviyesine çevirir.
+func BadgeFromCount(count int) Badge {
+	level := "base"
+	switch {
+	case count >= 11:
+		level = "platinum"
+	case count >= 6:
+		level = "gold"
+	case count >= 2:
+		level = "silver"
+	case count >= 1:
+		level = "bronze"
+	}
+	return Badge{Level: level, Count: count}
 }
