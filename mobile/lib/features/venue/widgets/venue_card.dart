@@ -7,6 +7,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/star_rating_widget.dart';
 import '../../favorites/providers/favorites_provider.dart';
 import 'halal_criteria_chip.dart';
+import 'venue_badge_chip.dart';
 
 class VenueCard extends ConsumerWidget {
   final Venue venue;
@@ -96,6 +97,8 @@ class VenueCard extends ConsumerWidget {
                         const SizedBox(width: 8),
                         StarRatingWidget(rating: venue.avgRating!, size: 15),
                       ],
+                      const SizedBox(width: 6),
+                      VenueBadgeChip(badge: venue.badge, compact: true),
                     ],
                   ),
                   const SizedBox(height: 4),

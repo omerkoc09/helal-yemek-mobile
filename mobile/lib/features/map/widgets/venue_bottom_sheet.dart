@@ -8,6 +8,7 @@ import '../../../core/utils/map_launcher.dart';
 import '../../../shared/widgets/star_rating_widget.dart';
 import '../../venue/providers/direction_tracking_provider.dart';
 import '../../venue/widgets/halal_criteria_chip.dart';
+import '../../venue/widgets/venue_badge_chip.dart';
 import '../../venue/widgets/venue_status_badge.dart';
 
 void showVenueBottomSheet(BuildContext context, Venue venue) {
@@ -113,6 +114,8 @@ class _VenueBottomSheetContent extends ConsumerWidget {
 
           // Statü badge
           VenueStatusBadge(status: venue.status),
+          const SizedBox(height: 8),
+          VenueBadgeChip(badge: venue.badge, compact: true),
           const SizedBox(height: 12),
 
           // Helal kriterleri
