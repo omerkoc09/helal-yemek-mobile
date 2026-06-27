@@ -606,7 +606,7 @@ func (h *VenueHandler) ConfirmVenue(c *fiber.Ctx) error {
 }
 
 // CheckDuplicate godoc
-// GET /api/v1/venues/check-duplicate?google_place_id=...  (Guide)
+// GET /api/v1/venues/check-duplicate?google_place_id=...  (Guide/Admin)
 // Mekan eklemeden önce erken duplicate uyarısı için.
 func (h *VenueHandler) CheckDuplicate(c *fiber.Ctx) error {
 	placeID := c.Query("google_place_id")
