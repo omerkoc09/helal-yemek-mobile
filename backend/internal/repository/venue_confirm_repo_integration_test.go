@@ -89,3 +89,32 @@ func TestConfirmVenueRejectsWrongCity(t *testing.T) {
 		t.Errorf("farklı şehir guide'ı doğrulayamamalı")
 	}
 }
+
+func TestFindByIDIncludesBadge(t *testing.T) {
+	truncate(t)
+	ctx := context.Background()
+	repo := repository.NewVenueRepo(testPool)
+
+	adder := insertGuideInCity(t, "İzmir")
+	c1 := insertGuideInCity(t, "İzmir")
+	c2 := insertGuideInCity(t, "İzmir")
+	venueID := insertVenueInCity(t, adder, "İzmir", nil)
+
+	if err := repo.ConfirmVenue(ctx, venueID, c1, "İzmir"); err != nil {
+		t.Fatalf("c1 confirm: %v", err)
+	}
+	if err := repo.ConfirmVenue(ctx, venueID, c2, "İzmir"); err != nil {
+		t.Fatalf("c2 confirm: %v", err)
+	}
+
+	v, err := repo.FindByID(ctx, venueID)
+	if err != nil {
+		t.Fatalf("FindByID hata: %v", err)
+	}
+	if v.ConfirmationCount != 2 {
+		t.Errorf("ConfirmationCount = %d, want 2", v.ConfirmationCount)
+	}
+	if v.Badge == nil || v.Badge.Level != "silver" {
+		t.Errorf("Badge = %+v, want level silver", v.Badge)
+	}
+}
