@@ -49,6 +49,10 @@ _Venue _$VenueFromJson(Map<String, dynamic> json) => _Venue(
       const [],
   avgRating: (json['average_rating'] as num?)?.toDouble(),
   reviewCount: (json['review_count'] as num?)?.toInt() ?? 0,
+  confirmationCount: (json['confirmation_count'] as num?)?.toInt() ?? 0,
+  badge: json['badge'] == null
+      ? null
+      : Badge.fromJson(json['badge'] as Map<String, dynamic>),
   distance: (json['distance'] as num?)?.toDouble(),
   categoriesStr: json['categories_str'] as String?,
   createdAt: json['created_at'] == null
@@ -82,6 +86,8 @@ Map<String, dynamic> _$VenueToJson(_Venue instance) => <String, dynamic>{
   'food_items': instance.foodItems,
   'average_rating': instance.avgRating,
   'review_count': instance.reviewCount,
+  'confirmation_count': instance.confirmationCount,
+  'badge': instance.badge,
   'distance': instance.distance,
   'categories_str': instance.categoriesStr,
   'created_at': instance.createdAt?.toIso8601String(),
@@ -167,4 +173,14 @@ Map<String, dynamic> _$FoodItemToJson(_FoodItem instance) => <String, dynamic>{
   'label_tr': instance.labelTr,
   'label_en': instance.labelEn,
   'is_custom': instance.isCustom,
+};
+
+_Badge _$BadgeFromJson(Map<String, dynamic> json) => _Badge(
+  level: json['level'] as String,
+  count: (json['count'] as num?)?.toInt() ?? 0,
+);
+
+Map<String, dynamic> _$BadgeToJson(_Badge instance) => <String, dynamic>{
+  'level': instance.level,
+  'count': instance.count,
 };

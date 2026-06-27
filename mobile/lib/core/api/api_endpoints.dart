@@ -55,6 +55,8 @@ class ApiEndpoints {
 
   // Venue verify
   static String venueVerify(String id) => '/venues/$id/verify';
+  static String venueConfirm(String id) => '/venues/$id/confirm';
+  static const String venueCheckDuplicate = '/venues/check-duplicate';
 
   // Misc
   static const String criteria = '/criteria';
