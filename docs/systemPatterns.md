@@ -100,17 +100,17 @@ CREATE INDEX venues_status_idx ON venues (status);
 
 #### venue_confirmations
 ```sql
--- Her guide'ın bir mekana verdiği periyodik onayı tutar.
--- period_start (migration 036): hangi dönemin onayı olduğunu işaretler;
--- aynı guide aynı periyotta tekrar onaylayamaz (UNIQUE venue_id, guide_id, period_start).
+-- Her guide'ın bir mekana verdiği onayı tutar (migration 011).
+-- Kompozit PK (venue_id, guide_id): bir guide bir mekanı aktif dönemde yalnızca
+-- bir kez onaylar. period_start (migration 036): onayın hangi dönemde verildiğini
+-- damgalar. Dönemsel tazelik, VerifyByGuide'ın (ekleyen re-verify) adder hariç
+-- satırları SİLMESİYLE sağlanır; period_start ileride raporlama için saklanır.
 CREATE TABLE venue_confirmations (
-    id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     venue_id     UUID NOT NULL REFERENCES venues(id) ON DELETE CASCADE,
     guide_id     UUID NOT NULL REFERENCES users(id),
-    city         VARCHAR(100) NOT NULL,
-    period_start DATE NOT NULL,          -- dönem başlangıcı (periyodik tazelik için)
     created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    UNIQUE (venue_id, guide_id, period_start)
+    period_start TIMESTAMPTZ NOT NULL DEFAULT NOW(), -- migration 036
+    PRIMARY KEY (venue_id, guide_id)
 );
 ```
 
