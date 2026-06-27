@@ -167,6 +167,11 @@ func main() {
 		middleware.RequireRole("guide", "admin"),
 		venueHandler.CreateCustomFoodItem,
 	)
+	api.Get("/venues/check-duplicate",
+		middleware.Auth(cfg.JWTSecret),
+		middleware.RequireRole("guide", "admin"),
+		venueHandler.CheckDuplicate,
+	)
 	api.Post("/venues/:id/confirm",
 		middleware.Auth(cfg.JWTSecret),
 		middleware.RequireRole("guide", "admin"),

@@ -605,6 +605,35 @@ func (h *VenueHandler) ConfirmVenue(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"status": "confirmed"})
 }
 
+// CheckDuplicate godoc
+// GET /api/v1/venues/check-duplicate?google_place_id=...  (Guide)
+// Mekan eklemeden önce erken duplicate uyarısı için.
+func (h *VenueHandler) CheckDuplicate(c *fiber.Ctx) error {
+	placeID := c.Query("google_place_id")
+	if placeID == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "google_place_id zorunludur"})
+	}
+
+	venue, err := h.venueRepo.FindByGooglePlaceID(c.Context(), placeID)
+	if err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			return c.JSON(fiber.Map{"exists": false})
+		}
+		return fiber.ErrInternalServerError
+	}
+
+	return c.JSON(fiber.Map{
+		"exists": true,
+		"venue": fiber.Map{
+			"id":                 venue.ID,
+			"name":               venue.Name,
+			"city":               venue.City,
+			"confirmation_count": venue.ConfirmationCount,
+			"badge":              venue.Badge,
+		},
+	})
+}
+
 // Update godoc
 // PUT /api/v1/venues/:id  (Guide — kendi mekanı)
 func (h *VenueHandler) Update(c *fiber.Ctx) error {
