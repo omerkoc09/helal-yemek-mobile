@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -476,6 +477,15 @@ class VenueDetailScreen extends ConsumerWidget {
                 ),
               ),
 
+              // Rehber onay (confirm) bölümü
+              SliverToBoxAdapter(
+                child: _ConfirmVenueButton(
+                  venueId: venue.id,
+                  addedBy: venue.addedBy,
+                  status: venue.status,
+                ),
+              ),
+
               // Alt boşluk
               const SliverToBoxAdapter(child: SizedBox(height: 32)),
             ],
@@ -699,6 +709,96 @@ class _VerifyVenueButtonState extends ConsumerState<_VerifyVenueButton> {
             padding: const EdgeInsets.symmetric(vertical: 14),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _ConfirmVenueButton extends ConsumerStatefulWidget {
+  final String venueId;
+  final String addedBy;
+  final String status;
+
+  const _ConfirmVenueButton({
+    required this.venueId,
+    required this.addedBy,
+    required this.status,
+  });
+
+  @override
+  ConsumerState<_ConfirmVenueButton> createState() =>
+      _ConfirmVenueButtonState();
+}
+
+class _ConfirmVenueButtonState extends ConsumerState<_ConfirmVenueButton> {
+  bool _isLoading = false;
+
+  Future<void> _confirmVenue() async {
+    setState(() => _isLoading = true);
+    try {
+      final api = ref.read(apiClientProvider);
+      await api.post(ApiEndpoints.venueConfirm(widget.venueId));
+      if (!mounted) return;
+      ref.invalidate(venueDetailProvider(widget.venueId));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Doğrulamanız kaydedildi, teşekkürler!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } on DioException catch (e) {
+      if (!mounted) return;
+      final msg = e.response?.data is Map
+          ? (e.response!.data['error']?.toString() ?? 'Doğrulama başarısız')
+          : 'Doğrulama başarısız';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(msg)),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final currentUserId = ref.watch(authProvider).user?.id;
+    if (currentUserId == null ||
+        currentUserId == widget.addedBy ||
+        widget.status != 'approved') {
+      return const SizedBox.shrink();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Doğrulamadan önce mekanın bilgilerinin (konum, ad, helal kriterleri) '
+            'doğru olduğundan emin olun. Bir hata varsa düzeltme öner veya rapor et.',
+            style: TextStyle(color: Colors.black54, fontSize: 13),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: _isLoading ? null : _confirmVenue,
+              icon: _isLoading
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.how_to_reg),
+              label: const Text('Doğruluyorum'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.teal,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
