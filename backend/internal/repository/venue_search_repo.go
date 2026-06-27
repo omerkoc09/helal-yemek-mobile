@@ -268,7 +268,8 @@ func (r *VenueRepo) FindByFoodCategory(ctx context.Context, categoryID int) ([]m
 					WHERE vfi2.venue_id = v.id
 					LIMIT 2
 				) fc
-			) AS categories_str
+			) AS categories_str,
+			v.confirmation_count, v.is_double_verified
 		FROM venues v
 		JOIN venue_food_items vfi ON vfi.venue_id = v.id
 		JOIN food_items fi ON fi.id = vfi.food_item_id
