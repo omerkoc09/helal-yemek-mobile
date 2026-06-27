@@ -442,6 +442,24 @@ class AddVenueNotifier extends Notifier<AddVenueState> {
     }
   }
 
+  /// Ekleme öncesi duplicate kontrolü. Mekan varsa Venue, yoksa null döner.
+  Future<Venue?> checkDuplicate(String placeId) async {
+    final api = ref.read(apiClientProvider);
+    try {
+      final res = await api.get(
+        ApiEndpoints.venueCheckDuplicate,
+        queryParameters: {'google_place_id': placeId},
+      );
+      final data = res.data as Map<String, dynamic>;
+      if (data['exists'] == true && data['venue'] != null) {
+        return Venue.fromJson(data['venue'] as Map<String, dynamic>);
+      }
+      return null;
+    } catch (_) {
+      return null; // kontrol başarısızsa akışı bloklama
+    }
+  }
+
   void reset() => state = const AddVenueState();
 }
 

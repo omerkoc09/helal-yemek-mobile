@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../core/models/venue.dart';
 import '../../../core/theme/app_theme.dart';
 import '../providers/guide_provider.dart';
 
@@ -15,6 +17,7 @@ class AddVenueLocationStep extends ConsumerStatefulWidget {
 
 class _AddVenueLocationStepState extends ConsumerState<AddVenueLocationStep> {
   final _linkController = TextEditingController();
+  Venue? _duplicateVenue;
 
   @override
   void dispose() {
@@ -80,6 +83,12 @@ class _AddVenueLocationStepState extends ConsumerState<AddVenueLocationStep> {
           if (hasCoords) ...[
             const SizedBox(height: 20),
             _buildSuccessCard(state),
+          ],
+
+          // Duplicate uyarı kartı
+          if (_duplicateVenue != null) ...[
+            const SizedBox(height: 16),
+            _buildDuplicateCard(_duplicateVenue!),
           ],
 
           const SizedBox(height: 32),
@@ -342,9 +351,74 @@ class _AddVenueLocationStepState extends ConsumerState<AddVenueLocationStep> {
     );
   }
 
+  Widget _buildDuplicateCard(Venue dup) {
+    return Card(
+      color: Colors.orange.shade50,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: Colors.orange.shade200),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Row(
+              children: [
+                Icon(Icons.warning_amber, color: Colors.orange),
+                SizedBox(width: 8),
+                Text(
+                  'Bu mekan zaten eklenmiş',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(dup.name),
+            if (dup.badge != null && !dup.badge!.isBase)
+              Text(
+                '${dup.badge!.labelTr} · ${dup.badge!.count} rehber doğruladı',
+                style: const TextStyle(color: Colors.black54),
+              ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                ElevatedButton(
+                  onPressed: () => context.push('/venue/${dup.id}'),
+                  child: const Text('Mekana Git'),
+                ),
+                const SizedBox(width: 8),
+                TextButton(
+                  onPressed: () => setState(() => _duplicateVenue = null),
+                  child: const Text('Vazgeç'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _onLinkChanged(String link) {
     if (link.trim().isEmpty) return;
-    ref.read(addVenueProvider.notifier).parseMapsLink(link);
+    // Link değişince önceki duplicate uyarısını temizle
+    if (_duplicateVenue != null) {
+      setState(() => _duplicateVenue = null);
+    }
+    _parseLinkAndCheckDuplicate(link);
+  }
+
+  Future<void> _parseLinkAndCheckDuplicate(String link) async {
+    final notifier = ref.read(addVenueProvider.notifier);
+    final success = await notifier.parseMapsLink(link);
+    if (!success) return;
+    final placeId = ref.read(addVenueProvider).googlePlaceId;
+    if (placeId == null || !placeId.startsWith('ChIJ')) return;
+    final dup = await notifier.checkDuplicate(placeId);
+    if (mounted && dup != null) {
+      setState(() => _duplicateVenue = dup);
+    }
   }
 
   Future<void> _pasteFromClipboard() async {
