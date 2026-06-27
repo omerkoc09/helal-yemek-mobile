@@ -85,6 +85,9 @@ func (r *VenueRepo) FindByID(ctx context.Context, id string) (*models.Venue, err
 	}
 	v.FoodItems = foodItems
 
+	badge := models.BadgeFromCount(v.ConfirmationCount)
+	v.Badge = &badge
+
 	return v, nil
 }
 
