@@ -4,6 +4,7 @@ package repository_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -116,5 +117,31 @@ func TestFindByIDIncludesBadge(t *testing.T) {
 	}
 	if v.Badge == nil || v.Badge.Level != "silver" {
 		t.Errorf("Badge = %+v, want level silver", v.Badge)
+	}
+}
+
+func TestFindByGooglePlaceID(t *testing.T) {
+	truncate(t)
+	ctx := context.Background()
+	repo := repository.NewVenueRepo(testPool)
+
+	adder := insertGuideInCity(t, "Bursa")
+	placeID := "ChIJ_test_dup_123"
+	venueID := insertVenueInCity(t, adder, "Bursa", &placeID)
+
+	found, err := repo.FindByGooglePlaceID(ctx, placeID)
+	if err != nil {
+		t.Fatalf("FindByGooglePlaceID hata: %v", err)
+	}
+	if found.ID != venueID {
+		t.Errorf("ID = %s, want %s", found.ID, venueID)
+	}
+	if found.Badge == nil {
+		t.Errorf("Badge nil olmamalı")
+	}
+
+	_, err = repo.FindByGooglePlaceID(ctx, "ChIJ_yok_olmayan")
+	if !errors.Is(err, repository.ErrNotFound) {
+		t.Errorf("olmayan place_id için ErrNotFound bekleniyor, got %v", err)
 	}
 }

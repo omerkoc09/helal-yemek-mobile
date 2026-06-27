@@ -91,6 +91,32 @@ func (r *VenueRepo) FindByID(ctx context.Context, id string) (*models.Venue, err
 	return v, nil
 }
 
+// FindByGooglePlaceID — verilen Google Place ID'ye sahip aktif mekanı döndürür.
+// Erken duplicate kontrolü için kullanılır. Bulunmazsa ErrNotFound.
+func (r *VenueRepo) FindByGooglePlaceID(ctx context.Context, placeID string) (*models.Venue, error) {
+	query := `
+		SELECT v.id, v.name, v.city, v.status,
+		       v.added_by, v.confirmation_count, v.is_double_verified
+		FROM venues v
+		WHERE v.google_place_id = $1 AND v.deleted_at IS NULL
+		LIMIT 1`
+
+	v := &models.Venue{}
+	err := r.db.QueryRow(ctx, query, placeID).Scan(
+		&v.ID, &v.Name, &v.City, &v.Status,
+		&v.AddedBy, &v.ConfirmationCount, &v.IsDoubleVerified,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, err
+	}
+	badge := models.BadgeFromCount(v.ConfirmationCount)
+	v.Badge = &badge
+	return v, nil
+}
+
 // Create — yeni mekan ekler, ID ve timestamp'leri geri doldurur.
 func (r *VenueRepo) Create(ctx context.Context, v *models.Venue) error {
 	query := `
