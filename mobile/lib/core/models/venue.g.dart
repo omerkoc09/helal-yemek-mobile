@@ -53,6 +53,7 @@ _Venue _$VenueFromJson(Map<String, dynamic> json) => _Venue(
   badge: json['badge'] == null
       ? null
       : Badge.fromJson(json['badge'] as Map<String, dynamic>),
+  confirmedByMe: json['confirmed_by_me'] as bool?,
   distance: (json['distance'] as num?)?.toDouble(),
   categoriesStr: json['categories_str'] as String?,
   createdAt: json['created_at'] == null
@@ -88,6 +89,7 @@ Map<String, dynamic> _$VenueToJson(_Venue instance) => <String, dynamic>{
   'review_count': instance.reviewCount,
   'confirmation_count': instance.confirmationCount,
   'badge': instance.badge,
+  'confirmed_by_me': instance.confirmedByMe,
   'distance': instance.distance,
   'categories_str': instance.categoriesStr,
   'created_at': instance.createdAt?.toIso8601String(),

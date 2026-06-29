@@ -483,6 +483,7 @@ class VenueDetailScreen extends ConsumerWidget {
                   venueId: venue.id,
                   addedBy: venue.addedBy,
                   status: venue.status,
+                  confirmedByMe: venue.confirmedByMe ?? false,
                 ),
               ),
 
@@ -718,11 +719,13 @@ class _ConfirmVenueButton extends ConsumerStatefulWidget {
   final String venueId;
   final String addedBy;
   final String status;
+  final bool confirmedByMe;
 
   const _ConfirmVenueButton({
     required this.venueId,
     required this.addedBy,
     required this.status,
+    required this.confirmedByMe,
   });
 
   @override
@@ -732,6 +735,8 @@ class _ConfirmVenueButton extends ConsumerStatefulWidget {
 
 class _ConfirmVenueButtonState extends ConsumerState<_ConfirmVenueButton> {
   bool _isLoading = false;
+  // Başarılı doğrulama sonrası, detay yeniden yüklenmeden önce butonu anında gizle.
+  bool _justConfirmed = false;
 
   Future<void> _confirmVenue() async {
     setState(() => _isLoading = true);
@@ -739,6 +744,7 @@ class _ConfirmVenueButtonState extends ConsumerState<_ConfirmVenueButton> {
       final api = ref.read(apiClientProvider);
       await api.post(ApiEndpoints.venueConfirm(widget.venueId));
       if (!mounted) return;
+      setState(() => _justConfirmed = true);
       ref.invalidate(venueDetailProvider(widget.venueId));
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -764,7 +770,9 @@ class _ConfirmVenueButtonState extends ConsumerState<_ConfirmVenueButton> {
     final currentUserId = ref.watch(authProvider).user?.id;
     if (currentUserId == null ||
         currentUserId == widget.addedBy ||
-        widget.status != 'approved') {
+        widget.status != 'approved' ||
+        widget.confirmedByMe ||
+        _justConfirmed) {
       return const SizedBox.shrink();
     }
 
