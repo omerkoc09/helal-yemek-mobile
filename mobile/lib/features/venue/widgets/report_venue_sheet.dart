@@ -12,6 +12,21 @@ const _reasons = [
   (value: 'other', label: 'Diğer'),
 ];
 
+// Not (açıklama) yazılması zorunlu olan seçenekler.
+const _reasonsRequiringNote = {'halal_criteria', 'wrong_food', 'other'};
+
+// Seçeneğe göre not kutusunun hint metni.
+String _noteHintFor(String? reason) {
+  switch (reason) {
+    case 'halal_criteria':
+      return 'Hangi kriterin karşılanmadığını belirtin...';
+    case 'wrong_food':
+      return 'Hangi yemeklerin yanlış olduğunu belirtin...';
+    default:
+      return 'Lütfen sorunu açıklayın...';
+  }
+}
+
 Future<void> showReportVenueSheet(BuildContext context, {required String venueId}) {
   return showModalBottomSheet(
     context: context,
@@ -98,7 +113,10 @@ class _ReportVenueSheetState extends ConsumerState<_ReportVenueSheet> {
           // Seçenekler
           RadioGroup<String>(
             groupValue: _selectedReason,
-            onChanged: (v) => setState(() => _selectedReason = v),
+            onChanged: (v) => setState(() {
+              _selectedReason = v;
+              _descController.clear();
+            }),
             child: Column(
               children: _reasons
                   .map((r) => RadioListTile<String>(
@@ -112,15 +130,15 @@ class _ReportVenueSheetState extends ConsumerState<_ReportVenueSheet> {
             ),
           ),
 
-          // "Diğer" seçilince açıklama kutusu
-          if (_selectedReason == 'other') ...[
+          // Not gerektiren seçeneklerde açıklama kutusu
+          if (_reasonsRequiringNote.contains(_selectedReason)) ...[
             const SizedBox(height: 8),
             TextField(
               controller: _descController,
               maxLines: 3,
               maxLength: 300,
-              decoration: const InputDecoration(
-                hintText: 'Lütfen sorunu açıklayın...',
+              decoration: InputDecoration(
+                hintText: _noteHintFor(_selectedReason),
                 alignLabelWithHint: true,
               ),
               onChanged: (_) => setState(() {}),
@@ -157,9 +175,11 @@ class _ReportVenueSheetState extends ConsumerState<_ReportVenueSheet> {
     );
   }
 
+  bool _requiresNote() => _reasonsRequiringNote.contains(_selectedReason);
+
   bool _canSubmit(VenueReportState state) {
     if (state.isLoading || _selectedReason == null) return false;
-    if (_selectedReason == 'other' && _descController.text.trim().isEmpty) return false;
+    if (_requiresNote() && _descController.text.trim().isEmpty) return false;
     return true;
   }
 
@@ -167,7 +187,7 @@ class _ReportVenueSheetState extends ConsumerState<_ReportVenueSheet> {
     ref.read(venueReportProvider.notifier).submit(
           venueId: widget.venueId,
           reason: _selectedReason!,
-          description: _selectedReason == 'other' ? _descController.text : null,
+          description: _requiresNote() ? _descController.text : null,
         );
   }
 }

@@ -122,7 +122,7 @@ class VenueDetailScreen extends ConsumerWidget {
                           iconSize: 20,
                           icon: const Icon(
                             Icons.warning_amber_rounded,
-                            color: Colors.amber,
+                            color: Colors.black,
                           ),
                           tooltip: 'Bildir',
                           onPressed: () => showReportVenueSheet(

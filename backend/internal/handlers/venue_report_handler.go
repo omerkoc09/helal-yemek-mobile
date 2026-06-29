@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"errors"
+	"strings"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/omerkoc/caiz-mi/internal/models"
@@ -14,6 +15,13 @@ var validReasons = map[string]bool{
 	"wrong_address": true,
 	"wrong_food":    true,
 	"other":         true,
+}
+
+// Açıklama (not) yazılması zorunlu olan sebepler.
+var reasonsRequiringNote = map[string]bool{
+	"halal_criteria": true,
+	"wrong_food":     true,
+	"other":          true,
 }
 
 type VenueReportHandler struct {
@@ -42,8 +50,8 @@ func (h *VenueReportHandler) Create(c *fiber.Ctx) error {
 	if !validReasons[req.Reason] {
 		return c.Status(400).JSON(fiber.Map{"error": "geçersiz sebep"})
 	}
-	if req.Reason == "other" && (req.Description == nil || *req.Description == "") {
-		return c.Status(400).JSON(fiber.Map{"error": "'diğer' seçeneği için açıklama zorunludur"})
+	if reasonsRequiringNote[req.Reason] && (req.Description == nil || strings.TrimSpace(*req.Description) == "") {
+		return c.Status(400).JSON(fiber.Map{"error": "bu seçenek için açıklama zorunludur"})
 	}
 
 	rp := &models.VenueReport{
