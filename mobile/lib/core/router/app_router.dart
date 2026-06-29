@@ -251,13 +251,14 @@ class AppShell extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final location = GoRouterState.of(context).matchedLocation;
     final showBottomNav = _isTabRoute(location);
-    final isGuide = ref.watch(authProvider).isGuide;
+    final authState = ref.watch(authProvider);
+    final hasGuideFeatures = authState.isGuide || authState.isAdmin;
 
     if (!showBottomNav) {
       return Scaffold(appBar: const AppHeader(), body: child);
     }
 
-    if (isGuide) {
+    if (hasGuideFeatures) {
       return _GuideShell(location: location, child: child);
     }
 
