@@ -246,7 +246,7 @@ func (s *AuthService) GetUser(ctx context.Context, userID string) (*models.User,
 
 // UpdateProfile — kullanıcının kendi profilini günceller.
 func (s *AuthService) UpdateProfile(ctx context.Context, userID string, name, surname, phone *string) (*models.User, error) {
-	if err := s.userRepo.Update(ctx, userID, name, surname, phone, nil, nil, nil); err != nil {
+	if err := s.userRepo.Update(ctx, userID, name, surname, phone, nil, nil, nil, nil); err != nil {
 		return nil, err
 	}
 	return s.userRepo.FindByID(ctx, userID)
