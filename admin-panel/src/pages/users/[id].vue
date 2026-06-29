@@ -3,12 +3,16 @@ import { useRoute, useRouter } from 'vue-router'
 import ApiService from '@/services/ApiService'
 import { SuccessToast, WarningPopup, ErrorPopup } from '@/utils/Popup'
 import tarihFormat from '@/utils/ExDate'
+import { CITY_CENTROID } from '@/utils/turkeyPlates'
 
 definePage({ meta: { role: ['admin'] } })
 
 const route = useRoute()
 const router = useRouter()
 const id = route.params.id as string
+
+// Kanonik 81 il (backend cities.go TurkishCities ile birebir) — rehber şehri seçimi için.
+const cities = Object.keys(CITY_CENTROID).sort((a, b) => a.localeCompare(b, 'tr'))
 
 // ── Kullanıcı verisi ─────────────────────────────────────────────────────────
 const user = ref<any>(null)
@@ -29,14 +33,19 @@ async function fetchUser() {
 }
 
 async function saveAccount() {
-  const [error] = await ApiService.put(`admin/users/${id}`, {
+  const payload: Record<string, any> = {
     name: accountForm.value.name,
     surname: accountForm.value.surname,
     email: accountForm.value.email,
     phone: accountForm.value.phone,
     role: accountForm.value.role,
     is_active: accountForm.value.is_active,
-  })
+  }
+  // Rehber şehri yalnızca rol "guide" iken anlamlı; diğer rollerde backend zaten temizler.
+  if (accountForm.value.role === 'guide')
+    payload.guide_city = accountForm.value.guide_city ?? ''
+
+  const [error] = await ApiService.put(`admin/users/${id}`, payload)
   if (error) return ErrorPopup(error)
   SuccessToast()
   await fetchUser()
@@ -123,6 +132,9 @@ onMounted(fetchUser)
           <VChip size="small" :color="roleChipColor[user.role] ?? 'default'" class="mt-1">
             {{ user.role }}
           </VChip>
+          <VChip v-if="user.role === 'guide' && user.guide_city" size="small" color="info" class="mt-1 ms-1" prepend-icon="tabler-map-pin">
+            {{ user.guide_city }}
+          </VChip>
           <div class="text-body-2 text-medium-emphasis mt-1">{{ user.email }}</div>
         </div>
         <VSpacer />
@@ -153,6 +165,14 @@ onMounted(fetchUser)
                 <VTextField v-model="accountForm.email" label="E-posta" class="mb-3" />
                 <VTextField v-model="accountForm.phone" label="Telefon" class="mb-3" />
                 <VSelect v-model="accountForm.role" :items="roles" label="Rol" class="mb-3" />
+                <VAutocomplete
+                  v-if="accountForm.role === 'guide'"
+                  v-model="accountForm.guide_city"
+                  :items="cities"
+                  label="Rehber Şehri"
+                  clearable
+                  class="mb-3"
+                />
                 <VSwitch v-model="accountForm.is_active" label="Aktif" class="mb-3" />
                 <VBtn color="primary" @click="saveAccount">Kaydet</VBtn>
               </VCardText>

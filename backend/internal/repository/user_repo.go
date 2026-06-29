@@ -24,11 +24,11 @@ func NewUserRepo(db *pgxpool.Pool) *UserRepo {
 
 func (r *UserRepo) Create(ctx context.Context, u *models.User) error {
 	query := `
-		INSERT INTO users (email, password_hash, name, surname, phone, role, provider, provider_id, avatar_url)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		INSERT INTO users (email, password_hash, name, surname, phone, role, provider, provider_id, avatar_url, guide_city)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 		RETURNING id, created_at, updated_at`
 	return r.db.QueryRow(ctx, query,
-		u.Email, u.PasswordHash, u.Name, u.Surname, u.Phone, u.Role, u.Provider, u.ProviderID, u.AvatarURL,
+		u.Email, u.PasswordHash, u.Name, u.Surname, u.Phone, u.Role, u.Provider, u.ProviderID, u.AvatarURL, u.GuideCity,
 	).Scan(&u.ID, &u.CreatedAt, &u.UpdatedAt)
 }
 
@@ -102,24 +102,34 @@ func (r *UserRepo) UpdateRole(ctx context.Context, id string, role models.Role) 
 }
 
 // Update — kullanıcının temel bilgilerini günceller. nil olan alanlar değiştirilmez.
-func (r *UserRepo) Update(ctx context.Context, id string, name, surname, phone, email *string, role *models.Role, isActive *bool) error {
+// guideCity nil ise dokunulmaz; boş string ("") gönderilirse NULL'a çekilir.
+func (r *UserRepo) Update(ctx context.Context, id string, name, surname, phone, email *string, role *models.Role, isActive *bool, guideCity *string) error {
 	var roleStr *string
 	if role != nil {
 		s := string(*role)
 		roleStr = &s
 	}
 
+	// guideCity için NULL'a çekme ayrımı: boş string → NULL set et, dolu → o değeri set et.
+	// $8: guideCity değeri (NULL'a çekmek için nil), $9: bu güncellemeyi uygula mı bayrağı.
+	var guideCityVal *string
+	applyGuideCity := guideCity != nil
+	if guideCity != nil && *guideCity != "" {
+		guideCityVal = guideCity
+	}
+
 	query := `
 		UPDATE users SET
-			name      = COALESCE($2, name),
-			surname   = COALESCE($3, surname),
-			phone     = COALESCE($4, phone),
-			email     = COALESCE($5, email),
-			role      = COALESCE($6, role),
-			is_active = COALESCE($7, is_active),
+			name       = COALESCE($2, name),
+			surname    = COALESCE($3, surname),
+			phone      = COALESCE($4, phone),
+			email      = COALESCE($5, email),
+			role       = COALESCE($6, role),
+			is_active  = COALESCE($7, is_active),
+			guide_city = CASE WHEN $9 THEN $8 ELSE guide_city END,
 			updated_at = NOW()
 		WHERE id = $1`
-	result, err := r.db.Exec(ctx, query, id, name, surname, phone, email, roleStr, isActive)
+	result, err := r.db.Exec(ctx, query, id, name, surname, phone, email, roleStr, isActive, guideCityVal, applyGuideCity)
 	if err != nil {
 		return fmt.Errorf("kullanıcı güncellemesi başarısız: %w", err)
 	}

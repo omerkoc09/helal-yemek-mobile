@@ -380,12 +380,13 @@ func (h *AdminHandler) ListAuditLogs(c *fiber.Ctx) error {
 // POST /admin/users
 func (h *AdminHandler) CreateUser(c *fiber.Ctx) error {
 	var req struct {
-		Email    string      `json:"email"`
-		Password string      `json:"password"`
-		Name     string      `json:"name"`
-		Surname  string      `json:"surname"`
-		Phone    string      `json:"phone"`
-		Role     models.Role `json:"role"`
+		Email     string      `json:"email"`
+		Password  string      `json:"password"`
+		Name      string      `json:"name"`
+		Surname   string      `json:"surname"`
+		Phone     string      `json:"phone"`
+		Role      models.Role `json:"role"`
+		GuideCity string      `json:"guide_city"`
 	}
 	if err := c.BodyParser(&req); err != nil {
 		return fiber.ErrBadRequest
@@ -395,6 +396,18 @@ func (h *AdminHandler) CreateUser(c *fiber.Ctx) error {
 	}
 	if req.Role == "" {
 		req.Role = models.RoleTraveler
+	}
+
+	// guide_city yalnızca rehber rolünde anlamlı; doluysa kanonik şehre normalize et.
+	var guideCity *string
+	if req.Role == models.RoleGuide {
+		if trimmed := strings.TrimSpace(req.GuideCity); trimmed != "" {
+			canonical, ok := models.NormalizeCity(trimmed)
+			if !ok {
+				return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "geçersiz şehir: " + trimmed})
+			}
+			guideCity = &canonical
+		}
 	}
 
 	exists, err := h.userRepo.EmailExists(c.Context(), req.Email)
@@ -420,6 +433,7 @@ func (h *AdminHandler) CreateUser(c *fiber.Ctx) error {
 		Role:         req.Role,
 		Provider:     "email",
 		IsActive:     true,
+		GuideCity:    guideCity,
 	}
 	if err := h.userRepo.Create(c.Context(), user); err != nil {
 		return fiber.ErrInternalServerError
@@ -444,16 +458,31 @@ func (h *AdminHandler) UpdateUser(c *fiber.Ctx) error {
 	log.Printf("[ADMIN] UpdateUser called for id=%s", id)
 
 	var req struct {
-		Name     *string      `json:"name"`
-		Surname  *string      `json:"surname"`
-		Phone    *string      `json:"phone"`
-		Email    *string      `json:"email"`
-		Role     *models.Role `json:"role"`
-		IsActive *bool        `json:"is_active"`
+		Name      *string      `json:"name"`
+		Surname   *string      `json:"surname"`
+		Phone     *string      `json:"phone"`
+		Email     *string      `json:"email"`
+		Role      *models.Role `json:"role"`
+		IsActive  *bool        `json:"is_active"`
+		GuideCity *string      `json:"guide_city"`
 	}
 	if err := c.BodyParser(&req); err != nil {
 		log.Printf("[ADMIN] UpdateUser body parse error: %v", err)
 		return fiber.ErrBadRequest
+	}
+
+	// guide_city gönderildiyse: boş string → temizle (NULL), dolu → kanonik şehre normalize et.
+	if req.GuideCity != nil {
+		trimmed := strings.TrimSpace(*req.GuideCity)
+		if trimmed == "" {
+			req.GuideCity = strPtr("")
+		} else {
+			canonical, ok := models.NormalizeCity(trimmed)
+			if !ok {
+				return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "geçersiz şehir: " + trimmed})
+			}
+			req.GuideCity = strPtr(canonical)
+		}
 	}
 
 	// Demote tespiti için mevcut rolü oku.
@@ -463,7 +492,7 @@ func (h *AdminHandler) UpdateUser(c *fiber.Ctx) error {
 		prevRole = existing.Role
 	}
 
-	if err := h.userRepo.Update(c.Context(), id, req.Name, req.Surname, req.Phone, req.Email, req.Role, req.IsActive); err != nil {
+	if err := h.userRepo.Update(c.Context(), id, req.Name, req.Surname, req.Phone, req.Email, req.Role, req.IsActive, req.GuideCity); err != nil {
 		log.Printf("[ADMIN] UpdateUser repo error for id=%s: %v", id, err)
 		if errors.Is(err, repository.ErrNotFound) {
 			return fiber.ErrNotFound
