@@ -117,6 +117,21 @@ func (r *VenueRepo) FindByGooglePlaceID(ctx context.Context, placeID string) (*m
 	return v, nil
 }
 
+// HasConfirmed — verilen rehberin bu mekanı (içinde bulunulan dönemde) doğrulayıp
+// doğrulamadığını döner. venue_confirmations'ta kayıt varsa true. Periyot reset'i
+// (VerifyByGuide) bu satırları sildiği için bu doğal olarak dönemsel kalır.
+func (r *VenueRepo) HasConfirmed(ctx context.Context, venueID, guideID string) (bool, error) {
+	var exists bool
+	err := r.db.QueryRow(ctx,
+		`SELECT EXISTS(SELECT 1 FROM venue_confirmations WHERE venue_id = $1 AND guide_id = $2)`,
+		venueID, guideID,
+	).Scan(&exists)
+	if err != nil {
+		return false, fmt.Errorf("doğrulama durumu sorgulanamadı: %w", err)
+	}
+	return exists, nil
+}
+
 // Create — yeni mekan ekler, ID ve timestamp'leri geri doldurur.
 func (r *VenueRepo) Create(ctx context.Context, v *models.Venue) error {
 	query := `

@@ -75,6 +75,10 @@ type Venue struct {
 	ConfirmationCount int             `json:"confirmation_count"`
 	IsDoubleVerified bool            `json:"is_double_verified"`
 	Badge            *Badge          `json:"badge,omitempty"`
+	// ConfirmedByMe — yalnızca giriş yapmış viewer için detay sorgusunda doldurulur:
+	// bu kullanıcı mekanı içinde bulunulan dönemde doğrulamış mı? Anonim/diğer
+	// sorgularda nil kalır (omitempty ile JSON'a yazılmaz).
+	ConfirmedByMe    *bool           `json:"confirmed_by_me,omitempty"`
 	CategoriesStr    *string         `json:"categories_str,omitempty"`
 	CreatedAt        time.Time       `json:"created_at"`
 	UpdatedAt        time.Time       `json:"updated_at"`

@@ -137,7 +137,10 @@ func main() {
 		middleware.RequireRole("guide", "admin"),
 		venueHandler.CheckDuplicate,
 	)
-	api.Get("/venues/:id", venueHandler.Detail)
+	api.Get("/venues/:id",
+		middleware.OptionalAuth(cfg.JWTSecret),
+		venueHandler.Detail,
+	)
 	api.Post("/venues/:id/direction-click",
 		middleware.OptionalAuth(cfg.JWTSecret),
 		venueHandler.TrackDirectionClick,

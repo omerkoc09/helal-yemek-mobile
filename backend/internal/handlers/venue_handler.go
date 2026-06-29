@@ -329,6 +329,16 @@ func (h *VenueHandler) Detail(c *fiber.Ctx) error {
 		}
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "mekan detayı alınamadı"})
 	}
+
+	// Giriş yapmış viewer için: bu kullanıcı mekanı bu dönemde doğruladı mı?
+	// (OptionalAuth — token yoksa anonim, confirmed_by_me nil kalır.)
+	// Ekleyen kendi mekanını doğrulayamaz; onun için de false anlamlıdır.
+	if userID, uErr := getUserID(c); uErr == nil && userID != venue.AddedBy {
+		if confirmed, hErr := h.venueRepo.HasConfirmed(c.Context(), id, userID); hErr == nil {
+			venue.ConfirmedByMe = &confirmed
+		}
+	}
+
 	return c.JSON(venue)
 }
 
