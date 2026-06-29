@@ -30,6 +30,7 @@ abstract class Venue with _$Venue {
     @JsonKey(name: 'review_count') @Default(0) int reviewCount,
     @JsonKey(name: 'confirmation_count') @Default(0) int confirmationCount,
     Badge? badge,
+    @JsonKey(name: 'confirmed_by_me') bool? confirmedByMe,
     double? distance,
     @JsonKey(name: 'categories_str') String? categoriesStr,
     @JsonKey(name: 'created_at') DateTime? createdAt,
