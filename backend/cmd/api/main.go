@@ -69,7 +69,7 @@ func main() {
 	favoriteHandler := handlers.NewFavoriteHandler(favoriteRepo)
 	correctionHandler := handlers.NewCorrectionHandler(correctionRepo, auditRepo)
 	guideHandler := handlers.NewGuideHandler(guideRepo, venueRepo)
-	adminHandler := handlers.NewAdminHandler(venueRepo, guideRepo, userRepo, auditRepo, verifLogRepo, reviewRepo, loginRepo, directionRepo, schedulerSvc, cfg.VerificationPeriodDays)
+	adminHandler := handlers.NewAdminHandler(venueRepo, guideRepo, userRepo, auditRepo, verifLogRepo, reviewRepo, loginRepo, directionRepo, schedulerSvc, storageService, cfg.VerificationPeriodDays)
 	venueReportHandler := handlers.NewVenueReportHandler(venueReportRepo)
 	notifHandler := handlers.NewNotificationHandler(notifRepo)
 
@@ -281,6 +281,16 @@ func main() {
 
 	// Stats
 	admin.Get("/stats/activity", adminHandler.GetActivityStats)
+
+	// Yemek kategorileri
+	admin.Get("/food-categories", adminHandler.ListFoodCategories)
+	admin.Post("/food-categories", adminHandler.CreateFoodCategory)
+	admin.Post("/food-categories/:id/image", adminHandler.UploadFoodCategoryImage)
+	admin.Put("/food-categories/:id", adminHandler.UpdateFoodCategory)
+	admin.Delete("/food-categories/:id", adminHandler.DeleteFoodCategory)
+	admin.Post("/food-categories/:id/items", adminHandler.CreateFoodItem)
+	admin.Put("/food-items/:id", adminHandler.UpdateFoodItem)
+	admin.Delete("/food-items/:id", adminHandler.DeleteFoodItem)
 
 	// Verification scheduler'ı başlat
 	ctx, cancel := context.WithCancel(context.Background())

@@ -51,10 +51,8 @@ abstract class HalalCriteria with _$HalalCriteria {
   const factory HalalCriteria({
     required int id,
     required String key,
-    @JsonKey(name: 'label_tr') required String labelTr,
-    @JsonKey(name: 'label_en') required String labelEn,
-    @JsonKey(name: 'description_tr') String? descriptionTr,
-    @JsonKey(name: 'description_en') String? descriptionEn,
+    required String name,
+    String? description,
   }) = _HalalCriteria;
 
   factory HalalCriteria.fromJson(Map<String, dynamic> json) =>
@@ -81,8 +79,8 @@ abstract class FoodCategory with _$FoodCategory {
   const factory FoodCategory({
     required int id,
     required String key,
-    @JsonKey(name: 'label_tr') required String labelTr,
-    @JsonKey(name: 'label_en') required String labelEn,
+    required String name,
+    @JsonKey(name: 'image_url') String? imageUrl,
     @Default([]) List<FoodItem> items,
   }) = _FoodCategory;
 
@@ -96,8 +94,7 @@ abstract class FoodItem with _$FoodItem {
     required int id,
     @JsonKey(name: 'category_id') required int categoryId,
     required String key,
-    @JsonKey(name: 'label_tr') required String labelTr,
-    @JsonKey(name: 'label_en') required String labelEn,
+    required String name,
     @JsonKey(name: 'is_custom') @Default(false) bool isCustom,
   }) = _FoodItem;
 

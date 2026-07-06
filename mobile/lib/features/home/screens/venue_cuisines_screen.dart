@@ -56,7 +56,7 @@ class _VenueCuisinesScreenState extends ConsumerState<VenueCuisinesScreen> {
             return CheckboxListTile(
               value: _selected.contains(cat.id),
               activeColor: AppTheme.primary,
-              title: Text(cat.labelTr),
+              title: Text(cat.name),
               onChanged: (checked) {
                 setState(() {
                   if (checked == true) {

@@ -32,11 +32,12 @@ class CategoryGrid extends ConsumerWidget {
             return _CategoryGridItem(
               categoryId: category.id,
               categoryKey: category.key,
-              labelTr: category.labelTr,
+              labelTr: category.name,
+              imageUrl: category.imageUrl,
               onTap: () {
                 ref
                     .read(foodDiscoveryProvider.notifier)
-                    .selectCategory(category.id, category.labelTr);
+                    .selectCategory(category.id, category.name);
                 context.go('/food-discovery');
               },
             );
@@ -51,14 +52,41 @@ class _CategoryGridItem extends StatelessWidget {
   final int categoryId;
   final String categoryKey;
   final String labelTr;
+  final String? imageUrl;
   final VoidCallback onTap;
 
   const _CategoryGridItem({
     required this.categoryId,
     required this.categoryKey,
     required this.labelTr,
+    this.imageUrl,
     required this.onTap,
   });
+
+  Widget _categoryImage() {
+    Widget assetFallback() => Image.asset(
+      'assets/images/categories/$categoryKey.png',
+      width: double.infinity,
+      fit: BoxFit.cover,
+      errorBuilder: (_, _, _) => Container(
+        color: AppTheme.background,
+        child: const Icon(
+          Icons.restaurant_outlined,
+          color: AppTheme.textSecondary,
+          size: 28,
+        ),
+      ),
+    );
+
+    if (imageUrl == null || imageUrl!.isEmpty) return assetFallback();
+
+    return Image.network(
+      imageUrl!,
+      width: double.infinity,
+      fit: BoxFit.cover,
+      errorBuilder: (_, _, _) => assetFallback(),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -81,19 +109,7 @@ class _CategoryGridItem extends StatelessWidget {
             Expanded(
               child: ClipRRect(
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                child: Image.asset(
-                  'assets/images/categories/$categoryKey.png',
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, _, _) => Container(
-                    color: AppTheme.background,
-                    child: const Icon(
-                      Icons.restaurant_outlined,
-                      color: AppTheme.textSecondary,
-                      size: 28,
-                    ),
-                  ),
-                ),
+                child: _categoryImage(),
               ),
             ),
             Padding(

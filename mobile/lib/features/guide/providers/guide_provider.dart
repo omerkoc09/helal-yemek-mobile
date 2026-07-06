@@ -346,7 +346,7 @@ class AddVenueNotifier extends Notifier<AddVenueState> {
       final apiClient = ref.read(apiClientProvider);
       final response = await apiClient.post(
         ApiEndpoints.foodCategoryItems(categoryId.toString()),
-        data: {'label_tr': label},
+        data: {'name': label},
       );
 
       final data = response.data is Map<String, dynamic>

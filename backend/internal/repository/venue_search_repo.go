@@ -101,9 +101,9 @@ func (r *VenueRepo) FindByCity(ctx context.Context, city string, lat, lng float6
 			COALESCE(AVG(rv.rating), 0)::float8 AS avg_rating,
 			COUNT(rv.id)::int AS review_count,
 			(
-				SELECT STRING_AGG(fc.label_tr, ' · ')
+				SELECT STRING_AGG(fc.name, ' · ')
 				FROM (
-					SELECT DISTINCT fc2.label_tr
+					SELECT DISTINCT fc2.name
 					FROM venue_food_items vfi2
 					JOIN food_items fi2 ON fi2.id = vfi2.food_item_id
 					JOIN food_categories fc2 ON fc2.id = fi2.category_id
@@ -259,9 +259,9 @@ func (r *VenueRepo) FindByFoodCategory(ctx context.Context, categoryID int) ([]m
 			COALESCE(AVG(rv.rating) OVER (PARTITION BY v.id), 0)::float8 AS avg_rating,
 			COUNT(rv.id) OVER (PARTITION BY v.id)::int AS review_count,
 			(
-				SELECT STRING_AGG(fc.label_tr, ' · ')
+				SELECT STRING_AGG(fc.name, ' · ')
 				FROM (
-					SELECT DISTINCT fc2.label_tr
+					SELECT DISTINCT fc2.name
 					FROM venue_food_items vfi2
 					JOIN food_items fi2 ON fi2.id = vfi2.food_item_id
 					JOIN food_categories fc2 ON fc2.id = fi2.category_id
@@ -309,9 +309,9 @@ func (r *VenueRepo) FindNearbyApproved(ctx context.Context, lat, lng, radiusMete
 			COALESCE(AVG(rv.rating), 0)::float8 AS avg_rating,
 			COUNT(rv.id)::int AS review_count,
 			(
-				SELECT STRING_AGG(fc.label_tr, ' · ')
+				SELECT STRING_AGG(fc.name, ' · ')
 				FROM (
-					SELECT DISTINCT fc2.label_tr
+					SELECT DISTINCT fc2.name
 					FROM venue_food_items vfi2
 					JOIN food_items fi2 ON fi2.id = vfi2.food_item_id
 					JOIN food_categories fc2 ON fc2.id = fi2.category_id
@@ -358,9 +358,9 @@ func (r *VenueRepo) FindPopular(ctx context.Context, lat, lng, radiusMeters floa
 			COALESCE(AVG(rv.rating), 0)::float8 AS avg_rating,
 			COUNT(rv.id)::int AS review_count,
 			(
-				SELECT STRING_AGG(fc.label_tr, ' · ')
+				SELECT STRING_AGG(fc.name, ' · ')
 				FROM (
-					SELECT DISTINCT fc2.label_tr
+					SELECT DISTINCT fc2.name
 					FROM venue_food_items vfi2
 					JOIN food_items fi2 ON fi2.id = vfi2.food_item_id
 					JOIN food_categories fc2 ON fc2.id = fi2.category_id

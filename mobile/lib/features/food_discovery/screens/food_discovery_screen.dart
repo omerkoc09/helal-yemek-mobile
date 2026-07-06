@@ -54,10 +54,11 @@ class FoodDiscoveryScreen extends ConsumerWidget {
           itemBuilder: (context, index) {
             final category = categories[index];
             return _CategoryCard(
-              label: category.labelTr,
+              label: category.name,
               categoryKey: category.key,
+              imageUrl: category.imageUrl,
               onTap: () =>
-                  notifier.selectCategory(category.id, category.labelTr),
+                  notifier.selectCategory(category.id, category.name),
             );
           },
         );
@@ -157,11 +158,13 @@ class _CategoryHeader extends StatelessWidget {
 class _CategoryCard extends StatelessWidget {
   final String label;
   final String categoryKey;
+  final String? imageUrl;
   final VoidCallback onTap;
 
   const _CategoryCard({
     required this.label,
     required this.categoryKey,
+    this.imageUrl,
     required this.onTap,
   });
 
@@ -174,18 +177,7 @@ class _CategoryCard extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            Image.asset(
-              'assets/images/categories/$categoryKey.png',
-              fit: BoxFit.cover,
-              errorBuilder: (_, _, _) => Container(
-                color: AppTheme.primary.withValues(alpha: 0.1),
-                child: const Icon(
-                  Icons.restaurant_menu,
-                  color: AppTheme.primary,
-                  size: 32,
-                ),
-              ),
-            ),
+            _categoryImage(),
             Positioned(
               left: 0,
               right: 0,
@@ -218,6 +210,29 @@ class _CategoryCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _categoryImage() {
+    Widget assetFallback() => Image.asset(
+      'assets/images/categories/$categoryKey.png',
+      fit: BoxFit.cover,
+      errorBuilder: (_, _, _) => Container(
+        color: AppTheme.primary.withValues(alpha: 0.1),
+        child: const Icon(
+          Icons.restaurant_menu,
+          color: AppTheme.primary,
+          size: 32,
+        ),
+      ),
+    );
+
+    if (imageUrl == null || imageUrl!.isEmpty) return assetFallback();
+
+    return Image.network(
+      imageUrl!,
+      fit: BoxFit.cover,
+      errorBuilder: (_, _, _) => assetFallback(),
     );
   }
 }

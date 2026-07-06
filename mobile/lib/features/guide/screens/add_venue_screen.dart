@@ -114,7 +114,7 @@ class _AddVenueScreenState extends ConsumerState<AddVenueScreen> {
                 children: criteria.map((c) {
                   final isSelected = state.selectedCriteriaIds.contains(c.id);
                   return FilterChip(
-                    label: Text(c.labelTr),
+                    label: Text(c.name),
                     selected: isSelected,
                     onSelected: (_) =>
                         ref.read(addVenueProvider.notifier).toggleCriteria(c.id),

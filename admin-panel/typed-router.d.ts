@@ -27,6 +27,7 @@ declare module 'vue-router/auto-routes' {
     'auth-forgot-password': RouteRecordInfo<'auth-forgot-password', '/auth/forgot-password', Record<never, never>, Record<never, never>>,
     'auth-login': RouteRecordInfo<'auth-login', '/auth/login', Record<never, never>, Record<never, never>>,
     'corrections': RouteRecordInfo<'corrections', '/corrections', Record<never, never>, Record<never, never>>,
+    'food-categories': RouteRecordInfo<'food-categories', '/food-categories', Record<never, never>, Record<never, never>>,
     'guides-by-city': RouteRecordInfo<'guides-by-city', '/guides-by-city', Record<never, never>, Record<never, never>>,
     'not-authorized': RouteRecordInfo<'not-authorized', '/not-authorized', Record<never, never>, Record<never, never>>,
     'profile': RouteRecordInfo<'profile', '/profile', Record<never, never>, Record<never, never>>,

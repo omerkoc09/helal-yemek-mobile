@@ -63,9 +63,9 @@ const halalModeOptions = [
   { title: 'Belirli ürünler hariç caiz', value: 'except' },
 ]
 
-interface CriteriaOption { id: number; label_tr: string }
-interface FoodItemOption { id: number; label_tr: string }
-interface FoodCategory { id: number; label_tr: string; items: FoodItemOption[] }
+interface CriteriaOption { id: number; name: string }
+interface FoodItemOption { id: number; name: string }
+interface FoodCategory { id: number; name: string; items: FoodItemOption[] }
 
 // Konum önizleme akışı (mobildeki link-parse mantığının web karşılığı)
 interface LocationPreview {
@@ -318,10 +318,12 @@ async function onSubmit() {
 
   if (isCreate.value) {
     const [error] = await ApiService.post('venues', payload)
+
     return error
   }
 
   const [error] = await ApiService.put(`admin/venues/${form.value.id}`, payload)
+
   return error
 }
 </script>
@@ -349,7 +351,12 @@ async function onSubmit() {
         style="max-inline-size: 200px;"
         @update:model-value="applyStatusFilter"
       />
-      <VBtn color="primary" prepend-icon="tabler-plus" class="ms-3" @click="openCreate">
+      <VBtn
+        color="primary"
+        prepend-icon="tabler-plus"
+        class="ms-3"
+        @click="openCreate"
+      >
         Mekan Ekle
       </VBtn>
     </template>
@@ -720,7 +727,7 @@ async function onSubmit() {
           <VSelect
             v-model="form.criteria_ids"
             :items="criteriaOptions"
-            item-title="label_tr"
+            item-title="name"
             item-value="id"
             label="Helal Kriterleri"
             multiple
@@ -753,7 +760,7 @@ async function onSubmit() {
                     v-for="cat in foodCategories"
                     :key="cat.id"
                     :active="activeFoodCategoryId === cat.id"
-                    :title="cat.label_tr"
+                    :title="cat.name"
                     @click="activeFoodCategoryId = cat.id"
                   >
                     <template #append>
@@ -798,7 +805,7 @@ async function onSubmit() {
                         @click.stop="toggleFoodItem(food.id)"
                       />
                     </template>
-                    <VListItemTitle>{{ food.label_tr }}</VListItemTitle>
+                    <VListItemTitle>{{ food.name }}</VListItemTitle>
                   </VListItem>
                 </VList>
               </VCol>

@@ -21,8 +21,8 @@ class HalalCriteriaChip extends StatelessWidget {
         label: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(criteria.labelTr),
-            if (criteria.descriptionTr != null) ...[
+            Text(criteria.name),
+            if (criteria.description != null) ...[
               const SizedBox(width: 4),
               Icon(Icons.info_outline, size: 14, color: Colors.grey[600]),
             ],
@@ -34,7 +34,7 @@ class HalalCriteriaChip extends StatelessWidget {
   }
 
   void _showDescription(BuildContext context) {
-    final description = criteria.descriptionTr;
+    final description = criteria.description;
     if (description == null || description.isEmpty) return;
 
     showDialog(
@@ -44,7 +44,7 @@ class HalalCriteriaChip extends StatelessWidget {
           children: [
             Icon(_iconForCriteria(criteria.key), color: AppTheme.primary),
             const SizedBox(width: 8),
-            Expanded(child: Text(criteria.labelTr, style: const TextStyle(fontSize: 16))),
+            Expanded(child: Text(criteria.name, style: const TextStyle(fontSize: 16))),
           ],
         ),
         content: Text(description),

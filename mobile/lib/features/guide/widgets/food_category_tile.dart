@@ -63,7 +63,7 @@ class _FoodCategoryTileState extends State<FoodCategoryTile> {
           children: [
             Expanded(
               child: Text(
-                widget.category.labelTr,
+                widget.category.name,
                 style: const TextStyle(fontWeight: FontWeight.w600),
               ),
             ),
@@ -113,7 +113,7 @@ class _FoodCategoryTileState extends State<FoodCategoryTile> {
             return CheckboxListTile(
               value: isSelected,
               onChanged: (_) => widget.onToggleItem(item.id),
-              title: Text(item.labelTr),
+              title: Text(item.name),
               activeColor: AppTheme.primary,
               dense: true,
               contentPadding: EdgeInsets.zero,

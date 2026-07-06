@@ -510,7 +510,7 @@ class _FoodCategoryDropdowns extends StatelessWidget {
   Widget build(BuildContext context) {
     // Kategori id -> label eşlemesi
     final categoryLabels = categoriesAsync.maybeWhen(
-      data: (cats) => {for (final c in cats) c.id: c.labelTr},
+      data: (cats) => {for (final c in cats) c.id: c.name},
       orElse: () => <int, String>{},
     );
 
@@ -545,7 +545,7 @@ class _FoodCategoryDropdowns extends StatelessWidget {
                 children: entry.value.map((item) {
                   return Chip(
                     label: Text(
-                      item.labelTr,
+                      item.name,
                       style: const TextStyle(fontSize: 12),
                     ),
                     materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,

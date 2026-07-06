@@ -11,11 +11,13 @@ class _CategoryItem {
   final int id;
   final String key;
   final String labelTr;
+  final String? imageUrl;
 
   const _CategoryItem({
     required this.id,
     required this.key,
     required this.labelTr,
+    this.imageUrl,
   });
 }
 
@@ -34,7 +36,7 @@ class CategorySlider extends ConsumerWidget {
       error: (_, _) => const SizedBox.shrink(),
       data: (categories) {
         final items = categories
-            .map((c) => _CategoryItem(id: c.id, key: c.key, labelTr: c.labelTr))
+            .map((c) => _CategoryItem(id: c.id, key: c.key, labelTr: c.name, imageUrl: c.imageUrl))
             .toList();
 
         return SizedBox(
@@ -92,7 +94,7 @@ class _CategoryCard extends ConsumerWidget {
               child: SizedBox(
                 height: 66,
                 width: double.infinity,
-                child: _categoryImage(item.key),
+                child: _categoryImage(item.key, item.imageUrl),
               ),
             ),
             Expanded(
@@ -119,8 +121,8 @@ class _CategoryCard extends ConsumerWidget {
     );
   }
 
-  Widget _categoryImage(String key) {
-    return Image.asset(
+  Widget _categoryImage(String key, String? imageUrl) {
+    Widget assetFallback() => Image.asset(
       'assets/images/categories/$key.png',
       fit: BoxFit.cover,
       errorBuilder: (_, _, _) => Container(
@@ -131,6 +133,14 @@ class _CategoryCard extends ConsumerWidget {
           size: 28,
         ),
       ),
+    );
+
+    if (imageUrl == null || imageUrl.isEmpty) return assetFallback();
+
+    return Image.network(
+      imageUrl,
+      fit: BoxFit.cover,
+      errorBuilder: (_, _, _) => assetFallback(),
     );
   }
 }

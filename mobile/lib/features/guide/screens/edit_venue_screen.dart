@@ -334,7 +334,7 @@ class _EditVenueScreenState extends ConsumerState<EditVenueScreen> {
           children: criteria.map((c) {
             final isSelected = state.selectedCriteriaIds.contains(c.id);
             return FilterChip(
-              label: Text(c.labelTr),
+              label: Text(c.name),
               selected: isSelected,
               onSelected: (_) =>
                   ref.read(editVenueProvider.notifier).toggleCriteria(c.id),
@@ -460,7 +460,7 @@ class _EditVenueScreenState extends ConsumerState<EditVenueScreen> {
                       tilePadding: EdgeInsets.zero,
                       childrenPadding: const EdgeInsets.only(bottom: 8),
                       title: Text(
-                        category.labelTr,
+                        category.name,
                         style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
@@ -486,7 +486,7 @@ class _EditVenueScreenState extends ConsumerState<EditVenueScreen> {
                                 state.selectedFoodItemIds.contains(item.id);
                             return FilterChip(
                               label: Text(
-                                item.labelTr,
+                                item.name,
                                 style: const TextStyle(fontSize: 12),
                               ),
                               selected: isSelected,

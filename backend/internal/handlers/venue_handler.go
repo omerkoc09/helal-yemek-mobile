@@ -800,16 +800,16 @@ func (h *VenueHandler) CreateCustomFoodItem(c *fiber.Ctx) error {
 	}
 
 	var req struct {
-		LabelTR string `json:"label_tr"`
+		Name string `json:"name"`
 	}
-	if err := c.BodyParser(&req); err != nil || req.LabelTR == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "label_tr zorunludur"})
+	if err := c.BodyParser(&req); err != nil || req.Name == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "name zorunludur"})
 	}
 
 	// key oluştur: küçük harf, boşlukları _ ile değiştir
-	key := strings.ToLower(strings.ReplaceAll(req.LabelTR, " ", "_"))
+	key := strings.ToLower(strings.ReplaceAll(req.Name, " ", "_"))
 
-	item, err := h.venueRepo.CreateCustomFoodItem(c.Context(), categoryID, key, req.LabelTR)
+	item, err := h.venueRepo.CreateCustomFoodItem(c.Context(), categoryID, key, req.Name)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "yemek çeşidi eklenemedi"})
 	}

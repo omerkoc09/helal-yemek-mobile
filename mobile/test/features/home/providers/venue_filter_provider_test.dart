@@ -27,8 +27,7 @@ Venue _v({
           id: cid,
           categoryId: cid,
           key: 'k$cid',
-          labelTr: 'c$cid',
-          labelEn: 'c$cid',
+          name: 'c$cid',
         ),
     ],
   );

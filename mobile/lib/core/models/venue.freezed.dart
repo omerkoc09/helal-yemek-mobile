@@ -410,7 +410,7 @@ $BadgeCopyWith<$Res>? get badge {
 /// @nodoc
 mixin _$HalalCriteria {
 
- int get id; String get key;@JsonKey(name: 'label_tr') String get labelTr;@JsonKey(name: 'label_en') String get labelEn;@JsonKey(name: 'description_tr') String? get descriptionTr;@JsonKey(name: 'description_en') String? get descriptionEn;
+ int get id; String get key; String get name; String? get description;
 /// Create a copy of HalalCriteria
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -423,16 +423,16 @@ $HalalCriteriaCopyWith<HalalCriteria> get copyWith => _$HalalCriteriaCopyWithImp
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is HalalCriteria&&(identical(other.id, id) || other.id == id)&&(identical(other.key, key) || other.key == key)&&(identical(other.labelTr, labelTr) || other.labelTr == labelTr)&&(identical(other.labelEn, labelEn) || other.labelEn == labelEn)&&(identical(other.descriptionTr, descriptionTr) || other.descriptionTr == descriptionTr)&&(identical(other.descriptionEn, descriptionEn) || other.descriptionEn == descriptionEn));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is HalalCriteria&&(identical(other.id, id) || other.id == id)&&(identical(other.key, key) || other.key == key)&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,key,labelTr,labelEn,descriptionTr,descriptionEn);
+int get hashCode => Object.hash(runtimeType,id,key,name,description);
 
 @override
 String toString() {
-  return 'HalalCriteria(id: $id, key: $key, labelTr: $labelTr, labelEn: $labelEn, descriptionTr: $descriptionTr, descriptionEn: $descriptionEn)';
+  return 'HalalCriteria(id: $id, key: $key, name: $name, description: $description)';
 }
 
 
@@ -443,7 +443,7 @@ abstract mixin class $HalalCriteriaCopyWith<$Res>  {
   factory $HalalCriteriaCopyWith(HalalCriteria value, $Res Function(HalalCriteria) _then) = _$HalalCriteriaCopyWithImpl;
 @useResult
 $Res call({
- int id, String key,@JsonKey(name: 'label_tr') String labelTr,@JsonKey(name: 'label_en') String labelEn,@JsonKey(name: 'description_tr') String? descriptionTr,@JsonKey(name: 'description_en') String? descriptionEn
+ int id, String key, String name, String? description
 });
 
 
@@ -460,14 +460,12 @@ class _$HalalCriteriaCopyWithImpl<$Res>
 
 /// Create a copy of HalalCriteria
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? key = null,Object? labelTr = null,Object? labelEn = null,Object? descriptionTr = freezed,Object? descriptionEn = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? key = null,Object? name = null,Object? description = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,key: null == key ? _self.key : key // ignore: cast_nullable_to_non_nullable
-as String,labelTr: null == labelTr ? _self.labelTr : labelTr // ignore: cast_nullable_to_non_nullable
-as String,labelEn: null == labelEn ? _self.labelEn : labelEn // ignore: cast_nullable_to_non_nullable
-as String,descriptionTr: freezed == descriptionTr ? _self.descriptionTr : descriptionTr // ignore: cast_nullable_to_non_nullable
-as String?,descriptionEn: freezed == descriptionEn ? _self.descriptionEn : descriptionEn // ignore: cast_nullable_to_non_nullable
+as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
 }
@@ -553,10 +551,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  String key, @JsonKey(name: 'label_tr')  String labelTr, @JsonKey(name: 'label_en')  String labelEn, @JsonKey(name: 'description_tr')  String? descriptionTr, @JsonKey(name: 'description_en')  String? descriptionEn)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  String key,  String name,  String? description)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _HalalCriteria() when $default != null:
-return $default(_that.id,_that.key,_that.labelTr,_that.labelEn,_that.descriptionTr,_that.descriptionEn);case _:
+return $default(_that.id,_that.key,_that.name,_that.description);case _:
   return orElse();
 
 }
@@ -574,10 +572,10 @@ return $default(_that.id,_that.key,_that.labelTr,_that.labelEn,_that.description
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  String key, @JsonKey(name: 'label_tr')  String labelTr, @JsonKey(name: 'label_en')  String labelEn, @JsonKey(name: 'description_tr')  String? descriptionTr, @JsonKey(name: 'description_en')  String? descriptionEn)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  String key,  String name,  String? description)  $default,) {final _that = this;
 switch (_that) {
 case _HalalCriteria():
-return $default(_that.id,_that.key,_that.labelTr,_that.labelEn,_that.descriptionTr,_that.descriptionEn);case _:
+return $default(_that.id,_that.key,_that.name,_that.description);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -594,10 +592,10 @@ return $default(_that.id,_that.key,_that.labelTr,_that.labelEn,_that.description
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  String key, @JsonKey(name: 'label_tr')  String labelTr, @JsonKey(name: 'label_en')  String labelEn, @JsonKey(name: 'description_tr')  String? descriptionTr, @JsonKey(name: 'description_en')  String? descriptionEn)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  String key,  String name,  String? description)?  $default,) {final _that = this;
 switch (_that) {
 case _HalalCriteria() when $default != null:
-return $default(_that.id,_that.key,_that.labelTr,_that.labelEn,_that.descriptionTr,_that.descriptionEn);case _:
+return $default(_that.id,_that.key,_that.name,_that.description);case _:
   return null;
 
 }
@@ -609,15 +607,13 @@ return $default(_that.id,_that.key,_that.labelTr,_that.labelEn,_that.description
 @JsonSerializable()
 
 class _HalalCriteria implements HalalCriteria {
-  const _HalalCriteria({required this.id, required this.key, @JsonKey(name: 'label_tr') required this.labelTr, @JsonKey(name: 'label_en') required this.labelEn, @JsonKey(name: 'description_tr') this.descriptionTr, @JsonKey(name: 'description_en') this.descriptionEn});
+  const _HalalCriteria({required this.id, required this.key, required this.name, this.description});
   factory _HalalCriteria.fromJson(Map<String, dynamic> json) => _$HalalCriteriaFromJson(json);
 
 @override final  int id;
 @override final  String key;
-@override@JsonKey(name: 'label_tr') final  String labelTr;
-@override@JsonKey(name: 'label_en') final  String labelEn;
-@override@JsonKey(name: 'description_tr') final  String? descriptionTr;
-@override@JsonKey(name: 'description_en') final  String? descriptionEn;
+@override final  String name;
+@override final  String? description;
 
 /// Create a copy of HalalCriteria
 /// with the given fields replaced by the non-null parameter values.
@@ -632,16 +628,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _HalalCriteria&&(identical(other.id, id) || other.id == id)&&(identical(other.key, key) || other.key == key)&&(identical(other.labelTr, labelTr) || other.labelTr == labelTr)&&(identical(other.labelEn, labelEn) || other.labelEn == labelEn)&&(identical(other.descriptionTr, descriptionTr) || other.descriptionTr == descriptionTr)&&(identical(other.descriptionEn, descriptionEn) || other.descriptionEn == descriptionEn));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _HalalCriteria&&(identical(other.id, id) || other.id == id)&&(identical(other.key, key) || other.key == key)&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,key,labelTr,labelEn,descriptionTr,descriptionEn);
+int get hashCode => Object.hash(runtimeType,id,key,name,description);
 
 @override
 String toString() {
-  return 'HalalCriteria(id: $id, key: $key, labelTr: $labelTr, labelEn: $labelEn, descriptionTr: $descriptionTr, descriptionEn: $descriptionEn)';
+  return 'HalalCriteria(id: $id, key: $key, name: $name, description: $description)';
 }
 
 
@@ -652,7 +648,7 @@ abstract mixin class _$HalalCriteriaCopyWith<$Res> implements $HalalCriteriaCopy
   factory _$HalalCriteriaCopyWith(_HalalCriteria value, $Res Function(_HalalCriteria) _then) = __$HalalCriteriaCopyWithImpl;
 @override @useResult
 $Res call({
- int id, String key,@JsonKey(name: 'label_tr') String labelTr,@JsonKey(name: 'label_en') String labelEn,@JsonKey(name: 'description_tr') String? descriptionTr,@JsonKey(name: 'description_en') String? descriptionEn
+ int id, String key, String name, String? description
 });
 
 
@@ -669,14 +665,12 @@ class __$HalalCriteriaCopyWithImpl<$Res>
 
 /// Create a copy of HalalCriteria
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? key = null,Object? labelTr = null,Object? labelEn = null,Object? descriptionTr = freezed,Object? descriptionEn = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? key = null,Object? name = null,Object? description = freezed,}) {
   return _then(_HalalCriteria(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,key: null == key ? _self.key : key // ignore: cast_nullable_to_non_nullable
-as String,labelTr: null == labelTr ? _self.labelTr : labelTr // ignore: cast_nullable_to_non_nullable
-as String,labelEn: null == labelEn ? _self.labelEn : labelEn // ignore: cast_nullable_to_non_nullable
-as String,descriptionTr: freezed == descriptionTr ? _self.descriptionTr : descriptionTr // ignore: cast_nullable_to_non_nullable
-as String?,descriptionEn: freezed == descriptionEn ? _self.descriptionEn : descriptionEn // ignore: cast_nullable_to_non_nullable
+as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
 }
@@ -966,7 +960,7 @@ as DateTime?,
 /// @nodoc
 mixin _$FoodCategory {
 
- int get id; String get key;@JsonKey(name: 'label_tr') String get labelTr;@JsonKey(name: 'label_en') String get labelEn; List<FoodItem> get items;
+ int get id; String get key; String get name;@JsonKey(name: 'image_url') String? get imageUrl; List<FoodItem> get items;
 /// Create a copy of FoodCategory
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -979,16 +973,16 @@ $FoodCategoryCopyWith<FoodCategory> get copyWith => _$FoodCategoryCopyWithImpl<F
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is FoodCategory&&(identical(other.id, id) || other.id == id)&&(identical(other.key, key) || other.key == key)&&(identical(other.labelTr, labelTr) || other.labelTr == labelTr)&&(identical(other.labelEn, labelEn) || other.labelEn == labelEn)&&const DeepCollectionEquality().equals(other.items, items));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is FoodCategory&&(identical(other.id, id) || other.id == id)&&(identical(other.key, key) || other.key == key)&&(identical(other.name, name) || other.name == name)&&(identical(other.imageUrl, imageUrl) || other.imageUrl == imageUrl)&&const DeepCollectionEquality().equals(other.items, items));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,key,labelTr,labelEn,const DeepCollectionEquality().hash(items));
+int get hashCode => Object.hash(runtimeType,id,key,name,imageUrl,const DeepCollectionEquality().hash(items));
 
 @override
 String toString() {
-  return 'FoodCategory(id: $id, key: $key, labelTr: $labelTr, labelEn: $labelEn, items: $items)';
+  return 'FoodCategory(id: $id, key: $key, name: $name, imageUrl: $imageUrl, items: $items)';
 }
 
 
@@ -999,7 +993,7 @@ abstract mixin class $FoodCategoryCopyWith<$Res>  {
   factory $FoodCategoryCopyWith(FoodCategory value, $Res Function(FoodCategory) _then) = _$FoodCategoryCopyWithImpl;
 @useResult
 $Res call({
- int id, String key,@JsonKey(name: 'label_tr') String labelTr,@JsonKey(name: 'label_en') String labelEn, List<FoodItem> items
+ int id, String key, String name,@JsonKey(name: 'image_url') String? imageUrl, List<FoodItem> items
 });
 
 
@@ -1016,13 +1010,13 @@ class _$FoodCategoryCopyWithImpl<$Res>
 
 /// Create a copy of FoodCategory
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? key = null,Object? labelTr = null,Object? labelEn = null,Object? items = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? key = null,Object? name = null,Object? imageUrl = freezed,Object? items = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,key: null == key ? _self.key : key // ignore: cast_nullable_to_non_nullable
-as String,labelTr: null == labelTr ? _self.labelTr : labelTr // ignore: cast_nullable_to_non_nullable
-as String,labelEn: null == labelEn ? _self.labelEn : labelEn // ignore: cast_nullable_to_non_nullable
-as String,items: null == items ? _self.items : items // ignore: cast_nullable_to_non_nullable
+as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,imageUrl: freezed == imageUrl ? _self.imageUrl : imageUrl // ignore: cast_nullable_to_non_nullable
+as String?,items: null == items ? _self.items : items // ignore: cast_nullable_to_non_nullable
 as List<FoodItem>,
   ));
 }
@@ -1108,10 +1102,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  String key, @JsonKey(name: 'label_tr')  String labelTr, @JsonKey(name: 'label_en')  String labelEn,  List<FoodItem> items)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  String key,  String name, @JsonKey(name: 'image_url')  String? imageUrl,  List<FoodItem> items)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _FoodCategory() when $default != null:
-return $default(_that.id,_that.key,_that.labelTr,_that.labelEn,_that.items);case _:
+return $default(_that.id,_that.key,_that.name,_that.imageUrl,_that.items);case _:
   return orElse();
 
 }
@@ -1129,10 +1123,10 @@ return $default(_that.id,_that.key,_that.labelTr,_that.labelEn,_that.items);case
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  String key, @JsonKey(name: 'label_tr')  String labelTr, @JsonKey(name: 'label_en')  String labelEn,  List<FoodItem> items)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  String key,  String name, @JsonKey(name: 'image_url')  String? imageUrl,  List<FoodItem> items)  $default,) {final _that = this;
 switch (_that) {
 case _FoodCategory():
-return $default(_that.id,_that.key,_that.labelTr,_that.labelEn,_that.items);case _:
+return $default(_that.id,_that.key,_that.name,_that.imageUrl,_that.items);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -1149,10 +1143,10 @@ return $default(_that.id,_that.key,_that.labelTr,_that.labelEn,_that.items);case
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  String key, @JsonKey(name: 'label_tr')  String labelTr, @JsonKey(name: 'label_en')  String labelEn,  List<FoodItem> items)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  String key,  String name, @JsonKey(name: 'image_url')  String? imageUrl,  List<FoodItem> items)?  $default,) {final _that = this;
 switch (_that) {
 case _FoodCategory() when $default != null:
-return $default(_that.id,_that.key,_that.labelTr,_that.labelEn,_that.items);case _:
+return $default(_that.id,_that.key,_that.name,_that.imageUrl,_that.items);case _:
   return null;
 
 }
@@ -1164,13 +1158,13 @@ return $default(_that.id,_that.key,_that.labelTr,_that.labelEn,_that.items);case
 @JsonSerializable()
 
 class _FoodCategory implements FoodCategory {
-  const _FoodCategory({required this.id, required this.key, @JsonKey(name: 'label_tr') required this.labelTr, @JsonKey(name: 'label_en') required this.labelEn, final  List<FoodItem> items = const []}): _items = items;
+  const _FoodCategory({required this.id, required this.key, required this.name, @JsonKey(name: 'image_url') this.imageUrl, final  List<FoodItem> items = const []}): _items = items;
   factory _FoodCategory.fromJson(Map<String, dynamic> json) => _$FoodCategoryFromJson(json);
 
 @override final  int id;
 @override final  String key;
-@override@JsonKey(name: 'label_tr') final  String labelTr;
-@override@JsonKey(name: 'label_en') final  String labelEn;
+@override final  String name;
+@override@JsonKey(name: 'image_url') final  String? imageUrl;
  final  List<FoodItem> _items;
 @override@JsonKey() List<FoodItem> get items {
   if (_items is EqualUnmodifiableListView) return _items;
@@ -1192,16 +1186,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _FoodCategory&&(identical(other.id, id) || other.id == id)&&(identical(other.key, key) || other.key == key)&&(identical(other.labelTr, labelTr) || other.labelTr == labelTr)&&(identical(other.labelEn, labelEn) || other.labelEn == labelEn)&&const DeepCollectionEquality().equals(other._items, _items));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _FoodCategory&&(identical(other.id, id) || other.id == id)&&(identical(other.key, key) || other.key == key)&&(identical(other.name, name) || other.name == name)&&(identical(other.imageUrl, imageUrl) || other.imageUrl == imageUrl)&&const DeepCollectionEquality().equals(other._items, _items));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,key,labelTr,labelEn,const DeepCollectionEquality().hash(_items));
+int get hashCode => Object.hash(runtimeType,id,key,name,imageUrl,const DeepCollectionEquality().hash(_items));
 
 @override
 String toString() {
-  return 'FoodCategory(id: $id, key: $key, labelTr: $labelTr, labelEn: $labelEn, items: $items)';
+  return 'FoodCategory(id: $id, key: $key, name: $name, imageUrl: $imageUrl, items: $items)';
 }
 
 
@@ -1212,7 +1206,7 @@ abstract mixin class _$FoodCategoryCopyWith<$Res> implements $FoodCategoryCopyWi
   factory _$FoodCategoryCopyWith(_FoodCategory value, $Res Function(_FoodCategory) _then) = __$FoodCategoryCopyWithImpl;
 @override @useResult
 $Res call({
- int id, String key,@JsonKey(name: 'label_tr') String labelTr,@JsonKey(name: 'label_en') String labelEn, List<FoodItem> items
+ int id, String key, String name,@JsonKey(name: 'image_url') String? imageUrl, List<FoodItem> items
 });
 
 
@@ -1229,13 +1223,13 @@ class __$FoodCategoryCopyWithImpl<$Res>
 
 /// Create a copy of FoodCategory
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? key = null,Object? labelTr = null,Object? labelEn = null,Object? items = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? key = null,Object? name = null,Object? imageUrl = freezed,Object? items = null,}) {
   return _then(_FoodCategory(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,key: null == key ? _self.key : key // ignore: cast_nullable_to_non_nullable
-as String,labelTr: null == labelTr ? _self.labelTr : labelTr // ignore: cast_nullable_to_non_nullable
-as String,labelEn: null == labelEn ? _self.labelEn : labelEn // ignore: cast_nullable_to_non_nullable
-as String,items: null == items ? _self._items : items // ignore: cast_nullable_to_non_nullable
+as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,imageUrl: freezed == imageUrl ? _self.imageUrl : imageUrl // ignore: cast_nullable_to_non_nullable
+as String?,items: null == items ? _self._items : items // ignore: cast_nullable_to_non_nullable
 as List<FoodItem>,
   ));
 }
@@ -1247,7 +1241,7 @@ as List<FoodItem>,
 /// @nodoc
 mixin _$FoodItem {
 
- int get id;@JsonKey(name: 'category_id') int get categoryId; String get key;@JsonKey(name: 'label_tr') String get labelTr;@JsonKey(name: 'label_en') String get labelEn;@JsonKey(name: 'is_custom') bool get isCustom;
+ int get id;@JsonKey(name: 'category_id') int get categoryId; String get key; String get name;@JsonKey(name: 'is_custom') bool get isCustom;
 /// Create a copy of FoodItem
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -1260,16 +1254,16 @@ $FoodItemCopyWith<FoodItem> get copyWith => _$FoodItemCopyWithImpl<FoodItem>(thi
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is FoodItem&&(identical(other.id, id) || other.id == id)&&(identical(other.categoryId, categoryId) || other.categoryId == categoryId)&&(identical(other.key, key) || other.key == key)&&(identical(other.labelTr, labelTr) || other.labelTr == labelTr)&&(identical(other.labelEn, labelEn) || other.labelEn == labelEn)&&(identical(other.isCustom, isCustom) || other.isCustom == isCustom));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is FoodItem&&(identical(other.id, id) || other.id == id)&&(identical(other.categoryId, categoryId) || other.categoryId == categoryId)&&(identical(other.key, key) || other.key == key)&&(identical(other.name, name) || other.name == name)&&(identical(other.isCustom, isCustom) || other.isCustom == isCustom));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,categoryId,key,labelTr,labelEn,isCustom);
+int get hashCode => Object.hash(runtimeType,id,categoryId,key,name,isCustom);
 
 @override
 String toString() {
-  return 'FoodItem(id: $id, categoryId: $categoryId, key: $key, labelTr: $labelTr, labelEn: $labelEn, isCustom: $isCustom)';
+  return 'FoodItem(id: $id, categoryId: $categoryId, key: $key, name: $name, isCustom: $isCustom)';
 }
 
 
@@ -1280,7 +1274,7 @@ abstract mixin class $FoodItemCopyWith<$Res>  {
   factory $FoodItemCopyWith(FoodItem value, $Res Function(FoodItem) _then) = _$FoodItemCopyWithImpl;
 @useResult
 $Res call({
- int id,@JsonKey(name: 'category_id') int categoryId, String key,@JsonKey(name: 'label_tr') String labelTr,@JsonKey(name: 'label_en') String labelEn,@JsonKey(name: 'is_custom') bool isCustom
+ int id,@JsonKey(name: 'category_id') int categoryId, String key, String name,@JsonKey(name: 'is_custom') bool isCustom
 });
 
 
@@ -1297,13 +1291,12 @@ class _$FoodItemCopyWithImpl<$Res>
 
 /// Create a copy of FoodItem
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? categoryId = null,Object? key = null,Object? labelTr = null,Object? labelEn = null,Object? isCustom = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? categoryId = null,Object? key = null,Object? name = null,Object? isCustom = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,categoryId: null == categoryId ? _self.categoryId : categoryId // ignore: cast_nullable_to_non_nullable
 as int,key: null == key ? _self.key : key // ignore: cast_nullable_to_non_nullable
-as String,labelTr: null == labelTr ? _self.labelTr : labelTr // ignore: cast_nullable_to_non_nullable
-as String,labelEn: null == labelEn ? _self.labelEn : labelEn // ignore: cast_nullable_to_non_nullable
+as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,isCustom: null == isCustom ? _self.isCustom : isCustom // ignore: cast_nullable_to_non_nullable
 as bool,
   ));
@@ -1390,10 +1383,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id, @JsonKey(name: 'category_id')  int categoryId,  String key, @JsonKey(name: 'label_tr')  String labelTr, @JsonKey(name: 'label_en')  String labelEn, @JsonKey(name: 'is_custom')  bool isCustom)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id, @JsonKey(name: 'category_id')  int categoryId,  String key,  String name, @JsonKey(name: 'is_custom')  bool isCustom)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _FoodItem() when $default != null:
-return $default(_that.id,_that.categoryId,_that.key,_that.labelTr,_that.labelEn,_that.isCustom);case _:
+return $default(_that.id,_that.categoryId,_that.key,_that.name,_that.isCustom);case _:
   return orElse();
 
 }
@@ -1411,10 +1404,10 @@ return $default(_that.id,_that.categoryId,_that.key,_that.labelTr,_that.labelEn,
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id, @JsonKey(name: 'category_id')  int categoryId,  String key, @JsonKey(name: 'label_tr')  String labelTr, @JsonKey(name: 'label_en')  String labelEn, @JsonKey(name: 'is_custom')  bool isCustom)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id, @JsonKey(name: 'category_id')  int categoryId,  String key,  String name, @JsonKey(name: 'is_custom')  bool isCustom)  $default,) {final _that = this;
 switch (_that) {
 case _FoodItem():
-return $default(_that.id,_that.categoryId,_that.key,_that.labelTr,_that.labelEn,_that.isCustom);case _:
+return $default(_that.id,_that.categoryId,_that.key,_that.name,_that.isCustom);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -1431,10 +1424,10 @@ return $default(_that.id,_that.categoryId,_that.key,_that.labelTr,_that.labelEn,
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id, @JsonKey(name: 'category_id')  int categoryId,  String key, @JsonKey(name: 'label_tr')  String labelTr, @JsonKey(name: 'label_en')  String labelEn, @JsonKey(name: 'is_custom')  bool isCustom)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id, @JsonKey(name: 'category_id')  int categoryId,  String key,  String name, @JsonKey(name: 'is_custom')  bool isCustom)?  $default,) {final _that = this;
 switch (_that) {
 case _FoodItem() when $default != null:
-return $default(_that.id,_that.categoryId,_that.key,_that.labelTr,_that.labelEn,_that.isCustom);case _:
+return $default(_that.id,_that.categoryId,_that.key,_that.name,_that.isCustom);case _:
   return null;
 
 }
@@ -1446,14 +1439,13 @@ return $default(_that.id,_that.categoryId,_that.key,_that.labelTr,_that.labelEn,
 @JsonSerializable()
 
 class _FoodItem implements FoodItem {
-  const _FoodItem({required this.id, @JsonKey(name: 'category_id') required this.categoryId, required this.key, @JsonKey(name: 'label_tr') required this.labelTr, @JsonKey(name: 'label_en') required this.labelEn, @JsonKey(name: 'is_custom') this.isCustom = false});
+  const _FoodItem({required this.id, @JsonKey(name: 'category_id') required this.categoryId, required this.key, required this.name, @JsonKey(name: 'is_custom') this.isCustom = false});
   factory _FoodItem.fromJson(Map<String, dynamic> json) => _$FoodItemFromJson(json);
 
 @override final  int id;
 @override@JsonKey(name: 'category_id') final  int categoryId;
 @override final  String key;
-@override@JsonKey(name: 'label_tr') final  String labelTr;
-@override@JsonKey(name: 'label_en') final  String labelEn;
+@override final  String name;
 @override@JsonKey(name: 'is_custom') final  bool isCustom;
 
 /// Create a copy of FoodItem
@@ -1469,16 +1461,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _FoodItem&&(identical(other.id, id) || other.id == id)&&(identical(other.categoryId, categoryId) || other.categoryId == categoryId)&&(identical(other.key, key) || other.key == key)&&(identical(other.labelTr, labelTr) || other.labelTr == labelTr)&&(identical(other.labelEn, labelEn) || other.labelEn == labelEn)&&(identical(other.isCustom, isCustom) || other.isCustom == isCustom));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _FoodItem&&(identical(other.id, id) || other.id == id)&&(identical(other.categoryId, categoryId) || other.categoryId == categoryId)&&(identical(other.key, key) || other.key == key)&&(identical(other.name, name) || other.name == name)&&(identical(other.isCustom, isCustom) || other.isCustom == isCustom));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,categoryId,key,labelTr,labelEn,isCustom);
+int get hashCode => Object.hash(runtimeType,id,categoryId,key,name,isCustom);
 
 @override
 String toString() {
-  return 'FoodItem(id: $id, categoryId: $categoryId, key: $key, labelTr: $labelTr, labelEn: $labelEn, isCustom: $isCustom)';
+  return 'FoodItem(id: $id, categoryId: $categoryId, key: $key, name: $name, isCustom: $isCustom)';
 }
 
 
@@ -1489,7 +1481,7 @@ abstract mixin class _$FoodItemCopyWith<$Res> implements $FoodItemCopyWith<$Res>
   factory _$FoodItemCopyWith(_FoodItem value, $Res Function(_FoodItem) _then) = __$FoodItemCopyWithImpl;
 @override @useResult
 $Res call({
- int id,@JsonKey(name: 'category_id') int categoryId, String key,@JsonKey(name: 'label_tr') String labelTr,@JsonKey(name: 'label_en') String labelEn,@JsonKey(name: 'is_custom') bool isCustom
+ int id,@JsonKey(name: 'category_id') int categoryId, String key, String name,@JsonKey(name: 'is_custom') bool isCustom
 });
 
 
@@ -1506,13 +1498,12 @@ class __$FoodItemCopyWithImpl<$Res>
 
 /// Create a copy of FoodItem
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? categoryId = null,Object? key = null,Object? labelTr = null,Object? labelEn = null,Object? isCustom = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? categoryId = null,Object? key = null,Object? name = null,Object? isCustom = null,}) {
   return _then(_FoodItem(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,categoryId: null == categoryId ? _self.categoryId : categoryId // ignore: cast_nullable_to_non_nullable
 as int,key: null == key ? _self.key : key // ignore: cast_nullable_to_non_nullable
-as String,labelTr: null == labelTr ? _self.labelTr : labelTr // ignore: cast_nullable_to_non_nullable
-as String,labelEn: null == labelEn ? _self.labelEn : labelEn // ignore: cast_nullable_to_non_nullable
+as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,isCustom: null == isCustom ? _self.isCustom : isCustom // ignore: cast_nullable_to_non_nullable
 as bool,
   ));

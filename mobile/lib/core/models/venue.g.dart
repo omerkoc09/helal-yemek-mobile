@@ -100,20 +100,16 @@ _HalalCriteria _$HalalCriteriaFromJson(Map<String, dynamic> json) =>
     _HalalCriteria(
       id: (json['id'] as num).toInt(),
       key: json['key'] as String,
-      labelTr: json['label_tr'] as String,
-      labelEn: json['label_en'] as String,
-      descriptionTr: json['description_tr'] as String?,
-      descriptionEn: json['description_en'] as String?,
+      name: json['name'] as String,
+      description: json['description'] as String?,
     );
 
 Map<String, dynamic> _$HalalCriteriaToJson(_HalalCriteria instance) =>
     <String, dynamic>{
       'id': instance.id,
       'key': instance.key,
-      'label_tr': instance.labelTr,
-      'label_en': instance.labelEn,
-      'description_tr': instance.descriptionTr,
-      'description_en': instance.descriptionEn,
+      'name': instance.name,
+      'description': instance.description,
     };
 
 _VenuePhoto _$VenuePhotoFromJson(Map<String, dynamic> json) => _VenuePhoto(
@@ -141,8 +137,8 @@ _FoodCategory _$FoodCategoryFromJson(Map<String, dynamic> json) =>
     _FoodCategory(
       id: (json['id'] as num).toInt(),
       key: json['key'] as String,
-      labelTr: json['label_tr'] as String,
-      labelEn: json['label_en'] as String,
+      name: json['name'] as String,
+      imageUrl: json['image_url'] as String?,
       items:
           (json['items'] as List<dynamic>?)
               ?.map((e) => FoodItem.fromJson(e as Map<String, dynamic>))
@@ -154,8 +150,8 @@ Map<String, dynamic> _$FoodCategoryToJson(_FoodCategory instance) =>
     <String, dynamic>{
       'id': instance.id,
       'key': instance.key,
-      'label_tr': instance.labelTr,
-      'label_en': instance.labelEn,
+      'name': instance.name,
+      'image_url': instance.imageUrl,
       'items': instance.items,
     };
 
@@ -163,8 +159,7 @@ _FoodItem _$FoodItemFromJson(Map<String, dynamic> json) => _FoodItem(
   id: (json['id'] as num).toInt(),
   categoryId: (json['category_id'] as num).toInt(),
   key: json['key'] as String,
-  labelTr: json['label_tr'] as String,
-  labelEn: json['label_en'] as String,
+  name: json['name'] as String,
   isCustom: json['is_custom'] as bool? ?? false,
 );
 
@@ -172,8 +167,7 @@ Map<String, dynamic> _$FoodItemToJson(_FoodItem instance) => <String, dynamic>{
   'id': instance.id,
   'category_id': instance.categoryId,
   'key': instance.key,
-  'label_tr': instance.labelTr,
-  'label_en': instance.labelEn,
+  'name': instance.name,
   'is_custom': instance.isCustom,
 };
 
