@@ -250,6 +250,8 @@ func main() {
 	admin.Put("/venues/:id/approve", adminHandler.ApproveVenue)
 	admin.Put("/venues/:id/reject", adminHandler.RejectVenue)
 	admin.Get("/verification-logs", adminHandler.VerificationLogs)
+	admin.Get("/venues/:id/verification-logs", adminHandler.GetVenueVerificationLogs)
+	admin.Get("/venues/:id/confirming-guides", adminHandler.GetVenueConfirmingGuides)
 	admin.Post("/scheduler/run", adminHandler.RunSchedulerNow)
 	admin.Put("/venues/:id/reactivate", adminHandler.ReactivateVenue)
 

@@ -612,6 +612,32 @@ func (h *AdminHandler) GetUserReviews(c *fiber.Ctx) error {
 	return c.JSON(reviews)
 }
 
+// GET /admin/venues/:id/confirming-guides
+func (h *AdminHandler) GetVenueConfirmingGuides(c *fiber.Ctx) error {
+	id := c.Params("id")
+	guides, err := h.venueRepo.ListConfirmingGuides(c.Context(), id)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "doğrulayan rehberler alınamadı"})
+	}
+	if guides == nil {
+		guides = []repository.ConfirmingGuide{}
+	}
+	return c.JSON(guides)
+}
+
+// GET /admin/venues/:id/verification-logs
+func (h *AdminHandler) GetVenueVerificationLogs(c *fiber.Ctx) error {
+	id := c.Params("id")
+	logs, err := h.verifLogRepo.ListByVenue(c.Context(), id)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "doğrulama geçmişi alınamadı"})
+	}
+	if logs == nil {
+		logs = []*models.VerificationLog{}
+	}
+	return c.JSON(logs)
+}
+
 // GET /admin/verification-logs?tab=verified|suspended|upcoming
 func (h *AdminHandler) VerificationLogs(c *fiber.Ctx) error {
 	tab := c.Query("tab", "verified")

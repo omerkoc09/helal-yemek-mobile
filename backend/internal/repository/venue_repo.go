@@ -30,7 +30,8 @@ func (r *VenueRepo) FindByID(ctx context.Context, id string) (*models.Venue, err
 			ST_X(v.location::geometry) AS longitude,
 			v.google_place_id,
 			v.notes, v.status,
-			v.added_by, u.name AS added_by_name, v.verified_at, v.verification_due_at,
+			v.added_by, u.name AS added_by_name, u.surname AS added_by_surname,
+			u.email AS added_by_email, v.verified_at, v.verification_due_at,
 			v.created_at, v.updated_at,
 			v.rejection_note, v.approved_by,
 			v.food_halal_mode, v.excluded_products,
@@ -41,7 +42,7 @@ func (r *VenueRepo) FindByID(ctx context.Context, id string) (*models.Venue, err
 		LEFT JOIN users u ON u.id = v.added_by
 		LEFT JOIN reviews rv ON rv.venue_id = v.id
 		WHERE v.id = $1 AND v.deleted_at IS NULL
-		GROUP BY v.id, u.name`
+		GROUP BY v.id, u.name, u.surname, u.email`
 
 	v := &models.Venue{}
 
@@ -50,7 +51,7 @@ func (r *VenueRepo) FindByID(ctx context.Context, id string) (*models.Venue, err
 		&v.Latitude, &v.Longitude,
 		&v.GooglePlaceID,
 		&v.Notes, &v.Status,
-		&v.AddedBy, &v.AddedByName, &v.VerifiedAt, &v.VerificationDueAt,
+		&v.AddedBy, &v.AddedByName, &v.AddedBySurname, &v.AddedByEmail, &v.VerifiedAt, &v.VerificationDueAt,
 		&v.CreatedAt, &v.UpdatedAt,
 		&v.RejectionNote, &v.ApprovedBy,
 		&v.FoodHalalMode, &v.ExcludedProducts,
@@ -130,6 +131,43 @@ func (r *VenueRepo) HasConfirmed(ctx context.Context, venueID, guideID string) (
 		return false, fmt.Errorf("doğrulama durumu sorgulanamadı: %w", err)
 	}
 	return exists, nil
+}
+
+// ConfirmingGuide — içinde bulunulan dönemde bir mekanı doğrulamış rehber özeti.
+type ConfirmingGuide struct {
+	GuideID      string    `json:"guide_id"`
+	GuideName    string    `json:"guide_name"`
+	GuideSurname *string   `json:"guide_surname,omitempty"`
+	GuideEmail   string    `json:"guide_email"`
+	CreatedAt    time.Time `json:"created_at"`
+}
+
+// ListConfirmingGuides — içinde bulunulan dönemde mekanı doğrulamış (ekleyen hariç)
+// rehberlerin listesi. Dönem sıfırlanınca (VerifyByGuide) bu satırlar silindiği için
+// yalnızca güncel dönemi yansıtır.
+func (r *VenueRepo) ListConfirmingGuides(ctx context.Context, venueID string) ([]ConfirmingGuide, error) {
+	rows, err := r.db.Query(ctx,
+		`SELECT vc.guide_id, u.name, u.surname, u.email, vc.created_at
+		 FROM venue_confirmations vc
+		 JOIN users u ON u.id = vc.guide_id
+		 WHERE vc.venue_id = $1
+		 ORDER BY vc.created_at ASC`,
+		venueID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("doğrulayan rehberler listelenemedi: %w", err)
+	}
+	defer rows.Close()
+
+	var result []ConfirmingGuide
+	for rows.Next() {
+		var g ConfirmingGuide
+		if err := rows.Scan(&g.GuideID, &g.GuideName, &g.GuideSurname, &g.GuideEmail, &g.CreatedAt); err != nil {
+			return nil, err
+		}
+		result = append(result, g)
+	}
+	return result, rows.Err()
 }
 
 // Create — yeni mekan ekler, ID ve timestamp'leri geri doldurur.

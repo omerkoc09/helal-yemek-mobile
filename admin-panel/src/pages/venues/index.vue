@@ -1,10 +1,12 @@
 <script setup lang="ts">
+import { useRouter } from 'vue-router'
 import ApiService from '@/services/ApiService'
 import { ErrorPopup, SuccessToast, WarningPopup } from '@/utils/Popup'
 import type { ITableColumn } from '@/model/table'
 
 definePage({ meta: { role: ['admin'] } })
 
+const router = useRouter()
 const tableRef = ref()
 const form = ref<any>({})
 const isCreate = ref(false)
@@ -390,7 +392,7 @@ async function onSubmit() {
     </template>
     <template #added_by_name="{ row }">
       <div>
-        <div>{{ row.added_by_name || '-' }}</div>
+        <div>{{ [row.added_by_name, row.added_by_surname].filter(Boolean).join(' ') || '-' }}</div>
         <div
           v-if="row.added_by_email"
           class="text-caption text-disabled"
@@ -443,6 +445,17 @@ async function onSubmit() {
       {{ formatDate(row.created_at) }}
     </template>
     <template #actions="{ row }">
+      <VBtn
+        icon
+        size="small"
+        variant="text"
+        @click="router.push(`/venues/${row.id}`)"
+      >
+        <VIcon
+          icon="tabler-eye"
+          size="22"
+        />
+      </VBtn>
       <VBtn
         v-if="canApprove(row)"
         icon

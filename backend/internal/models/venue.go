@@ -56,6 +56,7 @@ type Venue struct {
 	RejectionNote    *string         `json:"rejection_note,omitempty"`
 	AddedBy          string          `json:"added_by"`
 	AddedByName      *string         `json:"added_by_name,omitempty"`
+	AddedBySurname   *string         `json:"added_by_surname,omitempty"`
 	AddedByEmail     *string         `json:"added_by_email,omitempty"`
 	ApprovedBy       *string         `json:"approved_by,omitempty"`
 	VerifiedAt          *time.Time      `json:"verified_at,omitempty"`

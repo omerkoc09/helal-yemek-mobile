@@ -119,6 +119,19 @@ func (r *VerificationLogRepo) ListUpcoming(ctx context.Context, withinDays int) 
 	return scanLogs(rows)
 }
 
+// ListByVenue — belirli bir mekanın tüm doğrulama/uyarı geçmişi (en yeni önce).
+func (r *VerificationLogRepo) ListByVenue(ctx context.Context, venueID string) ([]*models.VerificationLog, error) {
+	return r.queryLogs(ctx,
+		`SELECT vl.id, vl.venue_id, v.name, vl.guide_id, u.name, v.city, vl.action, vl.created_at
+		 FROM venue_verification_logs vl
+		 JOIN venues v ON v.id = vl.venue_id
+		 JOIN users u ON u.id = vl.guide_id
+		 WHERE vl.venue_id = $1
+		 ORDER BY vl.created_at DESC`,
+		venueID,
+	)
+}
+
 func (r *VerificationLogRepo) queryLogs(ctx context.Context, query string, args ...any) ([]*models.VerificationLog, error) {
 	rows, err := r.db.Query(ctx, query, args...)
 	if err != nil {

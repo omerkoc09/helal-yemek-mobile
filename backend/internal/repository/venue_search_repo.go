@@ -165,14 +165,14 @@ func (r *VenueRepo) FindAll(ctx context.Context) ([]models.Venue, error) {
 		        v.notes, v.status,
 		        v.added_by, v.verified_at,
 		        v.created_at, v.updated_at,
-		        u.name AS added_by_name, u.email AS added_by_email,
+		        u.name AS added_by_name, u.surname AS added_by_surname, u.email AS added_by_email,
 		        COALESCE(AVG(rv.rating), 0)::float8 AS avg_rating,
 		        COUNT(rv.id) AS review_count
 		 FROM venues v
 		 LEFT JOIN users u ON u.id = v.added_by
 		 LEFT JOIN reviews rv ON rv.venue_id = v.id
 		 WHERE v.deleted_at IS NULL
-		 GROUP BY v.id, u.name, u.email
+		 GROUP BY v.id, u.name, u.surname, u.email
 		 ORDER BY v.created_at DESC`,
 	)
 	if err != nil {
@@ -192,7 +192,7 @@ func (r *VenueRepo) FindAll(ctx context.Context) ([]models.Venue, error) {
 			&v.Notes, &v.Status,
 			&v.AddedBy, &v.VerifiedAt,
 			&v.CreatedAt, &v.UpdatedAt,
-			&v.AddedByName, &v.AddedByEmail,
+			&v.AddedByName, &v.AddedBySurname, &v.AddedByEmail,
 			&avgRating, &reviewCount,
 		); err != nil {
 			return nil, fmt.Errorf("tüm mekan taraması başarısız: %w", err)
