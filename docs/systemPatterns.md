@@ -364,6 +364,15 @@ LIMIT 50;
 -- $1: lng, $2: lat, $3: radius (metre)
 ```
 
+#### Popülerlik Skoru (FindPopular)
+```sql
+score = avg_rating * LOG(review_count + 1)
+        + 0.5 * LOG(direction_click_count + 1)
+```
+`avg_rating`/`review_count`: `reviews` tablosundan. `direction_click_count`: `venue_direction_clicks`
+tablosundan (yol tarifi butonu tıklamaları, tüm zamanlar). Rating*review terimi baskın kalır;
+tıklama sayısı ikincil bir ilgi sinyali olarak yakın puanlı mekanları ayrıştırır.
+
 #### Şehir Sınırları İçinde
 ```sql
 SELECT * FROM venues v

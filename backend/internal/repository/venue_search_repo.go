@@ -338,7 +338,11 @@ func (r *VenueRepo) FindNearbyApproved(ctx context.Context, lat, lng, radiusMete
 	return r.scanVenueRowsWithRatingAndPhotos(ctx, rows)
 }
 
-// FindPopular — popülerlik skoruna göre (avg_rating * log(review_count+1)) onaylı mekanları döndürür.
+// FindPopular — popülerlik skoruna göre onaylı mekanları döndürür.
+// Skor = avg_rating * LOG(review_count+1) + 0.5 * LOG(direction_click_count+1).
+// Yol tarifi tıklamaları (venue_direction_clicks) ikincil bir ilgi sinyali olarak
+// skora eklenir; rating*review_count terimi baskın kalır, tıklama sayısı sadece
+// yakın puanlı mekanlar arasında ayrıştırıcı bir boost sağlar.
 // limit=0 ise tüm mekanlar döner; limit>0 ise en fazla limit kadar döner.
 func (r *VenueRepo) FindPopular(ctx context.Context, lat, lng, radiusMeters float64, limit int) ([]models.Venue, error) {
 	limitClause := ""
@@ -371,11 +375,19 @@ func (r *VenueRepo) FindPopular(ctx context.Context, lat, lng, radiusMeters floa
 			v.confirmation_count, v.is_double_verified
 		FROM venues v
 		LEFT JOIN reviews rv ON rv.venue_id = v.id
+		LEFT JOIN (
+			SELECT venue_id, COUNT(*)::int AS click_count
+			FROM venue_direction_clicks
+			GROUP BY venue_id
+		) dc ON dc.venue_id = v.id
 		WHERE v.status = 'approved'
 		  AND v.deleted_at IS NULL
 		  AND ST_DWithin(v.location, ST_MakePoint($2, $1)::geography, $3)
-		GROUP BY v.id
-		ORDER BY (COALESCE(AVG(rv.rating), 0) * LOG(COUNT(rv.id) + 1)) DESC, distance ASC
+		GROUP BY v.id, dc.click_count
+		ORDER BY (
+			COALESCE(AVG(rv.rating), 0) * LOG(COUNT(rv.id) + 1)
+			+ 0.5 * LOG(COALESCE(dc.click_count, 0) + 1)
+		) DESC, distance ASC
 		%s`, limitClause)
 
 	rows, err := r.db.Query(ctx, query, lat, lng, radiusMeters)
