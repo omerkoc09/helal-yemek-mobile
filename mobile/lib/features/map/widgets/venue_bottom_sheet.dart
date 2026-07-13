@@ -112,10 +112,14 @@ class _VenueBottomSheetContent extends ConsumerWidget {
           ),
           const SizedBox(height: 10),
 
-          // Statü badge
-          VenueStatusBadge(status: venue.status),
-          const SizedBox(height: 8),
-          VenueBadgeChip(badge: venue.badge, compact: true),
+          // Statü badge + rozet
+          Row(
+            children: [
+              VenueStatusBadge(status: venue.status),
+              const SizedBox(width: 8),
+              VenueBadgeChip(badge: venue.badge, compact: true),
+            ],
+          ),
           const SizedBox(height: 12),
 
           // Helal kriterleri
@@ -133,7 +137,11 @@ class _VenueBottomSheetContent extends ConsumerWidget {
                     Navigator.of(context).pop();
                     context.push('/venue/${venue.id}');
                   },
-                  icon: const Icon(Icons.info_outline),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    textStyle: const TextStyle(fontSize: 13),
+                  ),
+                  icon: const Icon(Icons.info_outline, size: 18),
                   label: const Text('Detay'),
                 ),
               ),
@@ -150,14 +158,21 @@ class _VenueBottomSheetContent extends ConsumerWidget {
                       googlePlaceId: venue.googlePlaceId,
                     );
                   },
-                  icon: const Icon(Icons.directions),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    textStyle: const TextStyle(fontSize: 13),
+                  ),
+                  icon: const Icon(Icons.directions, size: 18),
                   label: const Text('Yol Tarifi'),
                 ),
               ),
             ],
           ),
-          // Safe area padding
-          SizedBox(height: MediaQuery.of(context).padding.bottom),
+          // Floating bottom nav'ın arkasında kalmaması için boşluk
+          SizedBox(
+            height: AppTheme.bottomNavClearance / 1.5 +
+                MediaQuery.of(context).padding.bottom,
+          ),
         ],
       ),
     );

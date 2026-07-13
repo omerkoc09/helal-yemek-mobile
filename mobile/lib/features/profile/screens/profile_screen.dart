@@ -25,7 +25,9 @@ class ProfileScreen extends ConsumerWidget {
 
     return Scaffold(
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(
+          16, 16, 16, 16 + AppTheme.bottomNavClearance,
+        ),
         children: [
           // Avatar ve kullanıcı bilgileri
           _ProfileHeader(user: user),

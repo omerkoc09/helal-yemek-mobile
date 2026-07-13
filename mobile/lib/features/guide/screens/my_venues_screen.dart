@@ -29,26 +29,6 @@ class _MyVenuesScreenState extends ConsumerState<MyVenuesScreen> {
     final state = ref.watch(myVenuesProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            if (Navigator.of(context).canPop()) {
-              Navigator.of(context).pop();
-            } else {
-              context.go('/');
-            }
-          },
-        ),
-        title: const Text('Mekanlarım'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            tooltip: 'Mekan Ekle',
-            onPressed: () => context.push('/add-venue'),
-          ),
-        ],
-      ),
       body: _buildBody(state),
     );
   }
@@ -72,7 +52,10 @@ class _MyVenuesScreenState extends ConsumerState<MyVenuesScreen> {
     return RefreshIndicator(
       onRefresh: () => ref.read(myVenuesProvider.notifier).fetchMyVenues(),
       child: ListView.builder(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.only(
+          top: 8,
+          bottom: 8 + AppTheme.bottomNavClearance,
+        ),
         itemCount: state.venues.length,
         itemBuilder: (context, index) {
           return _MyVenueCard(venue: state.venues[index]);

@@ -186,7 +186,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
           // Sağ alt butonlar: Yenile + Konumuma dön
           Positioned(
-            bottom: 24,
+            bottom: AppTheme.bottomNavClearance,
             right: 16,
             child: Column(
               mainAxisSize: MainAxisSize.min,

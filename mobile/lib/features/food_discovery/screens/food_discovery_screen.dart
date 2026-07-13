@@ -43,7 +43,9 @@ class FoodDiscoveryScreen extends ConsumerWidget {
       ),
       data: (categories) {
         return GridView.builder(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(
+            16, 16, 16, 16 + AppTheme.bottomNavClearance,
+          ),
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 2,
             crossAxisSpacing: 12,
@@ -110,7 +112,10 @@ class FoodDiscoveryScreen extends ConsumerWidget {
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.only(
+        top: 8,
+        bottom: 8 + AppTheme.bottomNavClearance,
+      ),
       itemCount: state.venues.length,
       itemBuilder: (context, index) =>
           VenueCard(venue: state.venues[index]),

@@ -293,6 +293,12 @@ class _Feed extends ConsumerWidget {
         slivers: [
           if (state.locationDenied)
             SliverToBoxAdapter(child: _LocationBanner()),
+          const SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(0, 16, 0, 10),
+              child: CategorySlider(),
+            ),
+          ),
           SliverToBoxAdapter(
             child: _Section(
               title:'Şehirdeki Restoranlar',
@@ -307,14 +313,7 @@ class _Feed extends ConsumerWidget {
               child: _PopularSlider(state: state),
             ),
           ),
-          SliverToBoxAdapter(
-            child: _Section(
-              title: 'Mutfaklar',
-              onSeeAll: () => context.go('/food-discovery'),
-              child: const CategorySlider(),
-            ),
-          ),
-          const SliverToBoxAdapter(child: SizedBox(height: 24)),
+          const SliverToBoxAdapter(child: SizedBox(height: AppTheme.bottomNavClearance)),
         ],
       ),
     );
@@ -344,7 +343,7 @@ class _Section extends StatelessWidget {
               Text(
                 title,
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontSize: 20,
+                      fontSize: 16,
                       fontWeight: FontWeight.w600,
                       color: AppTheme.textPrimary,
                     ),

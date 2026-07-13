@@ -767,8 +767,10 @@ class _ConfirmVenueButtonState extends ConsumerState<_ConfirmVenueButton> {
 
   @override
   Widget build(BuildContext context) {
-    final currentUserId = ref.watch(authProvider).user?.id;
+    final authState = ref.watch(authProvider);
+    final currentUserId = authState.user?.id;
     if (currentUserId == null ||
+        authState.isTraveler ||
         currentUserId == widget.addedBy ||
         widget.status != 'approved' ||
         widget.confirmedByMe ||

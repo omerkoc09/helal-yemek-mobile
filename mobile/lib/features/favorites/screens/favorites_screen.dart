@@ -74,7 +74,10 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
     return RefreshIndicator(
       onRefresh: () => ref.read(favoritesProvider.notifier).fetchFavorites(),
       child: ListView.builder(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.only(
+          top: 8,
+          bottom: 8 + AppTheme.bottomNavClearance,
+        ),
         itemCount: state.venues.length,
         itemBuilder: (context, index) => Dismissible(
           key: ValueKey(state.venues[index].id),
