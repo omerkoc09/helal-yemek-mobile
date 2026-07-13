@@ -34,6 +34,10 @@ class AppTheme {
   static const double radiusButton = 12;
   static const double radiusChip = 10;
 
+  // Layout — floating bottom nav bar'ın arkasında kalan içeriğin erişilebilir
+  // olması için scroll listelerinin sonuna eklenmesi gereken boşluk.
+  static const double bottomNavClearance = 68 + 12 + 16;
+
   static TextTheme _buildTextTheme(Color onSurface) {
     final body = GoogleFonts.plusJakartaSansTextTheme(
       ThemeData.light().textTheme.apply(bodyColor: onSurface, displayColor: onSurface),
@@ -49,7 +53,7 @@ class AppTheme {
       headlineLarge: body.headlineLarge?.merge(display),
       headlineMedium: body.headlineMedium?.merge(display),
       headlineSmall: body.headlineSmall?.merge(display),
-      titleLarge: body.titleLarge?.merge(display),
+      titleLarge: body.titleLarge?.copyWith(fontWeight: FontWeight.w700),
     );
   }
 

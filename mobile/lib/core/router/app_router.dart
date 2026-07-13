@@ -149,22 +149,26 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: AppRoutes.search,
             builder: (context, state) => const SearchScreen(),
           ),
+          // Rehber sekmesi — shell içinde kalır (bottom nav + AppHeader korunur)
+          GoRoute(
+            path: AppRoutes.myVenues,
+            builder: (context, state) => const MyVenuesScreen(),
+          ),
+          // Tümünü Gör (nearby / popular) — shell içinde: AppHeader + alt nav korunur
+          GoRoute(
+            path: AppRoutes.allVenues,
+            builder: (context, state) {
+              final type = state.uri.queryParameters['type'];
+              return home.AllVenuesScreen(
+                type: type == 'popular'
+                    ? home.AllVenuesType.popular
+                    : type == 'city'
+                        ? home.AllVenuesType.city
+                        : home.AllVenuesType.nearby,
+              );
+            },
+          ),
         ],
-      ),
-
-      // Tümünü Gör (nearby / popular)
-      GoRoute(
-        path: AppRoutes.allVenues,
-        builder: (context, state) {
-          final type = state.uri.queryParameters['type'];
-          return home.AllVenuesScreen(
-            type: type == 'popular'
-                ? home.AllVenuesType.popular
-                : type == 'city'
-                    ? home.AllVenuesType.city
-                    : home.AllVenuesType.nearby,
-          );
-        },
       ),
 
       // Filtre / sıralama akışı
@@ -210,10 +214,6 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.addVenue,
         builder: (context, state) => const AddVenueScreen(),
-      ),
-      GoRoute(
-        path: AppRoutes.myVenues,
-        builder: (context, state) => const MyVenuesScreen(),
       ),
       GoRoute(
         path: AppRoutes.editVenue,
@@ -262,29 +262,7 @@ class AppShell extends ConsumerWidget {
       return _GuideShell(location: location, child: child);
     }
 
-    return Scaffold(
-      appBar: const AppHeader(),
-      body: child,
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        currentIndex: _travelerIndex(location),
-        onTap: (index) => _travelerTap(context, index),
-        items: const [
-          BottomNavigationBarItem(
-              icon: Icon(Icons.home_outlined),
-              activeIcon: Icon(Icons.home),
-              label: 'Ana Sayfa'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.map_outlined),
-              activeIcon: Icon(Icons.map),
-              label: 'Harita'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.person_outline),
-              activeIcon: Icon(Icons.person),
-              label: 'Profil'),
-        ],
-      ),
-    );
+    return _TravelerShell(location: location, child: child);
   }
 
   bool _isTabRoute(String location) {
@@ -294,24 +272,47 @@ class AppShell extends ConsumerWidget {
         location == AppRoutes.favorites ||
         location == AppRoutes.foodDiscovery ||
         location == AppRoutes.search ||
-        location == AppRoutes.myVenues;
+        location == AppRoutes.myVenues ||
+        location == AppRoutes.allVenues;
   }
+}
 
-  int _travelerIndex(String location) {
-    if (location.startsWith(AppRoutes.map)) return 1;
-    if (location == AppRoutes.profile) return 2;
-    return 0;
-  }
+class _TravelerShell extends StatelessWidget {
+  final String location;
+  final Widget child;
 
-  void _travelerTap(BuildContext context, int index) {
-    switch (index) {
-      case 0:
-        context.go(AppRoutes.home);
-      case 1:
-        context.go(AppRoutes.map);
-      case 2:
-        context.go(AppRoutes.profile);
-    }
+  const _TravelerShell({required this.location, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
+    final nav = _FloatingNavBar(
+      centerIcon: Icons.explore,
+      onCenterTap: () => context.go(AppRoutes.map),
+      isCenterActive: location.startsWith(AppRoutes.map),
+      items: [
+        _NavItem(Icons.home_outlined, Icons.home, 'Ana Sayfa',
+            location == AppRoutes.home, () => context.go(AppRoutes.home)),
+        _NavItem(Icons.favorite_outline, Icons.favorite, 'Favoriler',
+            location == AppRoutes.favorites, () => context.go(AppRoutes.favorites)),
+        _NavItem(Icons.search_outlined, Icons.search, 'Ara',
+            location == AppRoutes.search, () => context.go(AppRoutes.search)),
+        _NavItem(Icons.person_outline, Icons.person, 'Profil',
+            location == AppRoutes.profile, () => context.go(AppRoutes.profile)),
+      ],
+      primary: primary,
+    );
+
+    return Scaffold(
+      extendBody: true,
+      appBar: const AppHeader(),
+      body: Stack(
+        children: [
+          child,
+          Positioned(left: 0, right: 0, bottom: 0, child: nav),
+        ],
+      ),
+    );
   }
 }
 
@@ -323,111 +324,160 @@ class _GuideShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final primary = theme.colorScheme.primary;
+    final primary = Theme.of(context).colorScheme.primary;
+    final nav = _FloatingNavBar(
+      centerIcon: Icons.add,
+      onCenterTap: () => context.go(AppRoutes.addVenue),
+      isCenterActive: location == AppRoutes.addVenue,
+      items: [
+        _NavItem(Icons.home_outlined, Icons.home, 'Ana Sayfa',
+            location == AppRoutes.home, () => context.go(AppRoutes.home)),
+        _NavItem(Icons.map_outlined, Icons.map, 'Harita',
+            location.startsWith(AppRoutes.map), () => context.go(AppRoutes.map)),
+        _NavItem(Icons.store_outlined, Icons.store, 'Mekanlarım',
+            location == AppRoutes.myVenues, () => context.go(AppRoutes.myVenues)),
+        _NavItem(Icons.person_outline, Icons.person, 'Profil',
+            location == AppRoutes.profile, () => context.go(AppRoutes.profile)),
+      ],
+      primary: primary,
+    );
 
     return Scaffold(
+      extendBody: true,
       appBar: const AppHeader(),
-      body: child,
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => context.go(AppRoutes.addVenue),
-        backgroundColor: primary,
-        foregroundColor: Colors.white,
-        elevation: 4,
-        shape: const CircleBorder(),
-        child: const Icon(Icons.add, size: 28),
+      body: Stack(
+        children: [
+          child,
+          Positioned(left: 0, right: 0, bottom: 0, child: nav),
+        ],
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      bottomNavigationBar: BottomAppBar(
-        shape: const CircularNotchedRectangle(),
-        notchMargin: 8,
-        color: theme.bottomNavigationBarTheme.backgroundColor,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _GuideNavItem(
-              icon: Icons.home_outlined,
-              activeIcon: Icons.home,
-              label: 'Ana Sayfa',
-              isActive: location == AppRoutes.home,
-              onTap: () => context.go(AppRoutes.home),
-            ),
-            _GuideNavItem(
-              icon: Icons.map_outlined,
-              activeIcon: Icons.map,
-              label: 'Harita',
-              isActive: location.startsWith(AppRoutes.map),
-              onTap: () => context.go(AppRoutes.map),
-            ),
-            const SizedBox(width: 56),
-            _GuideNavItem(
-              icon: Icons.store_outlined,
-              activeIcon: Icons.store,
-              label: 'Mekanlarım',
-              isActive: location == AppRoutes.myVenues,
-              onTap: () => context.go(AppRoutes.myVenues),
-            ),
-            _GuideNavItem(
-              icon: Icons.person_outline,
-              activeIcon: Icons.person,
-              label: 'Profil',
-              isActive: location == AppRoutes.profile,
-              onTap: () => context.go(AppRoutes.profile),
-            ),
-          ],
+    );
+  }
+}
+
+class _NavItem {
+  final IconData icon;
+  final IconData activeIcon;
+  final String label;
+  final bool isActive;
+  final VoidCallback onTap;
+  const _NavItem(this.icon, this.activeIcon, this.label, this.isActive, this.onTap);
+}
+
+class _FloatingNavBar extends StatelessWidget {
+  final IconData centerIcon;
+  final VoidCallback onCenterTap;
+  final bool isCenterActive;
+  final List<_NavItem> items;
+  final Color primary;
+
+  const _FloatingNavBar({
+    required this.centerIcon,
+    required this.onCenterTap,
+    required this.isCenterActive,
+    required this.items,
+    required this.primary,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? const Color(0xFF1C1C1E) : Colors.white;
+    final unselected = isDark
+        ? Colors.white.withValues(alpha: 0.5)
+        : const Color(0xFF78350F).withValues(alpha: 0.4);
+    final left = items.sublist(0, 2);
+    final right = items.sublist(2);
+
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+        child: Container(
+          height: 68,
+          decoration: BoxDecoration(
+            color: bgColor,
+            borderRadius: BorderRadius.circular(40),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.08),
+                blurRadius: 20,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              ...left.map((item) => _PillNavItem(item: item, primary: primary, unselected: unselected)),
+              // Center FAB
+              GestureDetector(
+                onTap: onCenterTap,
+                child: Container(
+                  width: 52,
+                  height: 52,
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  decoration: BoxDecoration(
+                    color: isCenterActive ? primary.withValues(alpha:0.85) : primary,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: primary.withValues(alpha:0.4),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Icon(centerIcon, color: Colors.white, size: 26),
+                ),
+              ),
+              ...right.map((item) => _PillNavItem(item: item, primary: primary, unselected: unselected)),
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-class _GuideNavItem extends StatelessWidget {
-  final IconData icon;
-  final IconData activeIcon;
-  final String label;
-  final bool isActive;
-  final VoidCallback onTap;
+class _PillNavItem extends StatelessWidget {
+  final _NavItem item;
+  final Color primary;
+  final Color unselected;
 
-  const _GuideNavItem({
-    required this.icon,
-    required this.activeIcon,
-    required this.label,
-    required this.isActive,
-    required this.onTap,
+  const _PillNavItem({
+    required this.item,
+    required this.primary,
+    required this.unselected,
   });
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final primary = theme.colorScheme.primary;
-    final unselected = theme.bottomNavigationBarTheme.unselectedItemColor!;
-
     return Expanded(
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                isActive ? activeIcon : icon,
-                color: isActive ? primary : unselected,
-                size: 24,
+      child: GestureDetector(
+        onTap: item.onTap,
+        behavior: HitTestBehavior.opaque,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            item.isActive
+                ? Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: primary.withValues(alpha:0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(item.activeIcon, color: primary, size: 22),
+                  )
+                : Icon(item.icon, color: unselected, size: 22),
+            const SizedBox(height: 3),
+            Text(
+              item.label,
+              style: TextStyle(
+                fontSize: 10,
+                color: item.isActive ? primary : unselected,
+                fontWeight: item.isActive ? FontWeight.w600 : FontWeight.normal,
               ),
-              const SizedBox(height: 2),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 11,
-                  color: isActive ? primary : unselected,
-                  fontWeight:
-                      isActive ? FontWeight.w600 : FontWeight.normal,
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
