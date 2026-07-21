@@ -17,7 +17,7 @@ func NewNotificationService(notifRepo *repository.NotificationRepo, email EmailS
 	return &NotificationService{notifRepo: notifRepo, email: email}
 }
 
-// SendVerificationWarning — 14 gün kala uyarı: DB kaydı + email.
+// SendVerificationWarning — VERIFICATION_WARNING_DAYS kadar kala uyarı: DB kaydı + email.
 func (s *NotificationService) SendVerificationWarning(ctx context.Context, v *models.VenueForScheduler) error {
 	n := &models.Notification{
 		UserID: v.AddedBy,

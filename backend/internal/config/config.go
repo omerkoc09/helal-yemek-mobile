@@ -54,8 +54,8 @@ func Load() *Config {
 		SMTPPassword: os.Getenv("SMTP_PASSWORD"),
 		SMTPFrom:     getEnv("SMTP_FROM", "Caiz mi? <noreply@caizmi.com>"),
 
-		VerificationPeriodDays:  getEnvInt("VERIFICATION_PERIOD_DAYS", 2),
-		VerificationWarningDays: getEnvInt("VERIFICATION_WARNING_DAYS", 1),
+		VerificationPeriodDays:  getEnvInt("VERIFICATION_PERIOD_DAYS", 180),
+		VerificationWarningDays: getEnvInt("VERIFICATION_WARNING_DAYS", 14),
 		SchedulerRunHour:        getEnvInt("SCHEDULER_RUN_HOUR", 2),
 	}
 }

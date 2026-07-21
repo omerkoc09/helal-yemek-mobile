@@ -4,7 +4,7 @@
 /// "doğrulaman yaklaştı" uyarısını gönderir (VERIFICATION_WARNING_DAYS).
 /// Buton da uyarıyla aynı anda çıksın diye aynı eşik burada kullanılır.
 /// Backend tarafında bu değer değişirse burayı da güncelle.
-const int _verificationWarningDays = 1;
+const int _verificationWarningDays = 14;
 
 bool shouldShowVerifyButton(
   String? currentUserId,
