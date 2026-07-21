@@ -1,8 +1,27 @@
+import 'package:flutter/foundation.dart';
+
 class ApiEndpoints {
   ApiEndpoints._();
 
-  // Base URL — geliştirme ortamı için
-  static const String baseUrl = 'http://localhost:3000/api/v1';
+  /// Derleme sırasında ezilebilir:
+  ///   flutter run --dart-define=API_BASE_URL=https://api.example.com/api/v1
+  /// Fiziksel cihazda test ederken de bu kullanılır (host makinenin LAN IP'si).
+  static const String _envBaseUrl = String.fromEnvironment('API_BASE_URL');
+
+  /// Base URL — `--dart-define` verilmişse o, yoksa platforma göre dev varsayılanı.
+  static final String baseUrl =
+      _envBaseUrl.isNotEmpty ? _envBaseUrl : _devBaseUrl;
+
+  /// Android EMÜLATÖRÜNDE `localhost` emülatörün kendisini gösterir, host makineyi
+  /// değil; host'a `10.0.2.2` üzerinden erişilir. iOS simülatörü host'un ağını
+  /// paylaştığı için `localhost` orada çalışır — bu yüzden fark bugüne kadar
+  /// görünmedi. Fiziksel cihazda ikisi de çalışmaz, `--dart-define` şart.
+  static String get _devBaseUrl {
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+      return 'http://10.0.2.2:3000/api/v1';
+    }
+    return 'http://localhost:3000/api/v1';
+  }
 
   // Auth
   static const String register = '/auth/register';

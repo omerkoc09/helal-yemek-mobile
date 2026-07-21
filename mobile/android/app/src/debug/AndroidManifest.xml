@@ -4,4 +4,10 @@
          to allow setting breakpoints, to provide hot reload, etc.
     -->
     <uses-permission android:name="android.permission.INTERNET"/>
+
+    <!-- Geliştirme ortamında backend http:// üzerinden konuşuyor (10.0.2.2:3000).
+         Android 9+ cleartext trafiği varsayılan olarak engeller → tüm API çağrıları
+         başarısız olur. Bu izin BİLEREK sadece debug manifest'inde: release build
+         böylece HTTPS'e mecbur kalır ve prod'da cleartext'e düşemez. -->
+    <application android:usesCleartextTraffic="true"/>
 </manifest>
