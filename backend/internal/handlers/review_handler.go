@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"errors"
 	"strings"
 
@@ -9,8 +10,17 @@ import (
 	"github.com/omerkoc/caiz-mi/internal/repository"
 )
 
+// reviewStore — ReviewHandler'ın ihtiyaç duyduğu minimal arayüz.
+// *repository.ReviewRepo bunu otomatik karşılar; testte sahte uygulama kullanılır.
+type reviewStore interface {
+	ListByVenue(ctx context.Context, venueID string) ([]models.Review, error)
+	Create(ctx context.Context, rv *models.Review) error
+	Update(ctx context.Context, rv *models.Review) error
+	Delete(ctx context.Context, id, userID string, isAdmin bool) error
+}
+
 type ReviewHandler struct {
-	reviewRepo *repository.ReviewRepo
+	reviewRepo reviewStore
 }
 
 func NewReviewHandler(reviewRepo *repository.ReviewRepo) *ReviewHandler {

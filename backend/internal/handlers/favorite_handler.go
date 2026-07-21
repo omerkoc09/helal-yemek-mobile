@@ -1,14 +1,24 @@
 package handlers
 
 import (
+	"context"
 	"errors"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/omerkoc/caiz-mi/internal/models"
 	"github.com/omerkoc/caiz-mi/internal/repository"
 )
 
+// favoriteStore — FavoriteHandler'ın ihtiyaç duyduğu minimal arayüz.
+// *repository.FavoriteRepo bunu otomatik karşılar; testte sahte uygulama kullanılır.
+type favoriteStore interface {
+	ListByUser(ctx context.Context, userID string) ([]models.Venue, error)
+	Add(ctx context.Context, userID, venueID string) error
+	Remove(ctx context.Context, userID, venueID string) error
+}
+
 type FavoriteHandler struct {
-	favoriteRepo *repository.FavoriteRepo
+	favoriteRepo favoriteStore
 }
 
 func NewFavoriteHandler(favoriteRepo *repository.FavoriteRepo) *FavoriteHandler {
