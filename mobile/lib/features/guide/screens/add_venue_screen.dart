@@ -192,6 +192,7 @@ class _AddVenueScreenState extends ConsumerState<AddVenueScreen> {
           ),
           const SizedBox(height: 8),
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Icon(
                 Icons.info_outline,
@@ -199,11 +200,13 @@ class _AddVenueScreenState extends ConsumerState<AddVenueScreen> {
                 color: AppTheme.textSecondary.withValues(alpha: 0.7),
               ),
               const SizedBox(width: 4),
-              Text(
-                'Ziyaretçilere yardımcı olabilecek ek bilgiler ekleyebilirsiniz.',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: AppTheme.textSecondary.withValues(alpha: 0.7),
+              Expanded(
+                child: Text(
+                  'Ziyaretçilere yardımcı olabilecek ek bilgiler ekleyebilirsiniz.',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppTheme.textSecondary.withValues(alpha: 0.7),
+                  ),
                 ),
               ),
             ],
