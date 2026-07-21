@@ -1,10 +1,21 @@
 package config
 
 import (
+	"errors"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/joho/godotenv"
+)
+
+// MinJWTSecretLength — HS256 imzalama anahtarı için kabul edilen en kısa uzunluk.
+const MinJWTSecretLength = 32
+
+var (
+	ErrJWTSecretMissing   = errors.New("JWT_SECRET tanımlı değil")
+	ErrJWTSecretTooShort  = errors.New("JWT_SECRET çok kısa")
+	ErrDatabaseURLMissing = errors.New("DATABASE_URL tanımlı değil")
 )
 
 type Config struct {
@@ -58,6 +69,25 @@ func Load() *Config {
 		VerificationWarningDays: getEnvInt("VERIFICATION_WARNING_DAYS", 14),
 		SchedulerRunHour:        getEnvInt("SCHEDULER_RUN_HOUR", 2),
 	}
+}
+
+// Validate — süreç ayağa kalkmadan önce zorunlu ayarları doğrular.
+//
+// JWT_SECRET özellikle kritik: tanımsızsa Go boş string döndürür ve HS256 boş
+// anahtarla sorunsuz imzalayıp doğrular. Uygulama hatasız açılır ama herkes
+// istediği kullanıcı adına token üretebilir. Bu yüzden burada fail-fast yapılır —
+// sessiz çalışmaktansa hiç açılmaması yeğdir.
+func (c *Config) Validate() error {
+	if strings.TrimSpace(c.JWTSecret) == "" {
+		return ErrJWTSecretMissing
+	}
+	if len(c.JWTSecret) < MinJWTSecretLength {
+		return ErrJWTSecretTooShort
+	}
+	if strings.TrimSpace(c.DatabaseURL) == "" {
+		return ErrDatabaseURLMissing
+	}
+	return nil
 }
 
 func getEnv(key, fallback string) string {
