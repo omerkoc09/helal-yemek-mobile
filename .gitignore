@@ -8,6 +8,12 @@ backend/.env
 mobile/ios/Runner/GoogleService-Info.plist
 mobile/android/app/google-services.json
 
+# Android release imzalama — parola içerir, keystore kaybı = uygulama bir daha
+# güncellenemez. Bunlar ASLA commit'lenmemeli.
+mobile/android/key.properties
+*.jks
+*.keystore
+
 # Runtime user uploads (not source)
 backend/uploads/
 

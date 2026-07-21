@@ -3,6 +3,10 @@ package main
 import (
 	"context"
 	"log"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -17,8 +21,19 @@ import (
 	"github.com/omerkoc/caiz-mi/internal/services"
 )
 
+// shutdownTimeout — kapanış sinyalinden sonra açık isteklere tanınan süre.
+// Bu süre dolarsa kalan bağlantılar zorla kapatılır.
+const shutdownTimeout = 15 * time.Second
+
 func main() {
 	cfg := config.Load()
+
+	// Zorunlu ayarlar — eksikse hiç açılma. Özellikle JWT_SECRET: boşken HS256
+	// boş anahtarla imzalar, uygulama sorunsuz çalışıyor görünür ama tüm
+	// kimlik doğrulama sahtelenebilir hâle gelir.
+	if err := cfg.Validate(); err != nil {
+		log.Fatalf("yapılandırma hatası: %v", err)
+	}
 
 	// Migration'ları çalıştır
 	if err := database.RunMigrations(cfg.DatabaseURL); err != nil {
@@ -294,11 +309,31 @@ func main() {
 	admin.Put("/food-items/:id", adminHandler.UpdateFoodItem)
 	admin.Delete("/food-items/:id", adminHandler.DeleteFoodItem)
 
-	// Verification scheduler'ı başlat
-	ctx, cancel := context.WithCancel(context.Background())
+	// Verification scheduler'ı başlat. Context, kapanış sinyalinde iptal edilir.
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 	go schedulerSvc.Start(ctx)
 
-	log.Printf("sunucu başlatılıyor: :%s", cfg.Port)
-	log.Fatal(app.Listen(":" + cfg.Port))
+	// Listen ayrı goroutine'de: ana akış kapanış sinyalini beklemeli.
+	// Aksi halde (log.Fatal(app.Listen(...))) deploy/restart anında uçuşan
+	// istekler ortadan kesilir ve yarım DB transaction'ları kalır.
+	serverErr := make(chan error, 1)
+	go func() {
+		log.Printf("sunucu başlatılıyor: :%s", cfg.Port)
+		if err := app.Listen(":" + cfg.Port); err != nil {
+			serverErr <- err
+		}
+	}()
+
+	select {
+	case err := <-serverErr:
+		log.Fatalf("sunucu başlatılamadı: %v", err)
+	case <-ctx.Done():
+		log.Println("kapanış sinyali alındı, açık istekler tamamlanıyor...")
+		if err := app.ShutdownWithTimeout(shutdownTimeout); err != nil {
+			log.Printf("düzgün kapanış başarısız: %v", err)
+		} else {
+			log.Println("sunucu düzgün şekilde kapandı")
+		}
+	}
 }

@@ -3,27 +3,27 @@ import 'package:caiz_mi/features/venue/widgets/verify_button_visibility.dart';
 
 void main() {
   group('shouldShowVerifyButton', () {
-    test('TC-08: mekan sahibi + approved + due uyarı penceresinde (≤1 gün) → göster', () {
+    test('TC-08: mekan sahibi + approved + due uyarı penceresinde (≤14 gün) → göster', () {
       expect(
         shouldShowVerifyButton('u1', 'u1', 'approved',
-            verificationDueAt: DateTime.now().add(const Duration(hours: 12))),
+            verificationDueAt: DateTime.now().add(const Duration(days: 7))),
         isTrue,
       );
     });
 
-    test('TC-08b: mekan sahibi + approved ama due henüz yaklaşmadı (>1 gün) → gizle', () {
+    test('TC-08b: mekan sahibi + approved ama due henüz yaklaşmadı (>14 gün) → gizle', () {
       expect(
         shouldShowVerifyButton('u1', 'u1', 'approved',
-            verificationDueAt: DateTime.now().add(const Duration(days: 7))),
+            verificationDueAt: DateTime.now().add(const Duration(days: 30))),
         isFalse,
       );
     });
 
-    test('TC-08d: due sınırın hemen üstünde (~1 gün 1 saat) → gizle', () {
+    test('TC-08d: due sınırın hemen üstünde (~14 gün 1 saat) → gizle', () {
       expect(
         shouldShowVerifyButton('u1', 'u1', 'approved',
             verificationDueAt:
-                DateTime.now().add(const Duration(days: 1, hours: 1))),
+                DateTime.now().add(const Duration(days: 14, hours: 1))),
         isFalse,
       );
     });
@@ -45,13 +45,13 @@ void main() {
       expect(shouldShowVerifyButton('u1', 'u1', 'suspended'), isTrue);
     });
 
-    test('regression: doğrulama sonrası due tam period (2 gün) ileri → gizle', () {
+    test('regression: doğrulama sonrası due tam period (180 gün) ileri → gizle', () {
       // Rehber doğrulayınca backend verification_due_at = NOW() + periodDays
-      // yapıyor (ör. 2 gün). Buton bu yeni due'yla gizlenmeli; aksi halde
+      // yapıyor (prod: 180 gün). Buton bu yeni due'yla gizlenmeli; aksi halde
       // doğruladıktan sonra buton "hâlâ duruyor" olur.
       expect(
         shouldShowVerifyButton('u1', 'u1', 'approved',
-            verificationDueAt: DateTime.now().add(const Duration(days: 2))),
+            verificationDueAt: DateTime.now().add(const Duration(days: 180))),
         isFalse,
       );
     });

@@ -1,4 +1,13 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Ağ erişimi. Flutter şablonu bunu yalnızca debug manifest'ine koyar;
+         burada tanımlı olmazsa RELEASE build'in hiç internet erişimi olmaz. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+
+    <!-- Konum: geolocator + google_maps_flutter "yakınımdaki mekanlar" akışı için.
+         İzin tanımlı değilse Android çökme üretmez, sessizce boş konum döner. -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+
     <application
         android:label="İtimat"
         android:name="${applicationName}"
@@ -44,6 +53,13 @@
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
+        </intent>
+        <!-- url_launcher (MapLauncher → Google Maps yol tarifi). Android 11+ paket
+             görünürlüğü nedeniyle bu tanım olmadan canLaunchUrl() false döner ve
+             map_launcher.dart sessizce hiçbir şey yapmaz — buton ölü görünür. -->
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="https"/>
         </intent>
     </queries>
 </manifest>
