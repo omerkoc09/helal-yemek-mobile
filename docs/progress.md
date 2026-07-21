@@ -452,39 +452,57 @@ SDK kurulum notları (bu oturumda yapıldı):
       **Kalan:** keystore'un kendisi üretilmedi — parolayı sahibi seçmeli ve yedeklemeli;
       *keystore kaybı = uygulama Play Store'da bir daha asla güncellenemez.*
 
-### 🔴 Faz 0 — Sessiz Katiller (~yarım gün) `[ ]`
+### 🔴 Faz 0 — Sessiz Katiller — ✅ KOD MADDELERİ TAMAMLANDI (2026-07-21)
+
+**Doğrulama:** `go build` + `go vet` temiz, 6 birim paketi PASS, 23 repository integration
+testi (testcontainers, gerçek Postgres) PASS, graceful shutdown ayrı portta gerçek SIGTERM
+ile sınandı. Kalan tek madde Maps anahtarı (hesap erişimi gerekiyor, aşağıda).
 
 Dördü de küçük, bağımsız ve **prod öncesi zorunlu**. Ortak özellikleri: hata vermeden çalışıp
 sessizce zarar vermeleri.
 
-- [ ] **JWT_SECRET fail-fast** — `config.go:39`
+- [x] **JWT_SECRET fail-fast** — `config.go:39`
   `os.Getenv("JWT_SECRET")` doğrudan atanıyor, validation yok. Env unutulursa secret **boş string**
   olur; HS256 boş anahtarla sorunsuz imzalar ve doğrular. Uygulama normal açılır, hata vermez, ama
   **herkes istediği kullanıcı adına token üretebilir.** Sessizliği en tehlikeli yanı.
   → Boş/kısa secret'ta startup'ta `log.Fatal`.
 
-- [ ] **SSRF host allowlist** — `venue_handler.go:495` → `storage_service.go:59`
+- [x] **SSRF host allowlist** — `venue_handler.go:495` → `storage_service.go:59`
   Kullanıcıdan gelen `GooglePhotoURL`, host doğrulaması olmadan fetch ediliyor. Saldırgan
   `http://169.254.169.254/latest/meta-data/` verirse sunucu cloud metadata servisine gider →
   credential sızıntısı. Local'de zararsız, **cloud'a çıkar çıkmaz aktif.**
   → Şema (`https`) + host allowlist (`*.googleusercontent.com`), redirect takibini sınırla.
 
-- [ ] **Graceful shutdown** — `main.go` (son satır)
+- [x] **Graceful shutdown** — `main.go` (son satır)
   `log.Fatal(app.Listen(...))`. Deploy/restart'ta uçuşan istekler ortadan kesilir, yarım DB
   transaction'ları kalır. Her deploy'da veri tutarsızlığı kumarı.
   → SIGTERM/SIGINT yakala, `app.ShutdownWithTimeout`, scheduler ctx'ini iptal et.
 
-- [ ] **DB pool limitleri** — `db.go:10`
+- [x] **DB pool limitleri** — `db.go:10`
   `pgxpool.New` tamamen varsayılan; `MaxConns`, connection/idle timeout, health check yok.
   Yük altında bağlantı tükenmesi ve zincirleme timeout.
 
-- [ ] **Google Maps API key kısıtlaması** ⚠️ *hesap erişimi gerektirir — kod değişikliği değil*
-  Aynı anahtar (`AIzaSyDLca...`) hem `AndroidManifest.xml` hem `AppDelegate.swift:12` içinde,
-  ikisi de git'te. **Mobil anahtarların binary'de olması kaçınılmaz** — gizlenemezler, APK'dan
-  çıkarılabilirler; doğru korunma **Cloud Console'da kısıtlama**: Android → paket adı + SHA-1,
-  iOS → bundle ID. Tek anahtarın iki platformda çalışması kısıtlamanın yok ya da çok geniş
-  olduğunu düşündürüyor. Kısıtsız anahtar = başkası kullanır, fatura size gelir.
-  → Console'dan mevcut kısıtlamayı doğrula; gerekiyorsa platform başına ayrı anahtar üret.
+- [ ] **Google Maps API key — TEK anahtar üç yerde, üstelik istemciye sızıyor** 🔴 ⚠️ *hesap erişimi*
+  Denetimde ilk sanılandan **daha ciddi** çıktı. Aynı anahtar (`AIzaSyDLca...`) şurada:
+  `AndroidManifest.xml`, `AppDelegate.swift:12` **ve** backend `GOOGLE_MAPS_API_KEY` (Places API).
+
+  Dahası `places_service.go:207` anahtarı fotoğraf URL'sine gömüyor, `venue_handler.go:170`
+  bu URL'leri `photo_urls` olarak **istemciye gönderiyor**, mobil de `Image.network(url)` ile
+  (`add_venue_location_step.dart:250`) **cihazdan doğrudan çekiyor**.
+
+  **Sonuç: bu anahtar mevcut mimaride hiçbir uygulama-kısıtlaması alamaz.**
+  IP'ye kısıtlanırsa mobil önizleme kırılır (istek cihazdan geliyor); Android paketi + SHA-1'e
+  kısıtlanırsa backend'in Places çağrıları kırılır. Yani şu an mecburen açık.
+
+  **KARAR (2026-07-21):** Proxy Faz 3'e ertelendi, anahtar bölme şimdi yapılacak.
+  - [ ] **Şimdi:** Android (paket+SHA-1) ve iOS (bundle ID) için **ayrı** Maps SDK anahtarları
+        üret ve kısıtla — bunlar kısıtlanabilir ve binary'de taşındıkları için en açık olanlar.
+  - [ ] **Şimdi (yara bandı):** Places/sunucu anahtarına **kota sınırı** koy. Anahtar sızmaya
+        devam edecek (kısıtlanamıyor), kota yalnızca faturayı sınırlar.
+  - [ ] **Faz 3:** Fotoğrafları backend üzerinden proxy'le → sunucu anahtarı istemciye hiç
+        gitmez, ancak o zaman IP kısıtlaması uygulanabilir. Faz 3'e bırakılmasının sebebi:
+        proxy fotoğraf URL mimarisini baştan yazıyor, S3 geçişi de aynı yeri yazıyor —
+        şimdi yapılırsa iki kez yazılmış olur.
 
 ### 🟠 Faz 1 — Güvenlik Ağı: Test Kapsamı (~2-3 gün) `[ ]`
 
@@ -598,7 +616,7 @@ geçildiği anda sorun akut hâle geliyor.
 | Faz | Kapsam | Durum |
 |-----|--------|-------|
 | Faz A | Android platform paritesi (SDK, izinler, URL, SHA-1, signing) | ✅ **Tamamlandı** — APK build ediliyor. Tek kalan: release keystore (Faz 4) |
-| Faz 0 | Sessiz katiller (JWT fail-fast, SSRF, shutdown, DB pool, Maps key) | ⬜ Başlanmadı — **prod öncesi zorunlu** |
+| Faz 0 | Sessiz katiller (JWT fail-fast, SSRF, shutdown, DB pool, Maps key) | ✅ Kod maddeleri tamam — Maps anahtarı bölme bekliyor |
 | Faz 1 | Test kapsamı (handlers %6.4 → %50) | ⬜ Başlanmadı |
 | Faz 2 | Prod altyapı (Docker, CI, logging, readiness) | ⬜ Başlanmadı |
 | Faz 3 | S3 depolama | ⬜ Başlanmadı |
