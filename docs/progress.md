@@ -504,25 +504,89 @@ sessizce zarar vermeleri.
         proxy fotoğraf URL mimarisini baştan yazıyor, S3 geçişi de aynı yeri yazıyor —
         şimdi yapılırsa iki kez yazılmış olur.
 
-### 🟠 Faz 1 — Güvenlik Ağı: Test Kapsamı (~2-3 gün) `[ ]`
+### 🟠 Faz 1 — Güvenlik Ağı: Test Kapsamı — 🔶 BÜYÜK ÖLÇÜDE TAMAMLANDI (2026-07-22)
 
-Mevcut kapsam:
+| Paket | Başlangıç | Şimdi |
+|-------|:---------:|:-----:|
+| `models` | %100 | %100 ✅ |
+| `middleware` | %63.8 | %63.8 ✅ |
+| `handlers` | **%6.4** 🔴 | **%39.9** 🔶 |
+| `services` | %14.3 ⚠️ | %14.3 ⚠️ (ele alınmadı) |
 
-| Paket | Kapsam | Durum |
-|-------|:------:|-------|
-| `models` | %100 | ✅ |
-| `middleware` | %63.8 | ✅ |
-| `services` | %14.3 | ⚠️ |
-| `handlers` | **%6.4** | 🔴 |
+**Yaklaşım kararı:** Handler'lar somut `*repository.X` tiplerine bağlı olduğu için fake
+verilemiyordu. Projenin mevcut kalıbı (`guideCityGetter`, `NotificationStore`,
+`AuthServiceInterface`) izlenerek tüketici tarafında **dar arayüzler** tanımlandı.
+Go'nun yapısal tiplemesi sayesinde somut repo'lar bu arayüzleri otomatik karşılıyor —
+`main.go` ve constructor çağrıları hiç değişmedi.
 
-Handler'ların %94'ü test edilmemiş — yani **en çok iş mantığı barındıran katman**. Bu hâliyle
-refactor körlemesine yapılır. Faz 2+ için regresyon sigortası; atlanırsa sonraki fazlar riskli.
+**Kapsam yüzdesi yerine risk önceliklendirildi.** %50 hedefi bu belgede önerilen bir rakamdı,
+iş gereksinimi değil; `ListCities`/`ListCriteria` gibi düz geçiş uçları test edilerek yüzde
+kolayca yükseltilebilirdi ama regresyon koruması sağlamazlardı. Bunun yerine yetki, moderasyon
+ve kimlik doğrulama yolları hedeflendi:
 
-- [ ] Handler testleri: auth akışı (login/refresh/me)
-- [ ] Handler testleri: venue create/update + yetki sınırları
-- [ ] Handler testleri: admin uçları (onay/red)
-- [ ] Hedef: `handlers` %6 → %50, `services` %14 → %40
-- [ ] Mobil: 18.860 satıra karşılık 9 test dosyası — backend'den sonra ele alınacak
+| Uç | Kapsam |
+|----|:------:|
+| `auth_handler` (login/kayıt/token/profil) | ~%100 |
+| `ApproveApplication` (kullanıcıya guide rolü verir) | %100 |
+| `ApproveVenue` | %100 |
+| `ConfirmVenue`, `Verify` | %100 |
+| `DeleteUser` | %92 |
+| `UpdateUser` (demote akışı) | %88 |
+| `CheckDuplicate` | %89 |
+| `review` / `favorite` / `guide` / `correction` / `report` | %75-100 |
+
+Durum kodlarının ötesinde sabitlenen iş kuralları: şifrenin bcrypt ile hash'lendiği (düz metin
+sızmadığı ve hash'in şifreyi doğruladığı ayrıca kontrol edilir), admin'in kendi hesabını
+silemediği, rolün başvurudaki kullanıcıya verildiği, reddetmenin rol vermediği, mükerrer
+inceleme/başvuru/yorum durumlarının 409 döndüğü, rehber şehrinin repo'ya doğru beslendiği
+(beslenmezse şehir kısıtı sessizce devre dışı kalırdı).
+
+- [x] Handler testleri: auth akışı
+- [x] Handler testleri: venue onaylama/doğrulama + yetki sınırları
+- [x] Handler testleri: admin moderasyon ve kullanıcı yönetimi
+- [ ] Kalan düşük riskli uçlar (yemek kategorileri, istatistikler, listeler) — %50'ye ulaşmak
+      için gerekli, ama regresyon koruması açısından değeri düşük
+- [ ] `services` %14.3 → %40 (hiç ele alınmadı)
+- [ ] Mobil: 18.860 satıra karşılık 9 test dosyası — backend'den sonra
+
+#### 🔴 Faz 1'de ortaya çıkan iki bulgu
+
+**1. Kısmi başarısızlık: guide rolü var ama şehri yok**
+`ApproveApplication` içinde `UpdateRole` başarılı olup `SetGuideCity` hata verirse istek yine
+**200** döner ve yalnızca log yazılır. Kullanıcı guide olur ama `guide_city` boş kalır.
+Bu, şehir kısıtına dayanan tüm akışları etkiler (`ConfirmVenue`, venue `Create`): kısıt boş
+şehirde nasıl davranıyorsa öyle davranır. Mevcut davranış testle sabitlendi
+(`TestAdminApproveApplicationCityFailureIsTolerated`) — **düzeltilmedi**, çünkü değiştirilmesi
+ürün kararı (rol geri alınsın mı? istek 500 mü dönsün? yoksa şehir sonradan mı sorulsun?).
+
+**2. Arayüz refactor'ü "tipli nil" regresyonu üretti (düzeltildi)**
+`VenueHandler.notifService` alanı arayüze çevrilince, constructor somut
+`*services.NotificationService` alıp bu alana atadığı için nil bir servis **non-nil görünür**
+hale geldi; `Verify` içindeki `h.notifService != nil` kontrolü yanlışlıkla geçip panic
+üretebilirdi. Constructor'a açık nil kontrolü eklendi ve
+`TestNewVenueHandlerNilNotifierStaysNil` ile sabitlendi (mutasyon denemesiyle doğrulandı).
+**Ders:** somut pointer alanı arayüze çevirirken, o alanda `!= nil` kontrolü olup olmadığı
+mutlaka taranmalı.
+
+#### 🟡 Faz 1'in açığa çıkardığı tasarım borcu — handler'ları böl
+
+Arayüzlerin genişliği bir semptom:
+
+| Handler | Satır | Endpoint | Arayüz yüzeyi |
+|---------|:-----:|:--------:|---------------|
+| `venue_handler` | 888 | 20 | `venueStore` **29 metot** |
+| `admin_handler` | 1015 | 35 | 4 ayrı arayüz, ~60 metot |
+
+`venue_handler` mekan CRUD + fotoğraf + kriter + yemek kalemi + onaylama + doğrulama işlerini,
+`admin_handler` ise moderasyon + rehber başvuruları + kullanıcı yönetimi + istatistikler +
+yemek kategorilerini birlikte taşıyor.
+
+- [ ] `venue_handler`'ı mantıksal parçalara böl (CRUD / fotoğraf / kriter+yemek / doğrulama-onay)
+- [ ] `admin_handler`'ı böl (moderasyon / kullanıcı yönetimi / istatistik / katalog)
+
+**Sıralama notu:** Bu bölme işi bilinçli olarak Faz 1'den SONRAYA bırakıldı. Refactor'ü testsiz
+yapmak ters sıra olurdu; artık güvenlik ağı kurulduğu için bölme güvenle yapılabilir.
+Arayüzler bölünmeden sonra doğal olarak küçük parçalara ayrılmalı.
 
 ### 🟠 Faz 2 — Prod Altyapısı (~2 gün) `[ ]`
 
@@ -617,7 +681,7 @@ geçildiği anda sorun akut hâle geliyor.
 |-----|--------|-------|
 | Faz A | Android platform paritesi (SDK, izinler, URL, SHA-1, signing) | ✅ **Tamamlandı** — APK build ediliyor. Tek kalan: release keystore (Faz 4) |
 | Faz 0 | Sessiz katiller (JWT fail-fast, SSRF, shutdown, DB pool, Maps key) | ✅ Kod maddeleri tamam — Maps anahtarı bölme bekliyor |
-| Faz 1 | Test kapsamı (handlers %6.4 → %50) | ⬜ Başlanmadı |
+| Faz 1 | Test kapsamı (handlers %6.4 → **%39.9**) | 🔶 Kritik yollar kapsandı — services ve düşük riskli uçlar kaldı |
 | Faz 2 | Prod altyapı (Docker, CI, logging, readiness) | ⬜ Başlanmadı |
 | Faz 3 | S3 depolama | ⬜ Başlanmadı |
 | Faz 4 | Store yayını | ⬜ Başlanmadı |
