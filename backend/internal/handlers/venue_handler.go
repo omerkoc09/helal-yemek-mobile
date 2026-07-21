@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"errors"
+	"log"
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
@@ -492,7 +493,14 @@ func (h *VenueHandler) Create(c *fiber.Ctx) error {
 
 	venue.Photos = []models.VenuePhoto{}
 	if req.GooglePhotoURL != "" && h.storageService != nil {
-		if storedURL, err := h.storageService.DownloadAndStore(c.Context(), req.GooglePhotoURL); err == nil {
+		storedURL, err := h.storageService.DownloadAndStore(c.Context(), req.GooglePhotoURL)
+		if err != nil {
+			// Hata mekan oluşturmayı engellemiyor (fotoğraf opsiyonel), ama iz
+			// bırakmadan yutulmamalı: SSRF guard'ın reddi de, allowlist'teki bir
+			// boşluk da (ör. Google yeni CDN host'u) buradan görünür.
+			log.Printf("[VENUE] google fotoğrafı alınamadı: %v", err)
+		}
+		if err == nil {
 			photo := &models.VenuePhoto{
 				VenueID:    venue.ID,
 				URL:        storedURL,

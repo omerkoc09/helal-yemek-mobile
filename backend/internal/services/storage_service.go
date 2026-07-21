@@ -25,9 +25,21 @@ type StorageService struct {
 func NewStorageService(baseDir, baseURL string) *StorageService {
 	_ = os.MkdirAll(baseDir, 0755)
 	return &StorageService{
-		baseDir:    baseDir,
-		baseURL:    baseURL,
-		httpClient: &http.Client{Timeout: 15 * time.Second},
+		baseDir: baseDir,
+		baseURL: baseURL,
+		httpClient: &http.Client{
+			Timeout: 15 * time.Second,
+			// Places Photo API isteği googleusercontent.com'a yönlendirir; bu
+			// meşru. Ancak yönlendirme hedefi denetlenmezse allowlist delinir:
+			// izinli bir host, saldırganın seçtiği iç adrese redirect edebilir.
+			// Bu yüzden her adım yeniden doğrulanır.
+			CheckRedirect: func(req *http.Request, via []*http.Request) error {
+				if len(via) >= 10 {
+					return fmt.Errorf("çok fazla yönlendirme")
+				}
+				return validateRemotePhotoURL(req.URL.String())
+			},
+		},
 	}
 }
 
@@ -57,6 +69,11 @@ func (s *StorageService) Upload(_ context.Context, file multipart.File, filename
 // DownloadAndStore — uzak bir URL'den fotoğrafı indirir, diske kaydeder ve kendi URL'sini döndürür.
 // Google Places Photo API gibi redirect'li URL'leri de destekler.
 func (s *StorageService) DownloadAndStore(ctx context.Context, photoURL string) (string, error) {
+	// SSRF koruması: adres kullanıcıdan geliyor, doğrulanmadan fetch edilemez.
+	if err := validateRemotePhotoURL(photoURL); err != nil {
+		return "", err
+	}
+
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, photoURL, nil)
 	if err != nil {
 		return "", fmt.Errorf("istek oluşturulamadı: %w", err)
