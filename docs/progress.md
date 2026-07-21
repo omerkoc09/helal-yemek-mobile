@@ -310,76 +310,276 @@ hem panelden hangi şehirlerde kaç tane rehber olduğunu görürüz (harita man
 
 ---
 
-## Daha sonra Yapılması Gerekenler
+## Prod'a Hazırlık Yol Haritası
 
-### 1. Test & Kalite (Yüksek Öncelik)
-- [ ] Backend unit testleri (sadece auth_handler_test.go mevcut, diğer handler/service/repo testleri eksik)
-- [ ] Flutter widget ve integration testleri
-- [ ] API endpoint'leri için E2E testler
-- [ ] Error handling iyileştirmeleri (standart hata formatı, kullanıcı dostu mesajlar)
+> **Denetim notu (2026-07-21):** Bu bölüm kod tabanı baştan taranarak yeniden yazıldı. Önceki
+> liste bayatlamıştı — "sadece auth_handler_test.go var" diyordu ama 18 backend test dosyası
+> mevcuttu; venue confirmation ve email bildirimleri de tamamlanmış olduğu hâlde açık duruyordu.
+> Aşağıdaki her madde **kod okunarak doğrulandı**, tahmine dayalı madde yok.
+>
+> Ölçüm anı: `main` @ 9a66869 — backend 10.097 satır / 73 dosya, mobil 18.860 satır / 92 dosya.
 
-### 2. Fotoğraf Depolama — S3 Entegrasyonu (Yüksek Öncelik)
-- [ ] S3/MinIO cloud storage entegrasyonu (şu an local uploads/ klasörüne yazılıyor)
-- [ ] Fotoğraf boyutlandırma ve sıkıştırma (thumbnail, medium, full)
-- [ ] CDN entegrasyonu (CloudFlare veya benzeri)
+### ✅ Denetimde Sağlam Çıkanlar (yeniden yapılmasına gerek YOK)
 
-### 3. Production Deployment (Yüksek Öncelik)
-- [ ] Production Docker image ve multi-stage build
-- [ ] CI/CD pipeline (GitHub Actions veya benzeri)
-- [ ] Production ortam değişkenleri ve secret yönetimi
-- [ ] SSL/TLS sertifikası ve HTTPS yapılandırması
-- [ ] Database backup stratejisi
-- [ ] Monitoring ve alerting (Prometheus + Grafana veya benzeri)
-- [ ] Logging altyapısı (structured logging, log aggregation)
-- [ ] Health check ve readiness probe
+| Alan | Bulgu |
+|------|-------|
+| SQL injection | 133 sorgunun tamamı parametreli; `fmt.Sprintf` ile kurulan SQL **yok** |
+| Secret sızıntısı | `backend/.env` gitignore'lı, git geçmişinde de yok |
+| Yetkilendirme | Admin/guide uçlarında `RequireRole` istisnasız uygulanmış |
+| Dosya yükleme | Uzantı whitelist + UUID isim + 10 MB `BodyLimit` (main.go:79) |
+| Path traversal | `StorageService.Delete` → `filepath.Base` ile korumalı |
+| Şifre | bcrypt `DefaultCost` |
+| Migration | golang-migrate, `embed` ile gömülü |
+| Hata formatı | %99 tutarlı (121 `error` anahtarı, 1 sapma) |
+| Mevcut middleware | `recover` + CORS + rate limiter kurulu |
 
-### 4. App Store & Google Play Yayın Hazırlığı (Yüksek Öncelik)
-- [ ] iOS code signing ve provisioning profile
-- [ ] Android keystore ve signing config
-- [ ] App Store Connect hesabı ve metadata
-- [ ] Google Play Console hesabı ve metadata
-- [ ] App ikonu ve splash screen tasarımı
-- [ ] Privacy policy ve terms of service sayfaları
-- [ ] App Store screenshot'ları
+**Test envanteri (gerçek durum):** backend 18 test dosyası, mobil 9 test dosyası — hepsi PASS.
 
-### 5. Güvenlik İyileştirmeleri (Orta Öncelik)
-- [ ] Input validation güçlendirme (tüm endpoint'ler)
-- [ ] CORS yapılandırması (production domain'ler)
-- [ ] Rate limiting fine-tuning (endpoint bazlı)
-- [ ] SQL injection audit
-- [ ] Dosya yükleme güvenliği (dosya tipi, boyut kontrolü)
+---
+
+### 🟣 Faz A — Android Platform Paritesi (~yarım gün) `[ ]`
+
+> **Neden en başta:** Uygulama bugüne kadar **Android'de hiç çalıştırılmamış.** Kanıt:
+> `flutter doctor` → Xcode ✓ / Android toolchain ✗ (cmdline-tools yok), ve AndroidManifest'te
+> **0 adet `uses-permission`** varken Info.plist'te konum izinleri tanımlı. Yani iOS yapılandırılmış,
+> Android'e hiç dokunulmamış. Bu sapma her geçen ay büyür — şimdi 4 madde, sonra çok daha fazla.
+>
+> **Not:** Bunların hepsi *yapılandırma dosyası düzenlemesi*, Android programlama değil.
+> Android Studio IDE olarak öğrenilmek zorunda değil — sadece SDK Manager + Device Manager
+> (emülatör) için kurulur, kod yazımı mevcut editörde sürer.
+
+**Durum (2026-07-21): SDK kuruldu, kod maddeleri GERÇEK BUILD ile doğrulandı.**
+Kalan tek engel: `google-services.json` (Firebase Console erişimi gerekiyor).
+
+Doğrulama kanıtları:
+- `flutter doctor` → **tüm satırlar ✓, "No issues found!"**
+- `flutter analyze` 26 issue = stash'li baseline ile **birebir aynı** (sıfır yeni)
+- `flutter test` **61/61 PASS**
+- `./gradlew :app:processDebugMainManifest` **BAŞARILI** → birleşmiş debug manifest'te
+  `INTERNET`, `ACCESS_FINE_LOCATION`, `ACCESS_COARSE_LOCATION`, `usesCleartextTraffic="true"`,
+  `scheme="https"` **hepsi doğrulandı**
+- `./gradlew :app:processReleaseMainManifest` **BAŞARILI** → release manifest'te
+  `usesCleartextTraffic` **YOK** (amaçlanan: prod HTTPS'e mecbur), `INTERNET` **VAR**
+- `build.gradle.kts` configuration fazı geçti → signing config sözdizimi geçerli
+
+**EMÜLATÖRDE ÇALIŞTIRILDI ve doğrulandı (2026-07-21):**
+AVD `caizmi_test` (Pixel 7, Android 15, `google_apis_playstore/arm64-v8a`, Play Services şart —
+`default` image'da Google girişi ve Haritalar çalışmaz). APK kuruldu, uygulama açıldı, çökme yok.
+- **Giriş ekranı render oluyor** (logo, e-posta/şifre, Sign In, Google/Apple butonları)
+- **Google hesap seçici açıldı** ("Choose an account to continue to İtimat") → Play Services OAuth
+  client'ı çözümledi. SHA-1 yanlış/eksik olsaydı `DEVELOPER_ERROR` (kod 10) alınırdı.
+- **Ağ erişimi kanıtlandı** (emülatör içinden `toybox nc` ile):
+  | Adres | Sonuç |
+  |---|---|
+  | `10.0.2.2:3000` | ✅ `{"status":"ok"}` — API çalışıyor |
+  | `localhost:3000` | ❌ **Connection refused** — düzeltme şarttı, kanıtlandı |
+  | `192.168.1.5:3000` | ✅ fotoğraf HTTP 200, `image/jpeg`, 56 KB |
+
+Not (Android'e özel değil): uygulama içi metinler İngilizce ("Email Address", "Sign In",
+"Forgot Password?") ama splash Türkçe ("Güvenilir & Helal Restoran Rehberi"). iOS'ta da aynı —
+lokalizasyon tutarsızlığı, ayrı ele alınmalı.
+
+SDK kurulum notları (bu oturumda yapıldı):
+- Android Studio sihirbazı `cmdline-tools`'u kurmuyor → Google deposundan 22.0/arm64 indirilip
+  `~/Library/Android/sdk/cmdline-tools/latest` altına yerleştirildi
+- SDK lisansları kabul edildi (kullanıcı onayıyla)
+- Sihirbazın indirdiği `platforms;android-36` **bozuktu** (zip 17 MB'da kesilmiş, klasörde
+  yalnızca `.installer` metadata'sı) → Gradle "Archive is not a ZIP archive" ile düşüyordu.
+  Kalıntılar temizlenip `sdkmanager` ile yeniden kuruldu (14.198 dosya). Build sırasında
+  `platforms;android-34` de otomatik kuruldu.
+
+- [x] **Android SDK kurulumu** — Android Studio (3.2 GB) + SDK 36.0.0 + cmdline-tools 22.0 +
+      lisanslar. `flutter doctor` **tamamen yeşil**. Detaylar yukarıdaki kurulum notlarında.
+
+      Debug keystore SHA-1 (Firebase Console'a girilecek — gizli değil, sertifika parmak izi):
+      `11:87:C1:D4:9C:BF:37:B8:37:50:CD:80:20:2C:F4:81:01:8E:03:F9`
+
+- [x] **API base URL emülatör uyumu** — `api_endpoints.dart`
+      `http://localhost:3000` sabitti. Android emülatöründe `localhost` = **emülatörün kendisi**,
+      host makine değil. iOS simülatörü host'u paylaştığı için bu bug bugüne kadar görünmedi.
+      → `defaultTargetPlatform` ile platform bazlı seçim (Android `10.0.2.2`), üstüne
+      `--dart-define=API_BASE_URL=...` ile ezme imkânı (fiziksel cihaz + Faz 2 prod URL'i için).
+      `dart:io` yerine `foundation` kullanıldı; proje `web/` de içerdiği için web build bozulmasın.
+
+- [x] **Cleartext HTTP izni** — `usesCleartextTraffic` **sadece debug manifest'ine** eklendi.
+      Android 9+ `http://` isteklerini varsayılan engeller → dev'de tüm API çağrıları düşerdi.
+      Bilinçli olarak main manifest'e KONMADI: release build böylece HTTPS'e mecbur kalır.
+
+- [x] **Konum izinleri** — `ACCESS_FINE_LOCATION` + `ACCESS_COARSE_LOCATION` eklendi.
+      `geolocator` izinsiz çökmez, sessizce boş döner → teşhisi zor, harita uygulaması için ölümcül.
+
+- [x] **`INTERNET` izni** 🔴 *denetim sırasında çıkan YENİ bulgu*
+      İzin yalnızca `src/debug/AndroidManifest.xml` içindeydi (Flutter şablonunun varsayılanı).
+      Debug build'ler çalışırdı ama **release APK'nın hiç ağ erişimi olmazdı** — uygulama Play
+      Store'da tamamen kırık çıkardı. Ana manifest'e eklendi.
+
+- [x] **`url_launcher` paket görünürlüğü** 🔴 *denetim sırasında çıkan YENİ bulgu*
+      `map_launcher.dart:27,51` `canLaunchUrl()` kullanıyor. Android 11+ paket görünürlüğü
+      nedeniyle `<queries>` tanımı olmadan bu **false** döner ve fonksiyonun `else` dalı olmadığı
+      için **yol tarifi butonu sessizce ölür**. `https` VIEW intent'i `<queries>`'e eklendi.
+
+- [x] **`google-services.json` paket adı uyuşmazlığı** 🔴 *YENİ bulgu — build'i sert durdurdu*
+      `google-services.json` → `com.caizmi`, uygulama `applicationId` → `com.caizmi.caiz_mi`.
+      `com.google.gms.google-services` eklentisi bu uyuşmazlıkta build'i **hata ile durdurur**
+      ("No matching client found for package name"). İlk `flutter build apk` burada düşer.
+      Aynı uyuşmazlık iOS'ta da var (`GoogleService-Info.plist` = `com.caizmi`, gerçek bundle =
+      `com.caizmi.caizMi`) ama Firebase hiç başlatılmadığı için bugün sorun çıkarmıyor.
+      **GERÇEK BUILD İLE DOĞRULANDI (2026-07-21):**
+      `Execution failed for task ':app:processDebugGoogleServices'.`
+      `> No matching client found for package name 'com.caizmi.caiz_mi'`
+      Build'in şu an takıldığı **tek** nokta burası; öncesindeki her aşama geçiyor.
+      **Karar:** Firebase ileride **FCM push bildirimi** için kullanılacak → eklenti KALIYOR,
+      `google-services.json` doğru paket adıyla yeniden üretilecek. (Eklentiyi kaldırma seçeneği
+      değerlendirildi ve elendi: FCM gelince geri eklenmesi gerekirdi.)
+
+- [x] **Google Sign-In SHA-1 kaydı** ✅ *2026-07-21 tamamlandı*
+      `google-services.json` içinde **yalnızca web (type 3) OAuth client var, Android (type 1)
+      client YOK** → SHA-1 hiç kaydedilmemiş, Android'de Google ile giriş çalışmaz.
+      Debug SHA-1 çıkarıldı (aşağıda). **Release keystore farklı SHA-1 üretir — o da eklenecek.**
+      Firebase Console'da Android uygulaması eklerken paket adı + SHA-1 aynı ekranda giriliyor →
+      yukarıdaki uyuşmazlık ile birlikte tek oturumda çözülür.
+      Not: backend `GOOGLE_CLIENT_ID` ile mobil web client **eşleşiyor** ✓ (token audience doğru).
+      **SONUÇ (doğrulandı):** `com.caizmi.caiz_mi` altında `client_type: 1` (ANDROID) kaydı oluştu,
+      `certificate_hash` = debug SHA-1 ile birebir aynı. Üretilen APK içinde
+      `default_web_client_id` = backend'in `GOOGLE_CLIENT_ID`'si → auth zinciri uçtan uca tutarlı.
+      `gcm_defaultSenderId` de yerinde (ileride FCM için hazır).
+      **Kalan:** release keystore üretilince onun SHA-1'i de Console'a eklenecek.
+
+- [x] **Release signing altyapısı** — `build.gradle.kts`
+      `signingConfigs.getByName("debug")` sabitti. Artık `android/key.properties`'ten okuyor;
+      dosya yoksa debug'a düşüyor → keystore'u olmayan geliştirici/CI ortamları kırılmıyor.
+      `.gitignore`'a `key.properties`, `*.jks`, `*.keystore` eklendi (parola sızıntısı riski vardı).
+      **Kalan:** keystore'un kendisi üretilmedi — parolayı sahibi seçmeli ve yedeklemeli;
+      *keystore kaybı = uygulama Play Store'da bir daha asla güncellenemez.*
+
+### 🔴 Faz 0 — Sessiz Katiller (~yarım gün) `[ ]`
+
+Dördü de küçük, bağımsız ve **prod öncesi zorunlu**. Ortak özellikleri: hata vermeden çalışıp
+sessizce zarar vermeleri.
+
+- [ ] **JWT_SECRET fail-fast** — `config.go:39`
+  `os.Getenv("JWT_SECRET")` doğrudan atanıyor, validation yok. Env unutulursa secret **boş string**
+  olur; HS256 boş anahtarla sorunsuz imzalar ve doğrular. Uygulama normal açılır, hata vermez, ama
+  **herkes istediği kullanıcı adına token üretebilir.** Sessizliği en tehlikeli yanı.
+  → Boş/kısa secret'ta startup'ta `log.Fatal`.
+
+- [ ] **SSRF host allowlist** — `venue_handler.go:495` → `storage_service.go:59`
+  Kullanıcıdan gelen `GooglePhotoURL`, host doğrulaması olmadan fetch ediliyor. Saldırgan
+  `http://169.254.169.254/latest/meta-data/` verirse sunucu cloud metadata servisine gider →
+  credential sızıntısı. Local'de zararsız, **cloud'a çıkar çıkmaz aktif.**
+  → Şema (`https`) + host allowlist (`*.googleusercontent.com`), redirect takibini sınırla.
+
+- [ ] **Graceful shutdown** — `main.go` (son satır)
+  `log.Fatal(app.Listen(...))`. Deploy/restart'ta uçuşan istekler ortadan kesilir, yarım DB
+  transaction'ları kalır. Her deploy'da veri tutarsızlığı kumarı.
+  → SIGTERM/SIGINT yakala, `app.ShutdownWithTimeout`, scheduler ctx'ini iptal et.
+
+- [ ] **DB pool limitleri** — `db.go:10`
+  `pgxpool.New` tamamen varsayılan; `MaxConns`, connection/idle timeout, health check yok.
+  Yük altında bağlantı tükenmesi ve zincirleme timeout.
+
+- [ ] **Google Maps API key kısıtlaması** ⚠️ *hesap erişimi gerektirir — kod değişikliği değil*
+  Aynı anahtar (`AIzaSyDLca...`) hem `AndroidManifest.xml` hem `AppDelegate.swift:12` içinde,
+  ikisi de git'te. **Mobil anahtarların binary'de olması kaçınılmaz** — gizlenemezler, APK'dan
+  çıkarılabilirler; doğru korunma **Cloud Console'da kısıtlama**: Android → paket adı + SHA-1,
+  iOS → bundle ID. Tek anahtarın iki platformda çalışması kısıtlamanın yok ya da çok geniş
+  olduğunu düşündürüyor. Kısıtsız anahtar = başkası kullanır, fatura size gelir.
+  → Console'dan mevcut kısıtlamayı doğrula; gerekiyorsa platform başına ayrı anahtar üret.
+
+### 🟠 Faz 1 — Güvenlik Ağı: Test Kapsamı (~2-3 gün) `[ ]`
+
+Mevcut kapsam:
+
+| Paket | Kapsam | Durum |
+|-------|:------:|-------|
+| `models` | %100 | ✅ |
+| `middleware` | %63.8 | ✅ |
+| `services` | %14.3 | ⚠️ |
+| `handlers` | **%6.4** | 🔴 |
+
+Handler'ların %94'ü test edilmemiş — yani **en çok iş mantığı barındıran katman**. Bu hâliyle
+refactor körlemesine yapılır. Faz 2+ için regresyon sigortası; atlanırsa sonraki fazlar riskli.
+
+- [ ] Handler testleri: auth akışı (login/refresh/me)
+- [ ] Handler testleri: venue create/update + yetki sınırları
+- [ ] Handler testleri: admin uçları (onay/red)
+- [ ] Hedef: `handlers` %6 → %50, `services` %14 → %40
+- [ ] Mobil: 18.860 satıra karşılık 9 test dosyası — backend'den sonra ele alınacak
+
+### 🟠 Faz 2 — Prod Altyapısı (~2 gün) `[ ]`
+
+Şu an **Dockerfile yok, CI yok.** 27 test mevcut ama koşturacak bir yer yok.
+
+- [ ] Multi-stage Dockerfile (backend)
+- [ ] CI pipeline: `go test ./...` + `go vet` + `flutter analyze` + `flutter test`
+- [ ] Structured logging — şu an 38 adet `log.Printf`; `log/slog`'a geçiş
+- [ ] Readiness probe — `/health` var ama **DB ping'i yapmıyor**, DB ölse bile "sağlıklı" der
+- [ ] Prod secret yönetimi (env injection, `.env` dosyası değil)
+- [ ] SSL/TLS + HTTPS yapılandırması
+- [ ] DB backup stratejisi
+- [ ] Monitoring + alerting
+
+### 🟠 Faz 3 — S3 Depolama (~1-2 gün) `[ ]`
+
+`storage_service.go:18` hâlâ local disk'e yazıyor ("ileride S3 ile değiştirilebilir" notu duruyor).
+Container yeniden başlayınca **yüklenen tüm fotoğraflar gider.** Faz 2'den sonra, çünkü Docker'a
+geçildiği anda sorun akut hâle geliyor.
+
+- [ ] **Göreli yol sakla (mimari borç)** 🔴 *2026-07-21 emülatör testinde ortaya çıktı*
+      `storage_service.go:54,98` **tam URL** üretiyor (`STORAGE_URL` + dosya adı) ve bu URL
+      `venue_photos.url` sütununa **olduğu gibi yazılıyor**. Sonuç: ortam her değiştiğinde veri
+      migrasyonu gerekiyor. Bugün Android emülatörü için `localhost` → `192.168.1.5` UPDATE'i
+      çalıştırmak zorunda kaldık (3 satır). **Aynı migrasyon prod'a geçerken ve S3'e taşınırken
+      tekrar gerekecek.** Çözüm: DB'ye sadece dosya adı yaz, URL'i okuma anında üret
+      (`cfg.StorageURL + "/static/" + name`). S3 geçişiyle birlikte yapılmalı — orada zaten
+      URL şeması değişiyor, iki migrasyon yerine tek seferde çözülür.
+- [ ] S3/MinIO entegrasyonu (`StorageService` arkasına, arayüz zaten uygun)
+- [ ] Boyutlandırma/sıkıştırma (thumbnail, medium, full)
+- [ ] CDN entegrasyonu
+
+### 🟡 Faz 4 — Store Yayını `[ ]`
+
+- [ ] iOS code signing + provisioning profile
+- [ ] Android keystore + signing config
+- [ ] App Store Connect / Google Play Console metadata
+- [ ] App ikonu + splash screen
+- [ ] Privacy policy + terms of service sayfaları
+- [ ] Store screenshot'ları
+
+---
+
+### Sonraki Öncelikler (prod sonrası)
+
+**Güvenlik ince ayar** — temel hijyen sağlam, kalanlar iyileştirme:
+- [ ] Endpoint bazlı rate limiting fine-tuning (şu an `guideSubmitLimiter` gibi noktasal)
 - [ ] Brute-force login koruması
+- [ ] Prod domain'leri için CORS daraltma
+- [ ] Input validation güçlendirme
 
-### 6. UX İyileştirmeleri (Orta Öncelik)
-- [ ] Offline destek (temel verilerin cache'lenmesi)
-- [ ] Pull-to-refresh tüm listelerde
-- [ ] Boş durum (empty state) ekranları
-- [ ] Loading skeleton'lar (shimmer effect)
-- [ ] Hata ekranları ve retry mekanizması
-- [ ] Onboarding/tanıtım ekranları (ilk kullanım)
-- [ ] Dark mode desteği
+**Performans:**
+- [ ] Pagination — `limit` var ama offset/cursor yok (`venue_handler.go:80`)
+- [ ] N+1 sorgu analizi
+- [ ] Image lazy/progressive loading
+- [ ] HTTP cache header'ları
 
-### 7. Performans Optimizasyonları (Orta Öncelik)
-- [ ] API response pagination (venue listesi, review listesi)
-- [ ] Image lazy loading ve progressive loading
-- [ ] Database query optimization ve N+1 analizi
-- [ ] Flutter build optimizasyonu (tree shaking, code splitting)
-- [ ] API response caching (HTTP cache headers)
+**UX** (kısmen mevcut — doğrulandı):
+- [x] Pull-to-refresh — 4 ekranda var (home, favorites, my_venues, notifications)
+- [x] Empty state — kısmen (`my_venues_screen`)
+- [ ] Empty state'i tüm listelere yay
+- [ ] Loading skeleton / shimmer — **hiç yok**
+- [ ] Dark mode — **hiç yok** (`ThemeMode`/`darkTheme` tanımlı değil)
+- [ ] Offline cache, hata ekranı + retry, onboarding
 
-### 8. Eksik İş Mantığı (Orta Öncelik)
-- [ ] Guide başvurusu: motivasyon metni ve referans mekanizma
-- [ ] Venue confirmation akışı (başka Guide'ların mevcut mekanı doğrulaması)
-- [ ] Admin: toplu işlemler (bulk approve/reject)
-- [ ] Kullanıcı raporlama sistemi (uygunsuz yorum/mekan bildirimi)
-- [ ] Email bildirimleri (Guide başvuru sonucu, mekan onay/red)
+**Eksik iş mantığı:**
+- [x] ~~Venue confirmation akışı~~ — tamamlandı (rozet & dönemsel doğrulama özelliği)
+- [x] ~~Email bildirimleri~~ — `notification_service` + `scheduler_service` içinde mevcut
+- [ ] Guide başvurusu: motivasyon metni + referans mekanizması
+- [ ] Admin toplu işlemler (bulk approve/reject)
+- [ ] Kullanıcı raporlama sistemi
 
-### 9. Gelecek Sürüm Özellikleri (Düşük Öncelik — v2.0)
-- [ ] Push notification sistemi
-- [ ] Gelişmiş filtreleme (mesafe, puan, kategori, çalışma saati)
-- [ ] Çoklu dil desteği (İngilizce, Arapça)
-- [ ] Sosyal medya paylaşımı
-- [ ] Mekan önerileri (kişiselleştirilmiş)
-- [ ] Analitik dashboard (kullanıcı/mekan istatistikleri)
+**v2.0:**
+- [ ] Push notification, gelişmiş filtreleme, çoklu dil (EN/AR), sosyal paylaşım,
+      kişiselleştirilmiş öneriler, analitik dashboard
 
 ---
 
@@ -393,5 +593,15 @@ hem panelden hangi şehirlerde kaç tane rehber olduğunu görürüz (harita man
 | Faz 4: Admin Paneli | Dashboard, Onay, Audit | ✅ Tamamlandı fakat düzenleme gerek|
 | Faz 5: Test & Yayın | Test, Store yayını | 🔶 Devam Ediyor |
 
+**Prod'a hazırlık durumu (2026-07-21 denetimi):**
+
+| Faz | Kapsam | Durum |
+|-----|--------|-------|
+| Faz A | Android platform paritesi (SDK, izinler, URL, SHA-1, signing) | ✅ **Tamamlandı** — APK build ediliyor. Tek kalan: release keystore (Faz 4) |
+| Faz 0 | Sessiz katiller (JWT fail-fast, SSRF, shutdown, DB pool, Maps key) | ⬜ Başlanmadı — **prod öncesi zorunlu** |
+| Faz 1 | Test kapsamı (handlers %6.4 → %50) | ⬜ Başlanmadı |
+| Faz 2 | Prod altyapı (Docker, CI, logging, readiness) | ⬜ Başlanmadı |
+| Faz 3 | S3 depolama | ⬜ Başlanmadı |
+| Faz 4 | Store yayını | ⬜ Başlanmadı |
 
 *Her bir madde için detaylı implementasyon planları ayrı MD dosyalarında hazırlanacaktır.*
