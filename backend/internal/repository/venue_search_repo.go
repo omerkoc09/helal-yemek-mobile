@@ -344,11 +344,24 @@ func (r *VenueRepo) FindNearbyApproved(ctx context.Context, lat, lng, radiusMete
 // skora eklenir; rating*review_count terimi baskın kalır, tıklama sayısı sadece
 // yakın puanlı mekanlar arasında ayrıştırıcı bir boost sağlar.
 // limit=0 ise tüm mekanlar döner; limit>0 ise en fazla limit kadar döner.
+// radiusMeters<=0 ise yarıçap kısıtı uygulanmaz (sınırsız): konumu uzak olsa da
+// tüm onaylı mekanlar listeye girer. lat/lng yine gereklidir; mesafe (distance)
+// hesaplanmaya devam ettiği için uzaklık gösterimi ve yakınlığa göre sıralama çalışır.
 func (r *VenueRepo) FindPopular(ctx context.Context, lat, lng, radiusMeters float64, limit int) ([]models.Venue, error) {
 	limitClause := ""
 	if limit > 0 {
 		limitClause = fmt.Sprintf("LIMIT %d", limit)
 	}
+
+	// Yarıçap kısıtı yalnızca radiusMeters>0 iken uygulanır; aksi halde $3
+	// argümanı hiç kullanılmadığından sorgu parametrelerinden de çıkarılır.
+	radiusClause := ""
+	args := []any{lat, lng}
+	if radiusMeters > 0 {
+		radiusClause = "AND ST_DWithin(v.location, ST_MakePoint($2, $1)::geography, $3)"
+		args = append(args, radiusMeters)
+	}
+
 	query := fmt.Sprintf(`
 		SELECT
 			v.id, v.name, v.city, v.district,
@@ -382,15 +395,15 @@ func (r *VenueRepo) FindPopular(ctx context.Context, lat, lng, radiusMeters floa
 		) dc ON dc.venue_id = v.id
 		WHERE v.status = 'approved'
 		  AND v.deleted_at IS NULL
-		  AND ST_DWithin(v.location, ST_MakePoint($2, $1)::geography, $3)
+		  %s
 		GROUP BY v.id, dc.click_count
 		ORDER BY (
 			COALESCE(AVG(rv.rating), 0) * LOG(COUNT(rv.id) + 1)
 			+ 0.5 * LOG(COALESCE(dc.click_count, 0) + 1)
 		) DESC, distance ASC
-		%s`, limitClause)
+		%s`, radiusClause, limitClause)
 
-	rows, err := r.db.Query(ctx, query, lat, lng, radiusMeters)
+	rows, err := r.db.Query(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("popüler mekan sorgusu başarısız: %w", err)
 	}

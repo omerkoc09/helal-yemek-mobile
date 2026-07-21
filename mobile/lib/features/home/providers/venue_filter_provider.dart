@@ -104,19 +104,46 @@ class VenueFilterState {
 /// Pure function — applies cuisine/distance/rating filters then sorts.
 /// Exposed top-level so it can be unit-tested without constructing a notifier.
 List<Venue> applyVenueFilterPipeline(VenueFilterState state) {
-  Iterable<Venue> list = state.allCityVenues;
+  return filterAndSortVenues(
+    state.allCityVenues,
+    sort: state.sort,
+    selectedCuisineIds: state.selectedCuisineIds,
+    distanceFilter: state.distanceFilter,
+    ratingFilter: state.ratingFilter,
+  );
+}
 
-  if (state.selectedCuisineIds.isNotEmpty) {
+/// Ortak filtreleme/sıralama boru hattı — herhangi bir mekan listesi üzerinde
+/// çalışır, bir state nesnesine bağlı değildir. Hem global filtre akışı hem de
+/// liste sayfalarının kendi bağımsız filtreleri bunu kullanır.
+///
+/// [nameQuery] verilirse önce isim araması uygulanır (büyük/küçük harf duyarsız).
+List<Venue> filterAndSortVenues(
+  List<Venue> venues, {
+  required VenueSortOption sort,
+  Set<int> selectedCuisineIds = const {},
+  DistanceFilter distanceFilter = DistanceFilter.all,
+  RatingFilter ratingFilter = RatingFilter.all,
+  String nameQuery = '',
+}) {
+  Iterable<Venue> list = venues;
+
+  final query = nameQuery.trim().toLowerCase();
+  if (query.isNotEmpty) {
+    list = list.where((v) => v.name.toLowerCase().contains(query));
+  }
+
+  if (selectedCuisineIds.isNotEmpty) {
     list = list.where((v) {
       for (final item in v.foodItems) {
-        if (state.selectedCuisineIds.contains(item.categoryId)) return true;
+        if (selectedCuisineIds.contains(item.categoryId)) return true;
       }
       return false;
     });
   }
 
-  if (state.distanceFilter != DistanceFilter.all) {
-    final threshold = switch (state.distanceFilter) {
+  if (distanceFilter != DistanceFilter.all) {
+    final threshold = switch (distanceFilter) {
       DistanceFilter.under500m => 500.0,
       DistanceFilter.under1km => 1000.0,
       DistanceFilter.under2km => 2000.0,
@@ -125,8 +152,8 @@ List<Venue> applyVenueFilterPipeline(VenueFilterState state) {
     list = list.where((v) => v.distance != null && v.distance! < threshold);
   }
 
-  if (state.ratingFilter != RatingFilter.all) {
-    final minRating = state.ratingFilter == RatingFilter.above40 ? 4.0 : 4.5;
+  if (ratingFilter != RatingFilter.all) {
+    final minRating = ratingFilter == RatingFilter.above40 ? 4.0 : 4.5;
     list = list.where((v) =>
         v.reviewCount > 0 &&
         v.avgRating != null &&
@@ -135,7 +162,7 @@ List<Venue> applyVenueFilterPipeline(VenueFilterState state) {
 
   final result = list.toList();
 
-  switch (state.sort) {
+  switch (sort) {
     case VenueSortOption.none:
       break;
     case VenueSortOption.alphabetical:

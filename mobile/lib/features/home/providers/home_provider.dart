@@ -234,7 +234,9 @@ class HomeNotifier extends Notifier<HomeState> {
         queryParameters: {
           'lat': position.latitude,
           'lng': position.longitude,
-          'radius': 10000,
+          // radius=0 → yarıçap sınırı yok: konumu uzak olan mekanlar da listeye
+          // girer. lat/lng mesafe hesabı ve yakınlığa göre sıralama için gerekli.
+          'radius': 0,
           'limit': 0,
         },
       );

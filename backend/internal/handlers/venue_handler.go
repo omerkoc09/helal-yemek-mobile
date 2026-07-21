@@ -298,6 +298,8 @@ func (h *VenueHandler) ListNearby(c *fiber.Ctx) error {
 
 // ListPopular godoc
 // GET /api/v1/venues/popular?lat=41.0&lng=29.0&radius=10000&limit=10
+// radius=0 gönderilirse yarıçap kısıtı uygulanmaz; konumu uzak olan mekanlar da
+// listeye girer. lat/lng mesafe hesabı için yine zorunludur.
 func (h *VenueHandler) ListPopular(c *fiber.Ctx) error {
 	latStr := c.Query("lat")
 	lngStr := c.Query("lng")
