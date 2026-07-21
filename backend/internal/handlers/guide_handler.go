@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"errors"
 	"time"
 
@@ -9,9 +10,21 @@ import (
 	"github.com/omerkoc/caiz-mi/internal/repository"
 )
 
+// guideStore — GuideHandler'ın başvuru akışında ihtiyaç duyduğu minimal arayüz.
+type guideStore interface {
+	HasPendingApplication(ctx context.Context, userID string) (bool, error)
+	Create(ctx context.Context, app *models.GuideApplication) error
+	FindLatestByUserID(ctx context.Context, userID string) (*models.GuideApplication, error)
+}
+
+// guideVenueLister — GuideHandler'ın MyVenues için ihtiyaç duyduğu tek metot.
+type guideVenueLister interface {
+	FindByAddedBy(ctx context.Context, userID string) ([]models.Venue, error)
+}
+
 type GuideHandler struct {
-	guideRepo *repository.GuideRepo
-	venueRepo *repository.VenueRepo
+	guideRepo guideStore
+	venueRepo guideVenueLister
 }
 
 func NewGuideHandler(guideRepo *repository.GuideRepo, venueRepo *repository.VenueRepo) *GuideHandler {
