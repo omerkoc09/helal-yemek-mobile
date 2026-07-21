@@ -7,7 +7,6 @@ import '../../venue/widgets/venue_card.dart';
 import '../../venue/widgets/venue_horizontal_card.dart';
 import '../providers/home_provider.dart';
 import '../providers/venue_filter_provider.dart';
-import '../widgets/category_grid.dart';
 import '../widgets/category_slider.dart';
 import '../widgets/sort_bottom_sheet.dart';
 
@@ -85,19 +84,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 children: [
                   // Arka plan her zaman feed
                   _Feed(state: state),
-                  // Arama odaklanınca karartma + dropdown
-                  if (_isFocused) ...[
+                  // Aramaya yazı girilince karartma + sonuç overlay'i
+                  if (_isFocused && query.isNotEmpty) ...[
                     GestureDetector(
                       onTap: () => _focusNode.unfocus(),
                       child: Container(color: Colors.black.withValues(alpha: 0.35)),
                     ),
-                    if (query.isEmpty)
-                      _CategoryDropdown(onDismiss: () => _focusNode.unfocus())
-                    else
-                      _SearchResultsOverlay(
-                        state: state,
-                        onDismiss: () => _focusNode.unfocus(),
-                      ),
+                    _SearchResultsOverlay(
+                      state: state,
+                      onDismiss: () => _focusNode.unfocus(),
+                    ),
                   ],
                 ],
               ),
@@ -154,60 +150,6 @@ class _SearchBar extends StatelessWidget {
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(24),
             borderSide: const BorderSide(color: AppTheme.primary, width: 1.5),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Arama odaklanınca sayfanın üstünde inline kart olarak açılan mutfaklar dropdown'ı.
-class _CategoryDropdown extends StatelessWidget {
-  final VoidCallback onDismiss;
-
-  const _CategoryDropdown({required this.onDismiss});
-
-  @override
-  Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.topCenter,
-      child: Container(
-        margin: const EdgeInsets.fromLTRB(12, 4, 12, 0),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.12),
-              blurRadius: 16,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
-                child: Text(
-                  'Mutfaklar',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: AppTheme.textPrimary,
-                  ),
-                ),
-              ),
-              ConstrainedBox(
-                constraints: BoxConstraints(
-                  maxHeight: MediaQuery.of(context).size.height * 0.45,
-                ),
-                child: const CategoryGrid(),
-              ),
-            ],
           ),
         ),
       ),

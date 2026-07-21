@@ -73,7 +73,7 @@ class _SortBottomSheet extends StatelessWidget {
             VenueSortOption.reviewCount,
             'Değerlendirme sayısına göre (çoktan aza)',
           ),
-          const SizedBox(height: AppTheme.bottomNavClearance),
+          const SizedBox(height: 8),
         ],
       ),
     );
