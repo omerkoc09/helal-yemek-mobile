@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"errors"
 
 	"github.com/gofiber/fiber/v2"
@@ -8,9 +9,22 @@ import (
 	"github.com/omerkoc/caiz-mi/internal/repository"
 )
 
+// correctionStore — CorrectionHandler'ın ihtiyaç duyduğu minimal arayüz.
+type correctionStore interface {
+	Create(ctx context.Context, cs *models.CorrectionSuggestion) error
+	ListPending(ctx context.Context) ([]models.CorrectionSuggestion, error)
+	FindByID(ctx context.Context, id string) (*models.CorrectionSuggestion, error)
+	UpdateStatus(ctx context.Context, id, adminID string, status models.CorrectionStatus, note *string) error
+}
+
+// auditLogger — admin işlemlerinin denetim kaydını yazar.
+type auditLogger interface {
+	Create(ctx context.Context, l *models.AuditLog) error
+}
+
 type CorrectionHandler struct {
-	correctionRepo *repository.CorrectionRepo
-	auditRepo      *repository.AuditRepo
+	correctionRepo correctionStore
+	auditRepo      auditLogger
 }
 
 func NewCorrectionHandler(correctionRepo *repository.CorrectionRepo, auditRepo *repository.AuditRepo) *CorrectionHandler {

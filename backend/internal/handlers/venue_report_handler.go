@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"errors"
 	"strings"
 
@@ -8,6 +9,13 @@ import (
 	"github.com/omerkoc/caiz-mi/internal/models"
 	"github.com/omerkoc/caiz-mi/internal/repository"
 )
+
+// reportStore — VenueReportHandler'ın ihtiyaç duyduğu minimal arayüz.
+type reportStore interface {
+	Create(ctx context.Context, rp *models.VenueReport) error
+	List(ctx context.Context) ([]models.VenueReport, error)
+	Resolve(ctx context.Context, id string) error
+}
 
 var validReasons = map[string]bool{
 	"closed":        true,
@@ -25,7 +33,7 @@ var reasonsRequiringNote = map[string]bool{
 }
 
 type VenueReportHandler struct {
-	reportRepo *repository.VenueReportRepo
+	reportRepo reportStore
 }
 
 func NewVenueReportHandler(reportRepo *repository.VenueReportRepo) *VenueReportHandler {

@@ -211,3 +211,58 @@ func TestDifferentRoles(t *testing.T) {
 		}
 	}
 }
+
+// TestTokenTypesAreNotInterchangeable — access ve refresh token'lar birbirinin
+// yerine geçmemeli.
+//
+// İkisi de aynı secret ve algoritmayla imzalanıp Subject'e kullanıcı id'si
+// koyduğu için, tip claim'i olmadan ayırt edilemezler. En tehlikeli yön
+// access -> refresh: access token her istekte gönderildiği için sızma olasılığı
+// yüksektir ve 15 dakikalık ömrü, 30 günlük refresh token'a çevrilebilseydi
+// kalıcı erişime dönüşürdü.
+func TestTokenTypesAreNotInterchangeable(t *testing.T) {
+	pair, err := GenerateTokenPair("user-1", "a@b.com", "traveler", testSecret)
+	if err != nil {
+		t.Fatalf("token üretme hatası: %v", err)
+	}
+
+	t.Run("access token refresh olarak kullanılamaz", func(t *testing.T) {
+		if _, err := ParseRefreshToken(pair.AccessToken, testSecret); err == nil {
+			t.Fatal("access token refresh olarak kabul edildi")
+		}
+	})
+
+	t.Run("refresh token access olarak kullanılamaz", func(t *testing.T) {
+		if _, err := ParseAccessToken(pair.RefreshToken, testSecret); err == nil {
+			t.Fatal("refresh token access olarak kabul edildi")
+		}
+	})
+
+	t.Run("her token kendi tipinde çalışır", func(t *testing.T) {
+		if _, err := ParseAccessToken(pair.AccessToken, testSecret); err != nil {
+			t.Fatalf("access token kendi tipinde parse edilemedi: %v", err)
+		}
+		uid, err := ParseRefreshToken(pair.RefreshToken, testSecret)
+		if err != nil {
+			t.Fatalf("refresh token kendi tipinde parse edilemedi: %v", err)
+		}
+		if uid != "user-1" {
+			t.Fatalf("userID %q, beklenen user-1", uid)
+		}
+	})
+
+	// typ claim'i hiç olmayan eski token'lar da reddedilmeli.
+	t.Run("tipsiz eski token reddedilir", func(t *testing.T) {
+		old := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.RegisteredClaims{
+			Subject:   "user-1",
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),
+		})
+		str, err := old.SignedString([]byte(testSecret))
+		if err != nil {
+			t.Fatalf("token imzalanamadı: %v", err)
+		}
+		if _, err := ParseRefreshToken(str, testSecret); err == nil {
+			t.Fatal("tipsiz token kabul edildi")
+		}
+	})
+}
