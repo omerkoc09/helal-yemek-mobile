@@ -41,6 +41,10 @@ type Config struct {
 	VerificationPeriodDays  int
 	VerificationWarningDays int
 	SchedulerRunHour        int
+
+	// Loglama
+	LogFormat string // "json" (prod) | "text" (geliştirme)
+	LogLevel  string // debug | info | warn | error
 }
 
 func Load() *Config {
@@ -68,6 +72,11 @@ func Load() *Config {
 		VerificationPeriodDays:  getEnvInt("VERIFICATION_PERIOD_DAYS", 180),
 		VerificationWarningDays: getEnvInt("VERIFICATION_WARNING_DAYS", 14),
 		SchedulerRunHour:        getEnvInt("SCHEDULER_RUN_HOUR", 2),
+
+		// Varsayılan json: prod'da log toplama araçları için. Geliştirmede
+		// LOG_FORMAT=text daha okunaklı.
+		LogFormat: getEnv("LOG_FORMAT", "json"),
+		LogLevel:  getEnv("LOG_LEVEL", "info"),
 	}
 }
 

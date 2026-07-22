@@ -1,0 +1,17 @@
+# Build context'i küçük tutar ve sırların imaja sızmasını engeller.
+.env
+*.env
+!.env.example
+
+# Yerel yüklemeler imaja girmemeli.
+uploads/
+
+# Test ve geliştirme artıkları
+*_test.go
+docker-compose.yml
+Dockerfile
+.dockerignore
+
+# Git
+.git
+.gitignore

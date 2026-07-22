@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -16,6 +17,7 @@ import (
 	"github.com/omerkoc/caiz-mi/internal/config"
 	"github.com/omerkoc/caiz-mi/internal/database"
 	"github.com/omerkoc/caiz-mi/internal/handlers"
+	"github.com/omerkoc/caiz-mi/internal/logging"
 	"github.com/omerkoc/caiz-mi/internal/middleware"
 	"github.com/omerkoc/caiz-mi/internal/repository"
 	"github.com/omerkoc/caiz-mi/internal/services"
@@ -25,8 +27,16 @@ import (
 // Bu süre dolarsa kalan bağlantılar zorla kapatılır.
 const shutdownTimeout = 15 * time.Second
 
+// readinessTimeout — /ready ucundaki DB ping'inin en fazla bekleyeceği süre.
+// Orkestratörün probe timeout'undan kısa olmalı ki cevap zamanında dönsün.
+const readinessTimeout = 2 * time.Second
+
 func main() {
 	cfg := config.Load()
+
+	// Loglamayı en başta kur: bundan sonraki tüm log çıktıları (stdlib log
+	// paketi dahil) yapılandırılmış formata döner.
+	logging.Setup(cfg.LogFormat, cfg.LogLevel)
 
 	// Zorunlu ayarlar — eksikse hiç açılma. Özellikle JWT_SECRET: boşken HS256
 	// boş anahtarla imzalar, uygulama sorunsuz çalışıyor görünür ama tüm
@@ -95,7 +105,26 @@ func main() {
 	})
 
 	app.Use(recover.New())
-	app.Use(fiberlogger.New())
+
+	// HTTP erişim logları — uygulama loglarıyla aynı formatta (JSON) olsun ki
+	// log toplama araçları tek şemayla işleyebilsin. Varsayılan fiberlogger
+	// kendi metin formatını kullanır ve yapılandırılmış çıktıyı bozardı.
+	// LOG_FORMAT=text seçildiğinde geliştirici için okunaklı biçime düşer.
+	accessLogFormat := `{"time":"${time}","level":"INFO","msg":"http_request","method":"${method}","path":"${path}","status":${status},"latency":"${latency}","ip":"${ip}"}` + "\n"
+	if strings.EqualFold(cfg.LogFormat, "text") {
+		accessLogFormat = "${time} ${status} ${latency} ${method} ${path}\n"
+	}
+	app.Use(fiberlogger.New(fiberlogger.Config{
+		Format:     accessLogFormat,
+		TimeFormat: time.RFC3339,
+		// Varsayılan ${latency} sabit genişlikte hizalanır ("   207µs");
+		// JSON'da bu boşluk dolgusu gereksiz ve ayrıştırmayı zorlaştırır.
+		CustomTags: map[string]fiberlogger.LogFunc{
+			"latency": func(output fiberlogger.Buffer, c *fiber.Ctx, _ *fiberlogger.Data, _ string) (int, error) {
+				return output.WriteString(time.Since(c.Context().Time()).String())
+			},
+		},
+	}))
 
 	// CORS — web admin paneli için (mobil native istemciyi etkilemez)
 	app.Use(cors.New(cors.Config{
@@ -106,10 +135,37 @@ func main() {
 	}))
 
 	// Sağlık kontrolü
+	// Liveness — süreç ayakta mı? Bilerek DB'ye DOKUNMAZ.
+	// DB kontrolü buraya konsaydı, geçici bir veritabanı kesintisinde
+	// orkestratör sağlıklı uygulama container'larını yeniden başlatır ve
+	// durumu daha da kötüleştirirdi.
 	app.Get("/health", func(c *fiber.Ctx) error {
 		return c.JSON(fiber.Map{
 			"status":  "ok",
 			"service": "caiz-mi-api",
+		})
+	})
+
+	// Readiness — trafik alabilir mi? DB erişimini gerçekten sınar.
+	// Başarısızsa 503 döner; orkestratör container'ı yeniden başlatmak yerine
+	// yük dengeleyiciden çıkarır.
+	app.Get("/ready", func(c *fiber.Ctx) error {
+		// Takılı bir DB'de probe'un asılı kalmaması için kısa timeout.
+		ctx, cancel := context.WithTimeout(c.Context(), readinessTimeout)
+		defer cancel()
+
+		if err := pool.Ping(ctx); err != nil {
+			log.Printf("readiness başarısız: %v", err)
+			return c.Status(fiber.StatusServiceUnavailable).JSON(fiber.Map{
+				"status":   "unavailable",
+				"service":  "caiz-mi-api",
+				"database": "unreachable",
+			})
+		}
+		return c.JSON(fiber.Map{
+			"status":   "ready",
+			"service":  "caiz-mi-api",
+			"database": "ok",
 		})
 	})
 
