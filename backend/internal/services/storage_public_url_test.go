@@ -3,7 +3,7 @@ package services
 import "testing"
 
 func TestPublicURL(t *testing.T) {
-	svc := &StorageService{baseURL: "http://localhost:8080/static"}
+	svc := NewStorageServiceWithBackend(&localBlobStore{baseURL: "http://localhost:8080/static"})
 
 	tests := []struct {
 		name string
@@ -54,7 +54,7 @@ func TestPublicURL(t *testing.T) {
 
 func TestPublicURLTrailingSlashInBase(t *testing.T) {
 	// baseURL sonunda eğik çizgi olsa da çift eğik çizgi üretilmemeli.
-	svc := &StorageService{baseURL: "http://localhost:8080/static/"}
+	svc := NewStorageServiceWithBackend(&localBlobStore{baseURL: "http://localhost:8080/static/"})
 	if got := svc.PublicURL("a.jpg"); got != "http://localhost:8080/static/a.jpg" {
 		t.Fatalf("alınan %q", got)
 	}

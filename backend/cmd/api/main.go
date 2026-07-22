@@ -75,7 +75,29 @@ func main() {
 
 	// Service katmanı
 	authService := services.NewAuthService(userRepo, loginRepo, cfg.JWTSecret, cfg.GoogleClientID)
-	storageService := services.NewStorageService("./uploads", cfg.StorageURL+"/static")
+	// Depolama arka ucu: S3_ENDPOINT tanımlıysa S3, değilse yerel disk.
+	// S3 yapılandırması hatalıysa BURADA fail-fast yapılır — aksi halde sorun
+	// ilk fotoğraf yüklenene kadar gizli kalır ve kullanıcı hatasıyla karışır.
+	var storageService *services.StorageService
+	if cfg.S3Enabled() {
+		s3Store, err := services.NewS3BlobStore(context.Background(), services.S3Config{
+			Endpoint:   cfg.S3Endpoint,
+			AccessKey:  cfg.S3AccessKey,
+			SecretKey:  cfg.S3SecretKey,
+			Bucket:     cfg.StorageBucket,
+			Region:     cfg.S3Region,
+			UseSSL:     cfg.S3UseSSL,
+			PublicBase: cfg.S3PublicBase,
+		})
+		if err != nil {
+			log.Fatalf("S3 depolama kurulamadı: %v", err)
+		}
+		storageService = services.NewStorageServiceWithBackend(s3Store)
+		log.Printf("depolama: S3 (bucket=%s)", cfg.StorageBucket)
+	} else {
+		storageService = services.NewStorageService("./uploads", cfg.StorageURL+"/static")
+		log.Println("depolama: yerel disk (./uploads) — prod'da volume veya S3 gerekir")
+	}
 
 	// Fotoğraf ve kategori görselleri DB'de anahtar olarak saklanır; tam URL
 	// okuma anında burada bağlanan çözücüyle üretilir. Bağlanmazsa istemciye
