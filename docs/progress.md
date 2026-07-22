@@ -617,18 +617,81 @@ yemek kategorilerini birlikte taşıyor.
 yapmak ters sıra olurdu; artık güvenlik ağı kurulduğu için bölme güvenle yapılabilir.
 Arayüzler bölünmeden sonra doğal olarak küçük parçalara ayrılmalı.
 
-### 🟠 Faz 2 — Prod Altyapısı (~2 gün) `[ ]`
+### 🟠 Faz 2 — Prod Altyapısı — 🔶 ÇEKİRDEK TAMAMLANDI (2026-07-22)
 
-Şu an **Dockerfile yok, CI yok.** 27 test mevcut ama koşturacak bir yer yok.
+- [x] **CI pipeline** (`.github/workflows/ci.yml`) — backend (build, vet, birim testleri
+      `-race`, integration testleri) + mobil (analyze, test). `go.mod`/`go.sum` güncelliği
+      de kontrol ediliyor; aynı dala arka arkaya push'ta eski koşu iptal ediliyor.
 
-- [ ] Multi-stage Dockerfile (backend)
-- [ ] CI pipeline: `go test ./...` + `go vet` + `flutter analyze` + `flutter test`
-- [ ] Structured logging — şu an 38 adet `log.Printf`; `log/slog`'a geçiş
-- [ ] Readiness probe — `/health` var ama **DB ping'i yapmıyor**, DB ölse bile "sağlıklı" der
+      *Yerelde önden denendi ve iyi olmuş:* `go mod tidy` değişiklik üretiyordu —
+      `testcontainers-go` `// indirect` işaretliydi ama integration testleri onu doğrudan
+      import ediyor. Düzeltilmiş `go.mod`/`go.sum` commit'lendi, aksi halde CI ilk koşuda
+      kırılacaktı.
+
+      ⚠️ `flutter analyze` mevcut 25 deprecation (info) yüzünden çıkış kodu 1 veriyordu.
+      `--no-fatal-infos` kullanıldı: **yeni** warning/error build'i kırar, eski info'lar
+      kırmaz. Tek gerçek warning (kullanılmayan `_fakeLocationProvider`) silindi.
+      **Bu bayrak, deprecation'lar giderilince kaldırılmalı.**
+
+- [x] **Multi-stage Dockerfile** — CGO kapalı statik binary, **71 MB** alpine imaj, root
+      olmayan kullanıcı (uid 10001), `ca-certificates` (Google API çağrıları) + `tzdata`
+      (scheduler yerel saate bağlı). Migration'lar `go:embed` ile gömülü olduğundan ayrıca
+      kopyalanmıyor. `.dockerignore` ile `.env` ve `uploads/` imaja sızmıyor.
+      *Doğrulama:* imaj derlendi, gerçek DB'ye karşı çalıştırıldı, istek karşıladı.
+
+- [x] **Readiness probe ayrımı**
+      `/health` (liveness) bilerek **DB'ye dokunmaz** — DB kontrolü buraya konsaydı geçici
+      bir kesintide orkestratör sağlıklı container'ları yeniden başlatır ve durumu
+      kötüleştirirdi. `/ready` (readiness) DB'yi 2 sn timeout'la ping'ler, başarısızsa
+      **503** döner → orkestratör yeniden başlatmak yerine yük dengeleyiciden çıkarır.
+      *Doğrulama:* gerçek DB durduruldu → `/ready` 503, `/health` 200; DB dönünce `/ready`
+      tekrar 200.
+
+- [x] **Yapılandırılmış loglama** (`internal/logging`, %100 kapsam)
+      `slog.SetDefault` stdlib `log` paketini de yönlendirdiği için koddaki **43 mevcut
+      `log.Printf` çağrısı tek satır değiştirilmeden** JSON'a döndü. `LOG_FORMAT`
+      (json|text) ve `LOG_LEVEL` env'den; tanınmayan seviye info'ya düşer ki yanlış
+      yazılmış bir değer logları tamamen susturmasın. HTTP erişim logları da aynı JSON
+      şemasına alındı (fiberlogger'ın varsayılan metin formatı yapılandırılmış çıktıyı
+      bozuyordu).
+
+- [x] **`.env.example` tamamlandı** — config'deki 18 değişkenin tamamı, her birinin ne işe
+      yaradığı ve tuzakları (`STORAGE_URL`'in DB'ye gömülmesi, `WARNING_DAYS`'in mobil
+      sabitle eşleşme zorunluluğu, SMTP boşsa e-postanın sessizce devre dışı kalması).
+
+**Kalan (dış bağımlılık gerektiriyor — hosting kararı verilmeden yapılamaz):**
 - [ ] Prod secret yönetimi (env injection, `.env` dosyası değil)
 - [ ] SSL/TLS + HTTPS yapılandırması
 - [ ] DB backup stratejisi
 - [ ] Monitoring + alerting
+- [ ] Uygulama container'ı için `docker-compose` servisi (şu an yalnızca `db` var)
+
+⚠️ **CI henüz GitHub'da koşmadı.** YAML ve adımlar yerelde doğrulandı, ama runner
+ortamında (Flutter kurulumu, testcontainers) sürpriz çıkabilir. İlk push'ta izlenmeli.
+
+#### ⚠️ Faz 2'de fark edilen veri sorunu — mevcut mekanlar askıya alınmış
+
+Docker imajı gerçek DB'ye karşı denenirken çıktı: **üç mekanın da durumu `suspended`.**
+
+```
+Tarihi Erzurum Kebapçısı | suspended | verification_due_at 2026-07-13
+Döneristanbul Fatih      | suspended | verification_due_at 2026-07-13
+Esenler döner            | suspended | verification_due_at 2026-07-13
+```
+
+Sebep: `VERIFICATION_PERIOD_DAYS` 2 → 180 değişikliği **mevcut satırları geriye dönük
+güncellemiyor.** Bu kayıtların `verification_due_at` değeri eski 2 günlük periyoda göre
+hesaplanmıştı, 13 Temmuz'da doldu ve scheduler hepsini askıya aldı. Mekanlar artık
+listelerde görünmüyor (`/venues/nearby` → `count: 0`).
+
+Config değişikliği yapılırken bu öngörülmedi; yalnızca yeni kayıtlar düşünülmüştü.
+
+- [ ] **Karar gerekiyor:** askıdaki test mekanları canlandırılsın mı?
+      Tek `UPDATE` ile `verification_due_at` yeni periyoda göre ileri taşınıp `status`
+      `approved`'a döndürülebilir. Ancak bu, "askıya alma" iş kuralını elle ezmek demek —
+      bilinçli bir karar olmalı. Prod'da benzer bir periyot değişikliği yapılırsa aynı
+      durum gerçek verilerde oluşur; **periyot değişikliği yanına bir veri migrasyonu
+      düşünülmeli.**
 
 ### 🟠 Faz 3 — S3 Depolama (~1-2 gün) `[ ]`
 
@@ -711,7 +774,7 @@ geçildiği anda sorun akut hâle geliyor.
 | Faz A | Android platform paritesi (SDK, izinler, URL, SHA-1, signing) | ✅ **Tamamlandı** — APK build ediliyor. Tek kalan: release keystore (Faz 4) |
 | Faz 0 | Sessiz katiller (JWT fail-fast, SSRF, shutdown, DB pool, Maps key) | ✅ Kod maddeleri tamam — Maps anahtarı bölme bekliyor |
 | Faz 1 | Test kapsamı (handlers %39.9, services %29.7, jwt %85.7) | ✅ Kritik yollar kapsandı; 1 güvenlik açığı bulunup düzeltildi (JWT tip ayrımı) |
-| Faz 2 | Prod altyapı (Docker, CI, logging, readiness) | ⬜ Başlanmadı |
+| Faz 2 | Prod altyapı (Docker, CI, logging, readiness) | 🔶 Çekirdek tamam — secret/TLS/backup/monitoring hosting kararına bağlı |
 | Faz 3 | S3 depolama | ⬜ Başlanmadı |
 | Faz 4 | Store yayını | ⬜ Başlanmadı |
 

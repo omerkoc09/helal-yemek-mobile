@@ -6,9 +6,6 @@ import 'package:caiz_mi/core/auth/auth_provider.dart';
 import 'package:caiz_mi/features/notifications/providers/notification_provider.dart';
 import 'package:caiz_mi/shared/widgets/app_header.dart';
 
-// Konum provider'ı sabit değerle override etmek için.
-final _fakeLocationProvider = FutureProvider<String>((_) async => 'Test Şehir');
-
 class _FakeAuthNotifier extends AuthNotifier {
   final bool _isAuth;
   _FakeAuthNotifier(this._isAuth);

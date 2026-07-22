@@ -1,0 +1,79 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Aynı dal için arka arkaya push yapılırsa eski koşuyu iptal et.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend (build, vet, test)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Go kurulumu
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+
+      - name: Bağımlılıkları indir
+        run: go mod download
+
+      - name: go.mod / go.sum güncel mi
+        # go mod tidy çıktı üretiyorsa bağımlılıklar commit'lenmemiş demektir.
+        run: |
+          go mod tidy
+          git diff --exit-code go.mod go.sum
+
+      - name: Derleme
+        run: go build ./...
+
+      - name: go vet
+        run: go vet ./...
+
+      - name: Birim testleri (-race)
+        run: go test -race -count=1 ./...
+
+      - name: Integration testleri
+        # testcontainers gerçek Postgres ayağa kaldırır; ubuntu runner'da Docker hazır.
+        run: go test -race -count=1 -tags=integration ./internal/repository/
+
+  mobile:
+    name: Mobil (analyze, test)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Flutter kurulumu
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.41.2'
+          channel: stable
+          cache: true
+
+      - name: Bağımlılıklar
+        run: flutter pub get
+
+      - name: Analyze
+        # --no-fatal-infos: 25 adet pre-existing deprecation uyarısı (Radio API)
+        # build'i kırmasın, ama YENİ warning ve error kırsın.
+        # Bu bayrak, deprecation'lar giderildiğinde kaldırılmalı.
+        run: flutter analyze --no-fatal-infos
+
+      - name: Testler
+        run: flutter test
