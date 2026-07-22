@@ -230,6 +230,14 @@ func main() {
 		middleware.RequireRole("guide", "admin"),
 		venueHandler.PreviewLocationFromLink,
 	)
+	// Google Places fotoğraf proxy'si — API anahtarı istemciye gitmesin diye.
+	// place-preview ile aynı yetki seviyesinde: fotoğraflar yalnızca mekan
+	// ekleme akışında kullanılıyor ve uç açık olsaydı kota tüketilebilirdi.
+	api.Get("/places/photo",
+		middleware.Auth(cfg.JWTSecret),
+		middleware.RequireRole("guide", "admin"),
+		venueHandler.PlacePhotoProxy,
+	)
 	api.Get("/venues/check-duplicate",
 		middleware.Auth(cfg.JWTSecret),
 		middleware.RequireRole("guide", "admin"),

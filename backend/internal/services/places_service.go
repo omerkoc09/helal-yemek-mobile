@@ -1,8 +1,10 @@
 package services
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"math"
 	"net/http"
 	"net/url"
@@ -193,21 +195,32 @@ func (s *PlacesService) GetAddressComponents(placeID string) (*AddressComponents
 	return components, nil
 }
 
-// BuildPhotoURL — photo_reference üzerinden Google Places Photo API URL'si oluşturur.
-// maxWidth piksel cinsinden maksimum genişliktir (örn: 800).
+// PhotoProxyPath — istemciye verilen fotoğraf adresinin yolu.
+const PhotoProxyPath = "/api/v1/places/photo"
+
+// BuildPhotoURL — istemcinin kullanacağı fotoğraf adresini üretir.
+//
+// ÖNEMLİ: Bu adres artık Google'a DEĞİL, kendi proxy ucumuza işaret eder.
+// Önceden doğrudan Google Places Photo URL'si üretiliyordu ve API anahtarı
+// sorgu parametresinde istemciye gidiyordu. Anahtar hem sunucudan (Places API)
+// hem her kullanıcının cihazından kullanıldığı için Cloud Console'da hiçbir
+// uygulama kısıtlaması alamıyordu: IP'ye kısıtlansa mobil önizleme, paket
+// adına kısıtlansa sunucu çağrıları kırılırdı. Proxy sayesinde anahtar
+// yalnızca sunucuda kalır ve kısıtlanabilir hale gelir.
+//
+// photo_reference gizli değildir; Google'ın kendi tanımlayıcısıdır.
 func (s *PlacesService) BuildPhotoURL(photoReference string, maxWidth int) string {
 	if s.apiKey == "" || photoReference == "" {
 		return ""
 	}
 	params := url.Values{
-		"photo_reference": {photoReference},
-		"maxwidth":        {fmt.Sprintf("%d", maxWidth)},
-		"key":             {s.apiKey},
+		"ref": {photoReference},
+		"w":   {fmt.Sprintf("%d", maxWidth)},
 	}
-	return "https://maps.googleapis.com/maps/api/place/photo?" + params.Encode()
+	return PhotoProxyPath + "?" + params.Encode()
 }
 
-// BuildPhotoURLs — birden fazla photo_reference için URL listesi oluşturur.
+// BuildPhotoURLs — birden fazla photo_reference için proxy adresi listesi.
 func (s *PlacesService) BuildPhotoURLs(photoReferences []string, maxWidth int) []string {
 	urls := make([]string, 0, len(photoReferences))
 	for _, ref := range photoReferences {
@@ -216,6 +229,40 @@ func (s *PlacesService) BuildPhotoURLs(photoReferences []string, maxWidth int) [
 		}
 	}
 	return urls
+}
+
+// FetchPhoto — photo_reference'ı Google'dan indirir ve içeriği döndürür.
+// Anahtar burada, sunucu tarafında eklenir; istemciye asla gitmez.
+// Çağıranın dönen ReadCloser'ı kapatması gerekir.
+func (s *PlacesService) FetchPhoto(ctx context.Context, photoReference string, maxWidth int) (io.ReadCloser, string, error) {
+	if s.apiKey == "" {
+		return nil, "", fmt.Errorf("places api anahtarı tanımlı değil")
+	}
+	if photoReference == "" {
+		return nil, "", fmt.Errorf("photo_reference zorunludur")
+	}
+
+	params := url.Values{
+		"photo_reference": {photoReference},
+		"maxwidth":        {fmt.Sprintf("%d", maxWidth)},
+		"key":             {s.apiKey},
+	}
+	target := "https://maps.googleapis.com/maps/api/place/photo?" + params.Encode()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, target, nil)
+	if err != nil {
+		return nil, "", err
+	}
+
+	resp, err := s.client.Do(req)
+	if err != nil {
+		return nil, "", err
+	}
+	if resp.StatusCode != http.StatusOK {
+		resp.Body.Close()
+		return nil, "", fmt.Errorf("google fotoğraf yanıtı: %d", resp.StatusCode)
+	}
+	return resp.Body, resp.Header.Get("Content-Type"), nil
 }
 
 // geocodeResponse — Google Geocoding API yanıtı.

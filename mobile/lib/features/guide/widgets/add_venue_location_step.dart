@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/api/media_url.dart';
+import '../../../core/auth/auth_provider.dart';
 import '../../../core/models/venue.dart';
 import '../../../core/theme/app_theme.dart';
 import '../providers/guide_provider.dart';
@@ -18,6 +20,23 @@ class AddVenueLocationStep extends ConsumerStatefulWidget {
 class _AddVenueLocationStepState extends ConsumerState<AddVenueLocationStep> {
   final _linkController = TextEditingController();
   Venue? _duplicateVenue;
+
+  /// Places fotoğraf proxy'si yetki istiyor (guide/admin) ve Image.network
+  /// varsayılan olarak Authorization başlığı göndermez. Token bir kez okunup
+  /// tüm önizleme görselleri için kullanılıyor.
+  String? _authToken;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAuthToken();
+  }
+
+  Future<void> _loadAuthToken() async {
+    final token = await ref.read(tokenStorageProvider).getAccessToken();
+    if (!mounted) return;
+    setState(() => _authToken = token);
+  }
 
   @override
   void dispose() {
@@ -248,8 +267,12 @@ class _AddVenueLocationStepState extends ConsumerState<AddVenueLocationStep> {
                           ClipRRect(
                             borderRadius: BorderRadius.circular(8),
                             child: Image.network(
-                              url,
+                              resolveMediaUrl(url),
                               fit: BoxFit.cover,
+                              headers: requiresAuthHeader(url) &&
+                                      _authToken != null
+                                  ? {'Authorization': 'Bearer $_authToken'}
+                                  : null,
                               errorBuilder: (context, error, _) =>
                                   const SizedBox.shrink(),
                             ),
