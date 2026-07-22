@@ -15,9 +15,25 @@ import (
 	jwtpkg "github.com/omerkoc/caiz-mi/pkg/jwt"
 )
 
+// authUserStore — AuthService'in kullanıcı deposundan ihtiyaç duyduğu metotlar.
+// *repository.UserRepo bunu otomatik karşılar; testte sahte uygulama kullanılır.
+type authUserStore interface {
+	EmailExists(ctx context.Context, email string) (bool, error)
+	Create(ctx context.Context, u *models.User) error
+	FindByEmail(ctx context.Context, email string) (*models.User, error)
+	FindByProviderID(ctx context.Context, provider, providerID string) (*models.User, error)
+	FindByID(ctx context.Context, id string) (*models.User, error)
+	Update(ctx context.Context, id string, name, surname, phone, email *string, role *models.Role, isActive *bool, guideCity *string) error
+}
+
+// loginRecorder — giriş kaydını arka planda yazar.
+type loginRecorder interface {
+	Record(ctx context.Context, userID string) error
+}
+
 type AuthService struct {
-	userRepo       *repository.UserRepo
-	loginRepo      *repository.LoginRepo
+	userRepo       authUserStore
+	loginRepo      loginRecorder
 	jwtSecret      string
 	googleClientID string
 	appleService   *AppleService
