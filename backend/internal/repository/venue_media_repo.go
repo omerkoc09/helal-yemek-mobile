@@ -38,6 +38,8 @@ func (r *VenueRepo) GetPhotosByVenueID(ctx context.Context, venueID string) ([]m
 		if err := rows.Scan(&p.ID, &p.VenueID, &p.URL, &p.UploadedBy, &p.IsPrimary, &p.CreatedAt); err != nil {
 			return nil, err
 		}
+		// DB'de anahtar saklanır; istemciye tam URL gider.
+		p.URL = r.publicURL(p.URL)
 		list = append(list, p)
 	}
 	if list == nil {
@@ -71,5 +73,8 @@ func (r *VenueRepo) FindPhotoByID(ctx context.Context, photoID string) (*models.
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
 	}
+	// Tam URL'e çevrilir; silme akışı da bunu kabul eder (Delete filepath.Base
+	// kullandığı için hem anahtar hem tam URL ile çalışır).
+	p.URL = r.publicURL(p.URL)
 	return p, err
 }

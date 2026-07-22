@@ -16,6 +16,14 @@ import (
 
 // StorageService — fotoğraf yükleme işlemlerini yönetir.
 // Şu an local disk'e kaydeder; ileride S3 ile değiştirilebilir.
+//
+// Upload/DownloadAndStore artık TAM URL değil, dosya ANAHTARI (key) döndürür;
+// anahtar veritabanına yazılır ve genel URL okuma anında PublicURL ile üretilir.
+//
+// Neden: tam URL saklandığında ortam her değiştiğinde veri migrasyonu gerekiyordu.
+// Android emülatörü için localhost -> LAN IP değişiminde bu bedel bir kez ödendi
+// (ve food_categories tablosu o sırada gözden kaçtı). Prod'a geçiş ve S3 taşıması
+// aynı bedeli tekrar doğururdu.
 type StorageService struct {
 	baseDir    string // örn: "./uploads"
 	baseURL    string // örn: "http://localhost:8080/static"
@@ -43,7 +51,23 @@ func NewStorageService(baseDir, baseURL string) *StorageService {
 	}
 }
 
-// Upload — dosyayı diske kaydeder, erişim URL'sini döndürür.
+// PublicURL — depolanmış anahtarı istemcinin erişebileceği tam URL'e çevirir.
+//
+// Geriye dönük uyumluluk: anahtar zaten "http://" veya "https://" ile başlıyorsa
+// (migration öncesinden kalan eski kayıtlar) olduğu gibi döndürülür. Böylece
+// migration uygulanmamış bir ortamda fotoğraflar kırılmaz.
+// Boş anahtar boş string döner — çağıran taraf "görsel yok" durumunu ayırt edebilsin.
+func (s *StorageService) PublicURL(key string) string {
+	if key == "" {
+		return ""
+	}
+	if strings.HasPrefix(key, "http://") || strings.HasPrefix(key, "https://") {
+		return key
+	}
+	return fmt.Sprintf("%s/%s", strings.TrimRight(s.baseURL, "/"), strings.TrimLeft(key, "/"))
+}
+
+// Upload — dosyayı diske kaydeder, dosya ANAHTARINI döndürür (tam URL değil).
 func (s *StorageService) Upload(_ context.Context, file multipart.File, filename string) (string, error) {
 	ext := strings.ToLower(filepath.Ext(filename))
 	if ext != ".jpg" && ext != ".jpeg" && ext != ".png" && ext != ".webp" {
@@ -63,7 +87,7 @@ func (s *StorageService) Upload(_ context.Context, file multipart.File, filename
 		return "", fmt.Errorf("dosya yazılamadı: %w", err)
 	}
 
-	return fmt.Sprintf("%s/%s", strings.TrimRight(s.baseURL, "/"), uniqueName), nil
+	return uniqueName, nil
 }
 
 // DownloadAndStore — uzak bir URL'den fotoğrafı indirir, diske kaydeder ve kendi URL'sini döndürür.
@@ -112,11 +136,14 @@ func (s *StorageService) DownloadAndStore(ctx context.Context, photoURL string) 
 		return "", fmt.Errorf("dosya yazılamadı: %w", err)
 	}
 
-	return fmt.Sprintf("%s/%s", strings.TrimRight(s.baseURL, "/"), uniqueName), nil
+	return uniqueName, nil
 }
 
 // Delete — dosyayı diskten siler.
-func (s *StorageService) Delete(_ context.Context, fileURL string) error {
-	filename := filepath.Base(fileURL)
+// Delete — anahtarla (veya geriye dönük uyumluluk için tam URL'le) dosyayı siler.
+// filepath.Base her iki biçimde de doğru dosya adını verir ve aynı zamanda
+// path traversal'a karşı korur ("../../etc/passwd" -> "passwd").
+func (s *StorageService) Delete(_ context.Context, keyOrURL string) error {
+	filename := filepath.Base(keyOrURL)
 	return os.Remove(filepath.Join(s.baseDir, filename))
 }

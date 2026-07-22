@@ -76,6 +76,11 @@ func main() {
 	// Service katmanı
 	authService := services.NewAuthService(userRepo, loginRepo, cfg.JWTSecret, cfg.GoogleClientID)
 	storageService := services.NewStorageService("./uploads", cfg.StorageURL+"/static")
+
+	// Fotoğraf ve kategori görselleri DB'de anahtar olarak saklanır; tam URL
+	// okuma anında burada bağlanan çözücüyle üretilir. Bağlanmazsa istemciye
+	// çıplak dosya adı gider — bu yüzden storageService oluşur oluşmaz bağlanıyor.
+	venueRepo.WithURLResolver(storageService)
 	placesService := services.NewPlacesService(cfg.GoogleMapsAPIKey)
 
 	var emailSvc services.EmailService
