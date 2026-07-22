@@ -504,14 +504,17 @@ sessizce zarar vermeleri.
         proxy fotoğraf URL mimarisini baştan yazıyor, S3 geçişi de aynı yeri yazıyor —
         şimdi yapılırsa iki kez yazılmış olur.
 
-### 🟠 Faz 1 — Güvenlik Ağı: Test Kapsamı — 🔶 BÜYÜK ÖLÇÜDE TAMAMLANDI (2026-07-22)
+### 🟠 Faz 1 — Güvenlik Ağı: Test Kapsamı — ✅ KRİTİK YOLLAR TAMAMLANDI (2026-07-22)
 
 | Paket | Başlangıç | Şimdi |
 |-------|:---------:|:-----:|
 | `models` | %100 | %100 ✅ |
+| `pkg/jwt` | — | **%85.7** ✅ |
 | `middleware` | %63.8 | %63.8 ✅ |
 | `handlers` | **%6.4** 🔴 | **%39.9** 🔶 |
-| `services` | %14.3 ⚠️ | %14.3 ⚠️ (ele alınmadı) |
+| `services` | **%14.3** ⚠️ | **%29.7** 🔶 |
+
+Tüm testler `-race` altında da temiz.
 
 **Yaklaşım kararı:** Handler'lar somut `*repository.X` tiplerine bağlı olduğu için fake
 verilemiyordu. Projenin mevcut kalıbı (`guideCityGetter`, `NotificationStore`,
@@ -544,12 +547,38 @@ inceleme/başvuru/yorum durumlarının 409 döndüğü, rehber şehrinin repo'ya
 - [x] Handler testleri: auth akışı
 - [x] Handler testleri: venue onaylama/doğrulama + yetki sınırları
 - [x] Handler testleri: admin moderasyon ve kullanıcı yönetimi
+- [x] `auth_service` çekirdeği (Register %91, Login %94, RefreshTokens %93, GetUser/UpdateProfile %100)
+      — şifre hash'leme, email normalizasyonu, email enumeration koruması, devre dışı hesap
+      kontrolü, farklı secret'la imzalanmış token reddi
 - [ ] Kalan düşük riskli uçlar (yemek kategorileri, istatistikler, listeler) — %50'ye ulaşmak
       için gerekli, ama regresyon koruması açısından değeri düşük
-- [ ] `services` %14.3 → %40 (hiç ele alınmadı)
+- [ ] `LoginWithGoogle` / `LoginWithApple` — Google ve Apple'ın **canlı token doğrulama
+      servislerine ağ çağrısı** gerektiriyorlar; test için `idtoken.Validate` ve `AppleService`
+      soyutlanmalı. *Not: "auth tamamen test edildi" sanılmasın — sosyal giriş yolları %0.*
+- [ ] `places_service` (%0, 248 sat.), `email_service` (%0, 83 sat.) — dış servis
+      sarmalayıcıları, risk düşük
 - [ ] Mobil: 18.860 satıra karşılık 9 test dosyası — backend'den sonra
 
-#### 🔴 Faz 1'de ortaya çıkan iki bulgu
+#### 🔴 Faz 1'de ortaya çıkan üç bulgu
+
+**0. GÜVENLİK: access token, refresh token olarak kullanılabiliyordu — DÜZELTİLDİ**
+`auth_service` testleri yazılırken bulundu (kod okurken değil). Access ve refresh token'lar
+aynı secret ve algoritmayla imzalanıyor, ikisi de `Subject`'e kullanıcı id'si koyuyor ve
+birbirinden ayırt edilebilir hiçbir claim taşımıyordu → `ParseRefreshToken` bir access
+token'ı sorunsuz kabul ediyordu.
+
+*Etkisi:* Access token her istekte gönderildiği için (log, proxy, hata raporu, tarayıcı
+geçmişi) sızma olasılığı yüksek ve ömrü bilinçli olarak **15 dakika**. Sızan bir access
+token `/auth/refresh`'e verilerek **30 günlük** taze refresh token'a çevrilebiliyordu —
+kısa pencere kalıcı erişime dönüşüyordu.
+
+*Çözüm:* Her iki token'a `typ` claim'i eklendi, iki parse fonksiyonu da tipi doğruluyor.
+Refresh token kasıtlı olarak minimal tutuldu (yalnızca `subject` + `typ`): JWT içeriği
+okunabilir ve refresh token uzun ömürlü olduğu için email/rol taşınmıyor.
+
+⚠️ **KIRICI:** `typ` taşımayan mevcut token'lar geçersiz olur, kullanıcılar bir kez yeniden
+giriş yapar. Uygulama yayında olmadığı için bedeli düşük. Tipsiz eski token'ın reddedildiği
+ayrıca test edildi.
 
 **1. Kısmi başarısızlık: guide rolü var ama şehri yok**
 `ApproveApplication` içinde `UpdateRole` başarılı olup `SetGuideCity` hata verirse istek yine
@@ -681,7 +710,7 @@ geçildiği anda sorun akut hâle geliyor.
 |-----|--------|-------|
 | Faz A | Android platform paritesi (SDK, izinler, URL, SHA-1, signing) | ✅ **Tamamlandı** — APK build ediliyor. Tek kalan: release keystore (Faz 4) |
 | Faz 0 | Sessiz katiller (JWT fail-fast, SSRF, shutdown, DB pool, Maps key) | ✅ Kod maddeleri tamam — Maps anahtarı bölme bekliyor |
-| Faz 1 | Test kapsamı (handlers %6.4 → **%39.9**) | 🔶 Kritik yollar kapsandı — services ve düşük riskli uçlar kaldı |
+| Faz 1 | Test kapsamı (handlers %39.9, services %29.7, jwt %85.7) | ✅ Kritik yollar kapsandı; 1 güvenlik açığı bulunup düzeltildi (JWT tip ayrımı) |
 | Faz 2 | Prod altyapı (Docker, CI, logging, readiness) | ⬜ Başlanmadı |
 | Faz 3 | S3 depolama | ⬜ Başlanmadı |
 | Faz 4 | Store yayını | ⬜ Başlanmadı |
