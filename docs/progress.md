@@ -693,23 +693,47 @@ Config değişikliği yapılırken bu öngörülmedi; yalnızca yeni kayıtlar d
       durum gerçek verilerde oluşur; **periyot değişikliği yanına bir veri migrasyonu
       düşünülmeli.**
 
-### 🟠 Faz 3 — S3 Depolama (~1-2 gün) `[ ]`
+### 🟠 Faz 3 — S3 Depolama & Fotoğraf Proxy — ✅ TAMAMLANDI (2026-07-22/23)
 
-`storage_service.go:18` hâlâ local disk'e yazıyor ("ileride S3 ile değiştirilebilir" notu duruyor).
-Container yeniden başlayınca **yüklenen tüm fotoğraflar gider.** Faz 2'den sonra, çünkü Docker'a
-geçildiği anda sorun akut hâle geliyor.
+- [x] **Göreli yol sakla (mimari borç)** — `migration 039`
+      Fotoğraf ve kategori görselleri artık DB'ye TAM URL değil dosya ANAHTARI olarak yazılıyor;
+      tam URL okuma anında `StorageService.PublicURL` ile üretiliyor. Bu borcun bedeli oturum
+      içinde zaten iki kez görülmüştü: emülatör için `localhost → LAN IP` değişiminde
+      `venue_photos` elle güncellendi ve o sırada **`food_categories` gözden kaçtı** (14 kategori
+      görseli localhost'ta kaldı). Migration 039 her iki tabloyu da (17 kayıt) düzeltti.
+      `PublicURL` geriye dönük uyumlu: `http(s)://` ile başlayan eski değerler olduğu gibi döner.
+      **ASIL KAZANÇ İSPATLANDI:** aynı veri, DB'ye hiç dokunulmadan `STORAGE_URL=https://cdn...`
+      ile çalıştırıldığında URL'ler yeni adrese göre üretildi → ortam değişikliği artık veri
+      migrasyonu gerektirmiyor. `down` migration bilinçli no-op (atılan ön ek DB'de saklanmıyor).
 
-- [ ] **Göreli yol sakla (mimari borç)** 🔴 *2026-07-21 emülatör testinde ortaya çıktı*
-      `storage_service.go:54,98` **tam URL** üretiyor (`STORAGE_URL` + dosya adı) ve bu URL
-      `venue_photos.url` sütununa **olduğu gibi yazılıyor**. Sonuç: ortam her değiştiğinde veri
-      migrasyonu gerekiyor. Bugün Android emülatörü için `localhost` → `192.168.1.5` UPDATE'i
-      çalıştırmak zorunda kaldık (3 satır). **Aynı migrasyon prod'a geçerken ve S3'e taşınırken
-      tekrar gerekecek.** Çözüm: DB'ye sadece dosya adı yaz, URL'i okuma anında üret
-      (`cfg.StorageURL + "/static/" + name`). S3 geçişiyle birlikte yapılmalı — orada zaten
-      URL şeması değişiyor, iki migrasyon yerine tek seferde çözülür.
-- [ ] S3/MinIO entegrasyonu (`StorageService` arkasına, arayüz zaten uygun)
-- [ ] Boyutlandırma/sıkıştırma (thumbnail, medium, full)
-- [ ] CDN entegrasyonu
+- [x] **S3/MinIO entegrasyonu** — `BlobStore` arayüzü + `localBlobStore` + `s3BlobStore`
+      Uzantı doğrulama, anahtar üretimi ve SSRF koruması arka uçtan bağımsız politikalar olarak
+      `StorageService`'te kaldı; `BlobStore` yalnızca baytların nereye yazıldığını soyutluyor.
+      Kütüphane: `minio-go` (aws-sdk-go-v2 yerine) — S3 API standart olduğu için aynı kod AWS S3,
+      Cloudflare R2, DigitalOcean Spaces ve MinIO ile çalışıyor. `S3_ENDPOINT` doluysa S3, boşsa
+      yerel disk. Yapılandırma hatalıysa açılışta **fail-fast** (bucket yoksa/kimlik yanlışsa).
+      **Doğrulama:** GERÇEK MinIO'ya karşı (testcontainers) yazma/okuma/Content-Type/silme +
+      fail-fast; ayrıca uygulama S3 moduyla başlatılıp bucket doğrulamasının geçtiği görüldü.
+      *Bilinen sınır:* statik erişim anahtarı kullanıyor; AWS IAM rol tabanlı kimlik gerekirse
+      aws-sdk-go-v2'ye geçiş `BlobStore` arkasında kalır.
+
+- [x] **Fotoğraf proxy'si** — Faz 0'dan devreden Maps anahtarı güvenlik borcu KAPANDI
+      `BuildPhotoURL` artık Google'a değil kendi ucumuza (`/api/v1/places/photo`) işaret ediyor;
+      `PlacePhotoProxy` fotoğrafı sunucu tarafında çekip akıtıyor. **API anahtarı artık istemciye
+      hiç gitmiyor → Cloud Console'da IP kısıtlaması uygulanabilir.** Uç guide/admin korumalı
+      (kota koruması), genişlik 100-1600'e sıkıştırılmış (kota/bant genişliği koruması),
+      `Cache-Control: private, max-age=86400`. Mobil tarafı da uyarlandı (`resolveMediaUrl` +
+      `requiresAuthHeader` + Authorization başlığı) — aksi halde önizleme sessizce kırılırdı.
+      *Test edilmeyen:* `FetchPhoto`'nun mutlu yolu (Google'dan gerçek görsel) — guide oturumu
+      gerektirdiği için uçtan uca sınanmadı; doğrulama dalları ve URL üretimi kapsandı.
+
+- [ ] **Boyutlandırma/sıkıştırma** (thumbnail, medium, full) — YAPILMADI, opsiyonel iyileştirme
+- [ ] **CDN** — `S3_PUBLIC_BASE` ile hazır; sağlayıcı seçimi kullanıcıya bağlı
+
+**Faz 0'daki Maps anahtarı maddesinin durumu:** proxy tamamlandığına göre artık şunlar yapılabilir:
+Places/sunucu anahtarına Cloud Console'dan **IP kısıtlaması** (proxy sayesinde mümkün) ve
+Android/iOS Maps SDK anahtarlarının ayrılıp platform kısıtı. Bunlar hesap erişimi gerektiriyor,
+kullanıcıda.
 
 ### 🟡 Faz 4 — Store Yayını `[ ]`
 
@@ -775,7 +799,7 @@ geçildiği anda sorun akut hâle geliyor.
 | Faz 0 | Sessiz katiller (JWT fail-fast, SSRF, shutdown, DB pool, Maps key) | ✅ Kod maddeleri tamam — Maps anahtarı bölme bekliyor |
 | Faz 1 | Test kapsamı (handlers %39.9, services %29.7, jwt %85.7) | ✅ Kritik yollar kapsandı; 1 güvenlik açığı bulunup düzeltildi (JWT tip ayrımı) |
 | Faz 2 | Prod altyapı (Docker, CI, logging, readiness) | 🔶 Çekirdek tamam — secret/TLS/backup/monitoring hosting kararına bağlı |
-| Faz 3 | S3 depolama | ⬜ Başlanmadı |
+| Faz 3 | S3 depolama + göreli yol + fotoğraf proxy | ✅ Tamamlandı (MinIO ile doğrulandı; Maps anahtarı borcu kapandı) |
 | Faz 4 | Store yayını | ⬜ Başlanmadı |
 
 *Her bir madde için detaylı implementasyon planları ayrı MD dosyalarında hazırlanacaktır.*
