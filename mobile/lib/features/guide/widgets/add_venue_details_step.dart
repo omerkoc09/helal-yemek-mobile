@@ -48,11 +48,9 @@ class _AddVenueDetailsStepState extends ConsumerState<AddVenueDetailsStep> {
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
-          Text(
-            state.isManualMode
-                ? 'Mekanın bilgilerini girin ve konumunu haritada işaretleyin.'
-                : 'Bilgileri kontrol edin, yanlışsa düzeltin.',
-            style: const TextStyle(color: AppTheme.textSecondary),
+          const Text(
+            'Bilgileri kontrol edin, yanlışsa düzeltin.',
+            style: TextStyle(color: AppTheme.textSecondary),
           ),
           const SizedBox(height: 24),
 
