@@ -511,10 +511,13 @@ sessizce zarar vermeleri.
 | `models` | %100 | %100 ✅ |
 | `pkg/jwt` | — | **%85.7** ✅ |
 | `middleware` | %63.8 | %63.8 ✅ |
-| `handlers` | **%6.4** 🔴 | **%39.9** 🔶 |
-| `services` | **%14.3** ⚠️ | **%29.7** 🔶 |
+| `handlers` | **%6.4** 🔴 | **%39.4** 🔶 |
+| `services` | **%14.3** ⚠️ | **%54.3** ✅ |
 
 Tüm testler `-race` altında da temiz.
+
+> **2026-07-23 güncellemesi:** `services` kapsamı sosyal giriş + PlacesService testleriyle
+> **%29.7 → %54.3**'e çıktı (%50 hedefi aşıldı). Detay aşağıda "Faz 1.1" bölümünde.
 
 **Yaklaşım kararı:** Handler'lar somut `*repository.X` tiplerine bağlı olduğu için fake
 verilemiyordu. Projenin mevcut kalıbı (`guideCityGetter`, `NotificationStore`,
@@ -552,12 +555,58 @@ inceleme/başvuru/yorum durumlarının 409 döndüğü, rehber şehrinin repo'ya
       kontrolü, farklı secret'la imzalanmış token reddi
 - [ ] Kalan düşük riskli uçlar (yemek kategorileri, istatistikler, listeler) — %50'ye ulaşmak
       için gerekli, ama regresyon koruması açısından değeri düşük
-- [ ] `LoginWithGoogle` / `LoginWithApple` — Google ve Apple'ın **canlı token doğrulama
-      servislerine ağ çağrısı** gerektiriyorlar; test için `idtoken.Validate` ve `AppleService`
-      soyutlanmalı. *Not: "auth tamamen test edildi" sanılmasın — sosyal giriş yolları %0.*
-- [ ] `places_service` (%0, 248 sat.), `email_service` (%0, 83 sat.) — dış servis
-      sarmalayıcıları, risk düşük
+- [x] `LoginWithGoogle` — `idtoken.Validate` `googleValidator` alanına soyutlandı, sahte
+      validator ile test edildi (**%89.3**). *(Aşağıda Faz 1.1)*
+- [x] `places_service` — Google host'u `baseURL` alanına çıkarıldı, `httptest.Server` ile
+      test edildi (**%86-100** fonksiyon bazında). *(Aşağıda Faz 1.1)*
+- [ ] `email_service` (%0, 83 sat.) — SMTP/TLS sarmalayıcısı, soyutlama maliyeti yüksek,
+      risk düşük; şimdilik atlandı
 - [ ] Mobil: 18.860 satıra karşılık 9 test dosyası — backend'den sonra
+- [x] ~~`LoginWithApple`~~ — **Apple girişi tümüyle kaldırıldı** (mobil + backend). Bkz. Faz 1.1
+
+### 🟢 Faz 1.1 — Sosyal Giriş Testleri, Apple Kaldırma ve `is_active` Hatası (2026-07-23)
+
+**1. Apple girişi tümüyle kaldırıldı.** Kullanıcının hatırladığının aksine Apple girişi
+`main` dalında hâlâ uçtan uca canlıydı: mobil UI butonları (login/register), `sign_in_with_apple`
+paketi, `signInWithApple()`, `/auth/apple` endpoint + handler, `LoginWithApple` servisi,
+`apple_service.go` (JWKS doğrulama) ve `keyfunc` bağımlılığı. Hepsi silindi; `go mod tidy`
+`keyfunc`'u düşürdü, `flutter pub get` `sign_in_with_apple` + 2 geçişli paketi düşürdü.
+*Not: iOS `Podfile.lock` bir sonraki `pod install`'da otomatik temizlenecek.*
+
+**2. 🔴 BULUNAN HATA — yeni Google kullanıcısı ilk girişte kilitleniyordu.** Testler yazılırken
+bulundu. `LoginWithGoogle` yeni kullanıcı için `&models.User{...}` kuruyor (`IsActive` set
+edilmiyor → `false`), `Create()` çağırıyor ama `Create` yalnızca `id, created_at, updated_at`'i
+`RETURNING` ile geri okuyor — DB'deki `is_active DEFAULT true` struct'a yansımıyor. Hemen
+sonraki `if !user.IsActive` kontrolü yeni kullanıcıyı **"hesabınız devre dışı bırakılmıştır"**
+ile reddediyordu. Yani **ilk kez Google ile giriş yapan herkes kilitleniyordu.** (`Register`
+etkilenmiyor — o `IsActive` kontrolü yapmıyor.)
+*Çözüm:* Yeni kullanıcı kurulurken `IsActive: true` açıkça verildi (repo katmanına dokunmadan,
+DB default'unu yansıtır). Regresyon, "yeni Google kullanıcısı aktif oluşturulmalı" testiyle kilitlendi.
+
+**3. Test edilebilirlik için minimal soyutlama girişleri** (constructor ve `main.go`
+değişmeden, projenin dar-arayüz kalıbıyla):
+- `AuthService.googleValidator` — varsayılan `idtoken.Validate`; testte sahte payload verir.
+- `PlacesService.baseURL` — varsayılan `https://maps.googleapis.com`; testte `httptest.Server`.
+
+**Sabitlenen iş kuralları:** geçersiz token reddi (kullanıcı oluşturulmaz), yeni kullanıcının
+`google` provider + token'daki `sub` ile açılması, aynı email'li mevcut hesaba bağlanıp
+**mükerrer kayıt açılmaması**, devre dışı hesabın reddi; PlacesService'te **500m mesafe
+kabul/red** güvenlik mantığı, en yakın adayın seçimi, TR il/ilçe (`admin_area_level_1/2`)
+eşlemesi, locality/sublocality'nin yalnızca boşken devreye girmesi, foto referanslarının 5 ile
+sınırlanması, proxy URL'sine **API anahtarının sızmaması**.
+
+| Uç | Kapsam |
+|----|:------:|
+| `LoginWithGoogle` | %89.3 |
+| `ResolvePlaceID` | %86.7 |
+| `GetAddressComponents` | %90.0 |
+| `BuildPhotoURL` / `BuildPhotoURLs` / `calculateDistance` | %100 |
+| `FetchPhoto` | %87.5 |
+
+- [x] `auth_service.go` + `places_service.go` soyutlama girişleri
+- [x] Google sosyal giriş testleri (`is_active` hatası düzeltildi)
+- [x] PlacesService testleri (`httptest` ile)
+- [x] Apple kaldırma (mobil + backend), `go vet` + tüm testler `-race` temiz
 
 #### 🔴 Faz 1'de ortaya çıkan üç bulgu
 

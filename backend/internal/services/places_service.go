@@ -11,15 +11,21 @@ import (
 	"time"
 )
 
+// googleMapsBaseURL — Google Maps API host'u. Alan olarak tutulur ki testte
+// httptest.Server'a yönlendirilebilsin; üretimde varsayılan kalır.
+const googleMapsBaseURL = "https://maps.googleapis.com"
+
 type PlacesService struct {
-	apiKey string
-	client *http.Client
+	apiKey  string
+	baseURL string
+	client  *http.Client
 }
 
 func NewPlacesService(apiKey string) *PlacesService {
 	return &PlacesService{
-		apiKey: apiKey,
-		client: &http.Client{Timeout: 5 * time.Second},
+		apiKey:  apiKey,
+		baseURL: googleMapsBaseURL,
+		client:  &http.Client{Timeout: 5 * time.Second},
 	}
 }
 
@@ -45,7 +51,7 @@ func (s *PlacesService) ResolvePlaceID(name string, lat, lng float64) string {
 		return ""
 	}
 
-	endpoint := "https://maps.googleapis.com/maps/api/place/findplacefromtext/json"
+	endpoint := s.baseURL + "/maps/api/place/findplacefromtext/json"
 	params := url.Values{
 		"input":     {name},
 		"inputtype": {"textquery"},
@@ -132,7 +138,7 @@ func (s *PlacesService) GetAddressComponents(placeID string) (*AddressComponents
 		return nil, nil
 	}
 
-	endpoint := "https://maps.googleapis.com/maps/api/place/details/json"
+	endpoint := s.baseURL + "/maps/api/place/details/json"
 	params := url.Values{
 		"place_id": {placeID},
 		"fields":   {"name,address_components,photos"},
@@ -247,7 +253,7 @@ func (s *PlacesService) FetchPhoto(ctx context.Context, photoReference string, m
 		"maxwidth":        {fmt.Sprintf("%d", maxWidth)},
 		"key":             {s.apiKey},
 	}
-	target := "https://maps.googleapis.com/maps/api/place/photo?" + params.Encode()
+	target := s.baseURL + "/maps/api/place/photo?" + params.Encode()
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, target, nil)
 	if err != nil {

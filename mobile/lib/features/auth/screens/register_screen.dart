@@ -320,32 +320,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   const SizedBox(height: 24),
 
                   // Social buttons
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _SocialButton(
-                          label: 'Google',
-                          icon: Icons.g_mobiledata,
-                          onTap: authState.isLoading
-                              ? null
-                              : () => ref
-                                  .read(authProvider.notifier)
-                                  .signInWithGoogle(),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: _SocialButton(
-                          label: 'Apple',
-                          icon: Icons.apple,
-                          onTap: authState.isLoading
-                              ? null
-                              : () => ref
-                                  .read(authProvider.notifier)
-                                  .signInWithApple(),
-                        ),
-                      ),
-                    ],
+                  _SocialButton(
+                    label: 'Google',
+                    icon: Icons.g_mobiledata,
+                    onTap: authState.isLoading
+                        ? null
+                        : () =>
+                            ref.read(authProvider.notifier).signInWithGoogle(),
                   ),
                   const SizedBox(height: 32),
 

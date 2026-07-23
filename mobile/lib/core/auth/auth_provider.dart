@@ -1,6 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 import '../api/api_client.dart';
 import '../api/api_endpoints.dart';
@@ -182,35 +181,6 @@ class AuthNotifier extends Notifier<AuthState> {
     }
   }
 
-  Future<void> signInWithApple() async {
-    state = state.copyWith(isLoading: true, error: null);
-    try {
-      final credential = await SignInWithApple.getAppleIDCredential(
-        scopes: [
-          AppleIDAuthorizationScopes.email,
-          AppleIDAuthorizationScopes.fullName,
-        ],
-      );
-      final identityToken = credential.identityToken;
-      if (identityToken == null) {
-        state = state.copyWith(
-          isLoading: false,
-          error: 'Apple token alınamadı.',
-        );
-        return;
-      }
-      final response = await _apiClient.post(
-        ApiEndpoints.appleAuth,
-        data: {'identity_token': identityToken},
-      );
-      await _handleAuthResponse(response.data as Map<String, dynamic>);
-    } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        error: 'Apple ile giriş başarısız.',
-      );
-    }
-  }
 
   Future<void> logout() async {
     await _tokenStorage.clearTokens();
