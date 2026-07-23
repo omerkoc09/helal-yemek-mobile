@@ -45,7 +45,18 @@ type Config struct {
 	// Loglama
 	LogFormat string // "json" (prod) | "text" (geliştirme)
 	LogLevel  string // debug | info | warn | error
+
+	// S3 uyumlu nesne depolama. S3Endpoint boşsa yerel disk kullanılır.
+	S3Endpoint   string
+	S3AccessKey  string
+	S3SecretKey  string
+	S3Region     string
+	S3UseSSL     bool
+	S3PublicBase string
 }
+
+// S3Enabled — S3 arka ucunun yapılandırılıp yapılandırılmadığı.
+func (c *Config) S3Enabled() bool { return strings.TrimSpace(c.S3Endpoint) != "" }
 
 func Load() *Config {
 	_ = godotenv.Load()
@@ -77,6 +88,13 @@ func Load() *Config {
 		// LOG_FORMAT=text daha okunaklı.
 		LogFormat: getEnv("LOG_FORMAT", "json"),
 		LogLevel:  getEnv("LOG_LEVEL", "info"),
+
+		S3Endpoint:   os.Getenv("S3_ENDPOINT"),
+		S3AccessKey:  os.Getenv("S3_ACCESS_KEY"),
+		S3SecretKey:  os.Getenv("S3_SECRET_KEY"),
+		S3Region:     getEnv("S3_REGION", "us-east-1"),
+		S3UseSSL:     getEnvBool("S3_USE_SSL", true),
+		S3PublicBase: os.Getenv("S3_PUBLIC_BASE"),
 	}
 }
 
@@ -104,6 +122,21 @@ func getEnv(key, fallback string) string {
 		return v
 	}
 	return fallback
+}
+
+// getEnvBool — "true/false/1/0/yes/no" kabul eder; tanınmayan değerde
+// fallback'e döner (yanlış yazım sessizce güvensiz tarafa kaymasın diye
+// çağıran taraf güvenli varsayılanı verir).
+func getEnvBool(key string, fallback bool) bool {
+	v := strings.ToLower(strings.TrimSpace(os.Getenv(key)))
+	switch v {
+	case "true", "1", "yes":
+		return true
+	case "false", "0", "no":
+		return false
+	default:
+		return fallback
+	}
 }
 
 func getEnvInt(key string, fallback int) int {

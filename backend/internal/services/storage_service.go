@@ -3,10 +3,8 @@ package services
 import (
 	"context"
 	"fmt"
-	"io"
 	"mime/multipart"
 	"net/http"
-	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -16,17 +14,29 @@ import (
 
 // StorageService — fotoğraf yükleme işlemlerini yönetir.
 // Şu an local disk'e kaydeder; ileride S3 ile değiştirilebilir.
+//
+// Upload/DownloadAndStore artık TAM URL değil, dosya ANAHTARI (key) döndürür;
+// anahtar veritabanına yazılır ve genel URL okuma anında PublicURL ile üretilir.
+//
+// Neden: tam URL saklandığında ortam her değiştiğinde veri migrasyonu gerekiyordu.
+// Android emülatörü için localhost -> LAN IP değişiminde bu bedel bir kez ödendi
+// (ve food_categories tablosu o sırada gözden kaçtı). Prod'a geçiş ve S3 taşıması
+// aynı bedeli tekrar doğururdu.
 type StorageService struct {
-	baseDir    string // örn: "./uploads"
-	baseURL    string // örn: "http://localhost:8080/static"
+	blobs      BlobStore
 	httpClient *http.Client
 }
 
+// NewStorageService — yerel disk arka ucuyla servis kurar (geriye dönük imza).
 func NewStorageService(baseDir, baseURL string) *StorageService {
-	_ = os.MkdirAll(baseDir, 0755)
+	return NewStorageServiceWithBackend(NewLocalBlobStore(baseDir, baseURL))
+}
+
+// NewStorageServiceWithBackend — arka ucu dışarıdan verilen servis.
+// S3/MinIO'ya geçerken yalnızca burası değişir; politika katmanı aynı kalır.
+func NewStorageServiceWithBackend(blobs BlobStore) *StorageService {
 	return &StorageService{
-		baseDir: baseDir,
-		baseURL: baseURL,
+		blobs: blobs,
 		httpClient: &http.Client{
 			Timeout: 15 * time.Second,
 			// Places Photo API isteği googleusercontent.com'a yönlendirir; bu
@@ -43,7 +53,23 @@ func NewStorageService(baseDir, baseURL string) *StorageService {
 	}
 }
 
-// Upload — dosyayı diske kaydeder, erişim URL'sini döndürür.
+// PublicURL — depolanmış anahtarı istemcinin erişebileceği tam URL'e çevirir.
+//
+// Geriye dönük uyumluluk: anahtar zaten "http://" veya "https://" ile başlıyorsa
+// (migration öncesinden kalan eski kayıtlar) olduğu gibi döndürülür. Böylece
+// migration uygulanmamış bir ortamda fotoğraflar kırılmaz.
+// Boş anahtar boş string döner — çağıran taraf "görsel yok" durumunu ayırt edebilsin.
+func (s *StorageService) PublicURL(key string) string {
+	if key == "" {
+		return ""
+	}
+	if strings.HasPrefix(key, "http://") || strings.HasPrefix(key, "https://") {
+		return key
+	}
+	return s.blobs.PublicURL(key)
+}
+
+// Upload — dosyayı diske kaydeder, dosya ANAHTARINI döndürür (tam URL değil).
 func (s *StorageService) Upload(_ context.Context, file multipart.File, filename string) (string, error) {
 	ext := strings.ToLower(filepath.Ext(filename))
 	if ext != ".jpg" && ext != ".jpeg" && ext != ".png" && ext != ".webp" {
@@ -51,19 +77,24 @@ func (s *StorageService) Upload(_ context.Context, file multipart.File, filename
 	}
 
 	uniqueName := fmt.Sprintf("%s_%d%s", uuid.New().String(), time.Now().UnixMilli(), ext)
-	destPath := filepath.Join(s.baseDir, uniqueName)
 
-	dest, err := os.Create(destPath)
-	if err != nil {
-		return "", fmt.Errorf("dosya oluşturulamadı: %w", err)
+	if err := s.blobs.Put(context.Background(), uniqueName, file, contentTypeForExt(ext)); err != nil {
+		return "", err
 	}
-	defer dest.Close()
+	return uniqueName, nil
+}
 
-	if _, err := io.Copy(dest, file); err != nil {
-		return "", fmt.Errorf("dosya yazılamadı: %w", err)
+// contentTypeForExt — S3 gibi arka uçlarda doğru Content-Type şart:
+// yanlışsa tarayıcı görseli indirmeye çalışır, göstermek yerine.
+func contentTypeForExt(ext string) string {
+	switch ext {
+	case ".png":
+		return "image/png"
+	case ".webp":
+		return "image/webp"
+	default:
+		return "image/jpeg"
 	}
-
-	return fmt.Sprintf("%s/%s", strings.TrimRight(s.baseURL, "/"), uniqueName), nil
 }
 
 // DownloadAndStore — uzak bir URL'den fotoğrafı indirir, diske kaydeder ve kendi URL'sini döndürür.
@@ -100,23 +131,17 @@ func (s *StorageService) DownloadAndStore(ctx context.Context, photoURL string) 
 	}
 
 	uniqueName := fmt.Sprintf("%s_%d%s", uuid.New().String(), time.Now().UnixMilli(), ext)
-	destPath := filepath.Join(s.baseDir, uniqueName)
 
-	dest, err := os.Create(destPath)
-	if err != nil {
-		return "", fmt.Errorf("dosya oluşturulamadı: %w", err)
+	if err := s.blobs.Put(ctx, uniqueName, resp.Body, contentTypeForExt(ext)); err != nil {
+		return "", err
 	}
-	defer dest.Close()
-
-	if _, err := io.Copy(dest, resp.Body); err != nil {
-		return "", fmt.Errorf("dosya yazılamadı: %w", err)
-	}
-
-	return fmt.Sprintf("%s/%s", strings.TrimRight(s.baseURL, "/"), uniqueName), nil
+	return uniqueName, nil
 }
 
 // Delete — dosyayı diskten siler.
-func (s *StorageService) Delete(_ context.Context, fileURL string) error {
-	filename := filepath.Base(fileURL)
-	return os.Remove(filepath.Join(s.baseDir, filename))
+// Delete — anahtarla (veya geriye dönük uyumluluk için tam URL'le) dosyayı siler.
+// filepath.Base her iki biçimde de doğru dosya adını verir ve aynı zamanda
+// path traversal'a karşı korur ("../../etc/passwd" -> "passwd").
+func (s *StorageService) Delete(ctx context.Context, keyOrURL string) error {
+	return s.blobs.Delete(ctx, filepath.Base(keyOrURL))
 }

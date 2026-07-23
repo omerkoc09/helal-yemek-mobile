@@ -46,8 +46,9 @@ jobs:
         run: go test -race -count=1 ./...
 
       - name: Integration testleri
-        # testcontainers gerçek Postgres ayağa kaldırır; ubuntu runner'da Docker hazır.
-        run: go test -race -count=1 -tags=integration ./internal/repository/
+        # testcontainers gerçek Postgres ve MinIO ayağa kaldırır;
+        # ubuntu runner'da Docker hazır.
+        run: go test -race -count=1 -tags=integration ./internal/repository/ ./internal/services/
 
   mobile:
     name: Mobil (analyze, test)

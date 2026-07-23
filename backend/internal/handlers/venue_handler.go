@@ -908,6 +908,67 @@ func (h *VenueHandler) TrackDirectionClick(c *fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
+// Fotoğraf proxy'sinde izin verilen genişlik sınırları.
+// Üst sınır olmadan biri w=100000 isteyerek Places kotasını ve bant genişliğini
+// tüketebilirdi; alt sınır anlamsız isteklerin önüne geçer.
+const (
+	minPhotoWidth     = 100
+	maxPhotoWidth     = 1600
+	defaultPhotoWidth = 800
+)
+
+// PlacePhotoProxy godoc
+// GET /api/v1/places/photo?ref=<photo_reference>&w=800  (Guide/Admin)
+//
+// Google Places fotoğrafını sunucu üzerinden geçirir.
+//
+// Neden proxy: önceden fotoğraf adresleri doğrudan Google'a işaret ediyor ve
+// API anahtarı sorgu parametresinde İSTEMCİYE gidiyordu. Anahtar hem sunucudan
+// hem de her kullanıcının cihazından kullanıldığı için Cloud Console'da hiçbir
+// uygulama kısıtlaması alamıyordu (IP kısıtı mobili, paket kısıtı sunucuyu
+// kırardı). Artık anahtar yalnızca sunucuda kalıyor ve kısıtlanabiliyor.
+//
+// Yetki: rota seviyesinde guide/admin. Anahtar sızmasa bile uç herkese açık
+// olsaydı, kotayı isteyen tüketebilirdi.
+func (h *VenueHandler) PlacePhotoProxy(c *fiber.Ctx) error {
+	if h.placesService == nil {
+		return c.Status(fiber.StatusServiceUnavailable).JSON(fiber.Map{
+			"error": "places servisi kullanılamıyor",
+		})
+	}
+
+	ref := c.Query("ref")
+	if ref == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "ref zorunludur"})
+	}
+
+	width := c.QueryInt("w", defaultPhotoWidth)
+	if width < minPhotoWidth {
+		width = minPhotoWidth
+	}
+	if width > maxPhotoWidth {
+		width = maxPhotoWidth
+	}
+
+	body, contentType, err := h.placesService.FetchPhoto(c.Context(), ref, width)
+	if err != nil {
+		log.Printf("[VENUE] places fotoğrafı alınamadı: %v", err)
+		return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"error": "fotoğraf alınamadı"})
+	}
+	defer body.Close()
+
+	if contentType == "" {
+		contentType = "image/jpeg"
+	}
+	c.Set(fiber.HeaderContentType, contentType)
+	// photo_reference sabit bir görsele işaret eder; uzun cache hem Places
+	// kotasını hem gecikmeyi düşürür. private: paylaşımlı cache'lerde
+	// tutulmasın (uç yetkiye bağlı).
+	c.Set(fiber.HeaderCacheControl, "private, max-age=86400")
+
+	return c.SendStream(body)
+}
+
 // ListCriteria godoc
 // GET /api/v1/criteria
 func (h *VenueHandler) ListCriteria(c *fiber.Ctx) error {

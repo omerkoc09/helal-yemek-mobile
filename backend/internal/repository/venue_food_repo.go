@@ -25,6 +25,11 @@ func (r *VenueRepo) GetAllFoodCategoriesWithItems(ctx context.Context) ([]models
 		if err := catRows.Scan(&c.ID, &c.Key, &c.Name, &c.ImageURL); err != nil {
 			return nil, err
 		}
+		// Görsel anahtarı tam URL'e çevrilir (NULL kayıtlar dokunulmadan kalır).
+		if c.ImageURL != nil {
+			url := r.publicURL(*c.ImageURL)
+			c.ImageURL = &url
+		}
 		c.Items = []models.FoodItem{}
 		categories = append(categories, c)
 	}

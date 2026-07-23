@@ -13,8 +13,34 @@ import (
 	"github.com/omerkoc/caiz-mi/internal/models"
 )
 
+// URLResolver — depolanan dosya anahtarını istemcinin erişebileceği tam URL'e
+// çevirir. Arayüz burada tanımlı çünkü services paketi repository'yi import
+// ediyor; ters yönde import döngüsü oluşurdu. *services.StorageService bu
+// arayüzü yapısal olarak karşılar.
+type URLResolver interface {
+	PublicURL(key string) string
+}
+
 type VenueRepo struct {
-	db *pgxpool.Pool
+	db   *pgxpool.Pool
+	urls URLResolver
+}
+
+// WithURLResolver — fotoğraf anahtarlarını tam URL'e çeviren çözücüyü bağlar.
+// Yapıcı imzasını değiştirmemek için builder olarak eklendi: NewVenueRepo 17
+// integration test çağrısında kullanılıyor ve hiçbiri URL üretimine bakmıyor.
+// Çözücü bağlanmazsa anahtarlar olduğu gibi döner (testlerde beklenen davranış).
+func (r *VenueRepo) WithURLResolver(u URLResolver) *VenueRepo {
+	r.urls = u
+	return r
+}
+
+// publicURL — çözücü yoksa anahtarı olduğu gibi döndürür.
+func (r *VenueRepo) publicURL(key string) string {
+	if r.urls == nil {
+		return key
+	}
+	return r.urls.PublicURL(key)
 }
 
 func NewVenueRepo(db *pgxpool.Pool) *VenueRepo {

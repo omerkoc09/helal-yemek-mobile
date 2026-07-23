@@ -11,5 +11,26 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
 
+  # S3 uyumlu yerel nesne depolama — S3 arka ucunu gerçek bir sunucuya karşı
+  # denemek için. Prod'da AWS S3 / Cloudflare R2 / DigitalOcean Spaces kullanılır;
+  # aynı kod hepsiyle çalışır, yalnızca S3_ENDPOINT ve kimlik bilgileri değişir.
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"   # S3 API
+      - "9001:9001"   # Web konsolu
+    volumes:
+      - miniodata:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
 volumes:
   pgdata:
+  miniodata:
