@@ -80,7 +80,6 @@ caiz-mi-backend/
 | POST | `/api/v1/auth/register` | Email/şifre kayıt | - | Public |
 | POST | `/api/v1/auth/login` | Email/şifre giriş | - | Public |
 | POST | `/api/v1/auth/google` | Google OAuth | - | Public |
-| POST | `/api/v1/auth/apple` | Apple Sign-In | - | Public |
 | POST | `/api/v1/auth/refresh` | Token yenileme | ✅ | Any |
 | GET | `/api/v1/auth/me` | Kullanıcı profili | ✅ | Any |
 
@@ -174,7 +173,6 @@ dependencies:
   image_picker: ^1.0.0
   flutter_secure_storage: ^9.0.0
   google_sign_in: ^6.1.0
-  sign_in_with_apple: ^5.0.0
   cached_network_image: ^3.3.0
   permission_handler: ^11.0.0
 ```
