@@ -1,0 +1,138 @@
+package handlers
+
+import (
+	"errors"
+	"log"
+
+	"github.com/gofiber/fiber/v2"
+	"github.com/omerkoc/caiz-mi/internal/models"
+	"github.com/omerkoc/caiz-mi/internal/repository"
+)
+
+// UploadPhoto godoc
+// POST /api/v1/venues/:id/photos  (Guide + Admin)
+func (h *VenueHandler) UploadPhoto(c *fiber.Ctx) error {
+	venueID := c.Params("id")
+	userID, err := getUserID(c)
+	if err != nil {
+		return err
+	}
+
+	// Mekanın var olup olmadığını kontrol et
+	if _, err := h.venueRepo.FindByID(c.Context(), venueID); err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "mekan bulunamadı"})
+		}
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "mekan doğrulanamadı"})
+	}
+
+	fileHeader, err := c.FormFile("photo")
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "photo alanı gereklidir"})
+	}
+
+	file, err := fileHeader.Open()
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "dosya açılamadı"})
+	}
+	defer file.Close()
+
+	url, err := h.storageService.Upload(c.Context(), file, fileHeader.Filename)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	// Tek fotoğraf politikası: yeni fotoğraf yüklenince mevcut fotoğraflar silinir.
+	if existing, err := h.venueRepo.GetPhotosByVenueID(c.Context(), venueID); err == nil {
+		for _, old := range existing {
+			if err := h.venueRepo.DeletePhoto(c.Context(), old.ID, venueID); err == nil {
+				_ = h.storageService.Delete(c.Context(), old.URL)
+			}
+		}
+	}
+
+	photo := &models.VenuePhoto{
+		VenueID:    venueID,
+		URL:        url,
+		UploadedBy: userID,
+		IsPrimary:  true,
+	}
+	if err := h.venueRepo.AddPhoto(c.Context(), photo); err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "fotoğraf kaydedilemedi"})
+	}
+
+	return c.Status(fiber.StatusCreated).JSON(photo)
+}
+
+// DeletePhoto godoc
+// DELETE /api/v1/venues/:id/photos/:photoId  (Guide/Admin)
+func (h *VenueHandler) DeletePhoto(c *fiber.Ctx) error {
+	venueID := c.Params("id")
+	photoID := c.Params("photoId")
+
+	photo, err := h.venueRepo.FindPhotoByID(c.Context(), photoID)
+	if err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "fotoğraf bulunamadı"})
+	}
+
+	if err := h.venueRepo.DeletePhoto(c.Context(), photoID, venueID); err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "fotoğraf silinemedi"})
+	}
+
+	// Fiziksel dosyayı da sil
+	_ = h.storageService.Delete(c.Context(), photo.URL)
+
+	return c.SendStatus(fiber.StatusNoContent)
+}
+
+// PlacePhotoProxy godoc
+// GET /api/v1/places/photo?ref=<photo_reference>&w=800  (Guide/Admin)
+//
+// Google Places fotoğrafını sunucu üzerinden geçirir.
+//
+// Neden proxy: önceden fotoğraf adresleri doğrudan Google'a işaret ediyor ve
+// API anahtarı sorgu parametresinde İSTEMCİYE gidiyordu. Anahtar hem sunucudan
+// hem de her kullanıcının cihazından kullanıldığı için Cloud Console'da hiçbir
+// uygulama kısıtlaması alamıyordu (IP kısıtı mobili, paket kısıtı sunucuyu
+// kırardı). Artık anahtar yalnızca sunucuda kalıyor ve kısıtlanabiliyor.
+//
+// Yetki: rota seviyesinde guide/admin. Anahtar sızmasa bile uç herkese açık
+// olsaydı, kotayı isteyen tüketebilirdi.
+func (h *VenueHandler) PlacePhotoProxy(c *fiber.Ctx) error {
+	if h.placesService == nil {
+		return c.Status(fiber.StatusServiceUnavailable).JSON(fiber.Map{
+			"error": "places servisi kullanılamıyor",
+		})
+	}
+
+	ref := c.Query("ref")
+	if ref == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "ref zorunludur"})
+	}
+
+	width := c.QueryInt("w", defaultPhotoWidth)
+	if width < minPhotoWidth {
+		width = minPhotoWidth
+	}
+	if width > maxPhotoWidth {
+		width = maxPhotoWidth
+	}
+
+	body, contentType, err := h.placesService.FetchPhoto(c.Context(), ref, width)
+	if err != nil {
+		log.Printf("[VENUE] places fotoğrafı alınamadı: %v", err)
+		return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"error": "fotoğraf alınamadı"})
+	}
+	defer body.Close()
+
+	if contentType == "" {
+		contentType = "image/jpeg"
+	}
+	c.Set(fiber.HeaderContentType, contentType)
+	// photo_reference sabit bir görsele işaret eder; uzun cache hem Places
+	// kotasını hem gecikmeyi düşürür. private: paylaşımlı cache'lerde
+	// tutulmasın (uç yetkiye bağlı).
+	c.Set(fiber.HeaderCacheControl, "private, max-age=86400")
+
+	return c.SendStream(body)
+}
