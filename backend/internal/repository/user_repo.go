@@ -14,6 +14,11 @@ import (
 var ErrNotFound = errors.New("kayıt bulunamadı")
 var ErrAlreadyExists = errors.New("kayıt zaten mevcut")
 
+// ErrAlreadyReviewed — pending olmayan bir başvuru onaylanmaya/reddedilmeye
+// çalışıldığında döner. Handler bunu 409'a çevirir; ErrNotFound (404) ile
+// karışmaması için ayrı sentinel.
+var ErrAlreadyReviewed = errors.New("başvuru zaten incelenmiş")
+
 type UserRepo struct {
 	db *pgxpool.Pool
 }

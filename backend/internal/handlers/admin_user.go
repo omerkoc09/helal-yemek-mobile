@@ -28,29 +28,17 @@ func (h *AdminHandler) ApproveApplication(c *fiber.Ctx) error {
 		return err
 	}
 
-	app, err := h.guideRepo.FindByID(c.Context(), id)
-	if err != nil {
-		if errors.Is(err, repository.ErrNotFound) {
+	// Statü + rol + şehir tek transaction'da. Herhangi biri başarısız olursa
+	// hepsi geri sarılır; kullanıcı "guide ama şehirsiz" durumuna düşmez.
+	if _, err := h.guideRepo.ApproveApplication(c.Context(), id, adminID); err != nil {
+		switch {
+		case errors.Is(err, repository.ErrNotFound):
 			return fiber.ErrNotFound
-		}
-		return fiber.ErrInternalServerError
-	}
-
-	if err := h.guideRepo.UpdateStatus(c.Context(), id, adminID, models.ApplicationStatusApproved, nil); err != nil {
-		if errors.Is(err, repository.ErrNotFound) {
+		case errors.Is(err, repository.ErrAlreadyReviewed):
 			return c.Status(409).JSON(fiber.Map{"error": "başvuru zaten incelenmiş"})
+		default:
+			return fiber.ErrInternalServerError
 		}
-		return fiber.ErrInternalServerError
-	}
-
-	// Kullanıcı rolünü guide'a yükselt
-	if err := h.userRepo.UpdateRole(c.Context(), app.UserID, models.RoleGuide); err != nil {
-		return fiber.ErrInternalServerError
-	}
-
-	// Rehberin aktif çalışma şehrini başvurudaki beyandan ayarla.
-	if err := h.userRepo.SetGuideCity(c.Context(), app.UserID, app.City); err != nil {
-		log.Printf("[ADMIN] guide_city ayarlama hatası user=%s: %v", app.UserID, err)
 	}
 
 	h.writeAuditLog(c, "approve_guide_application", "guide_application", id, nil)

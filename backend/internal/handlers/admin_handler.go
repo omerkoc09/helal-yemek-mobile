@@ -55,7 +55,8 @@ type adminVenueStore interface {
 // adminGuideStore — rehber başvurusu inceleme akışı.
 type adminGuideStore interface {
 	ListPending(ctx context.Context) ([]models.GuideApplication, error)
-	FindByID(ctx context.Context, id string) (*models.GuideApplication, error)
+	// ApproveApplication — statü + rol + şehri tek transaction'da uygular.
+	ApproveApplication(ctx context.Context, appID, adminID string) (userID string, err error)
 	UpdateStatus(ctx context.Context, id, adminID string, status models.ApplicationStatus, note *string) error
 	CancelOpenByUserID(ctx context.Context, userID string) error
 }
