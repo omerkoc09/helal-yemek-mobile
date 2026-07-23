@@ -47,7 +47,6 @@ class _AddVenueLocationStepState extends ConsumerState<AddVenueLocationStep> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(addVenueProvider);
-    final notifier = ref.read(addVenueProvider.notifier);
     final hasCoords = state.latitude != null && state.longitude != null;
 
     return SingleChildScrollView(
@@ -110,66 +109,6 @@ class _AddVenueLocationStepState extends ConsumerState<AddVenueLocationStep> {
             _buildDuplicateCard(_duplicateVenue!),
           ],
 
-          const SizedBox(height: 32),
-          const Divider(),
-          const SizedBox(height: 16),
-
-          // Linksiz devam seçeneği
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppTheme.textSecondary.withValues(alpha: 0.05),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: AppTheme.textSecondary.withValues(alpha: 0.15),
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Row(
-                  children: [
-                    Icon(Icons.info_outline,
-                        size: 18, color: AppTheme.textSecondary),
-                    SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Mekanın Google Maps linki yok mu?',
-                        style: TextStyle(
-                            fontWeight: FontWeight.w600, fontSize: 14),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                const Text(
-                  'Linksiz devam edebilirsiniz. Bir sonraki adımda mekan bilgilerini ve konumunu elle girersiniz.',
-                  style: TextStyle(
-                    color: AppTheme.textSecondary,
-                    fontSize: 12,
-                    height: 1.4,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    onPressed: () {
-                      notifier.setManualMode(true);
-                      notifier.nextStep();
-                    },
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppTheme.textSecondary,
-                      side: BorderSide(
-                        color: AppTheme.textSecondary.withValues(alpha: 0.4),
-                      ),
-                    ),
-                    child: const Text('Linksiz Devam Et'),
-                  ),
-                ),
-              ],
-            ),
-          ),
           const SizedBox(height: 24),
         ],
       ),

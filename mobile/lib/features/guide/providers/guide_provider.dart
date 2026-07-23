@@ -32,7 +32,6 @@ class AddVenueState {
   final Map<int, List<int>> selectedFoodItemIds; // kategori ID → seçili item ID listesi
   final String foodHalalMode; // 'all', 'except', 'selected'
   final List<String> excludedProducts; // sakıncalı ürünler (except modunda)
-  final bool isManualMode; // Link yok, bilgiler elle girilecek
 
   // Şehir kısıtı: mekanın şehri rehberin şehriyle uyumlu mu (backend preview'den gelir).
   final bool cityAllowed;
@@ -59,7 +58,6 @@ class AddVenueState {
     this.selectedFoodItemIds = const {},
     this.foodHalalMode = 'selected',
     this.excludedProducts = const [],
-    this.isManualMode = false,
     this.cityAllowed = true,
     this.guideCity,
   });
@@ -85,7 +83,6 @@ class AddVenueState {
     Map<int, List<int>>? selectedFoodItemIds,
     String? foodHalalMode,
     List<String>? excludedProducts,
-    bool? isManualMode,
     bool? cityAllowed,
     String? guideCity,
   }) {
@@ -110,15 +107,13 @@ class AddVenueState {
       selectedFoodItemIds: selectedFoodItemIds ?? this.selectedFoodItemIds,
       foodHalalMode: foodHalalMode ?? this.foodHalalMode,
       excludedProducts: excludedProducts ?? this.excludedProducts,
-      isManualMode: isManualMode ?? this.isManualMode,
       cityAllowed: cityAllowed ?? this.cityAllowed,
       guideCity: guideCity ?? this.guideCity,
     );
   }
 
-  // Adım 0 = Link adımı: ya koordinat parse edildi ya da manuel mod seçildi
-  bool get canProceedStep0 =>
-      (latitude != null && longitude != null) || isManualMode;
+  // Adım 0 = Link adımı: linkten koordinat parse edilmiş olmalı.
+  bool get canProceedStep0 => latitude != null && longitude != null;
   // Adım 1 = Detay doğrulama: ad + il + ilçe + koordinat zorunlu
   // Şehir kısıtı: mekan rehberin şehrinde değilse ilerlenemez.
   bool get canProceedStep1 =>
@@ -151,9 +146,6 @@ class AddVenueState {
 class AddVenueNotifier extends Notifier<AddVenueState> {
   @override
   AddVenueState build() => const AddVenueState();
-
-  void setManualMode(bool value) =>
-      state = state.copyWith(isManualMode: value);
 
   void setName(String name) => state = state.copyWith(name: name);
 

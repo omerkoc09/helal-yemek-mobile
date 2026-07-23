@@ -17,18 +17,15 @@ void main() {
   AddVenueNotifier notifier() => container.read(addVenueProvider.notifier);
   AddVenueState state() => container.read(addVenueProvider);
 
-  group('Wizard kapısı — canProceedStep0 (link/manuel)', () {
-    test('koordinat da manuel mod da yoksa geçilemez', () {
+  group('Wizard kapısı — canProceedStep0 (link zorunlu)', () {
+    // Manuel ("Linksiz Devam Et") akışı kaldırıldı: ilerlemek için mutlaka
+    // linkten koordinat çıkarılmış olmalı.
+    test('koordinat yoksa geçilemez', () {
       expect(state().canProceedStep0, isFalse);
     });
 
     test('koordinat gelince geçilebilir', () {
       notifier().setCoordinates(latitude: 41.0, longitude: 29.0);
-      expect(state().canProceedStep0, isTrue);
-    });
-
-    test('manuel mod seçilince koordinatsız da geçilebilir', () {
-      notifier().setManualMode(true);
       expect(state().canProceedStep0, isTrue);
     });
   });
