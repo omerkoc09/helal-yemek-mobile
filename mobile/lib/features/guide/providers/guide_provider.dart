@@ -5,6 +5,12 @@ import '../../../core/auth/auth_provider.dart';
 import '../../../core/models/venue.dart';
 import '../../../core/utils/google_maps_parser.dart';
 
+// copyWith'te nullable alanları gerçekten null'a çekebilmek için sentinel.
+// `googlePlaceId` gibi alanlarda "argüman verilmedi" (eski değeri koru) ile
+// "null verildi" (değeri temizle) durumlarını ayırt etmek gerekir; düz
+// `value ?? this.value` deseni null geçişini yutar.
+const Object _unset = Object();
+
 // ─── Add Venue State ───
 
 class AddVenueState {
@@ -75,7 +81,7 @@ class AddVenueState {
     bool? isLoadingPlaceDetails,
     double? latitude,
     double? longitude,
-    String? googlePlaceId,
+    Object? googlePlaceId = _unset,
     List<String>? googlePhotoUrls,
     String? selectedPhotoUrl,
     List<int>? selectedCriteriaIds,
@@ -99,7 +105,9 @@ class AddVenueState {
       isLoadingPlaceDetails: isLoadingPlaceDetails ?? this.isLoadingPlaceDetails,
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
-      googlePlaceId: googlePlaceId ?? this.googlePlaceId,
+      googlePlaceId: identical(googlePlaceId, _unset)
+          ? this.googlePlaceId
+          : googlePlaceId as String?,
       googlePhotoUrls: googlePhotoUrls ?? this.googlePhotoUrls,
       selectedPhotoUrl: selectedPhotoUrl ?? this.selectedPhotoUrl,
       selectedCriteriaIds: selectedCriteriaIds ?? this.selectedCriteriaIds,
@@ -530,17 +538,10 @@ class EditVenueState {
   final String name;
   final String city;
   final String? notes;
-  final double? latitude;
-  final double? longitude;
-  final String? googlePlaceId;
   final List<int> selectedCriteriaIds;
   final List<int> selectedFoodItemIds;
   final String foodHalalMode;
   final List<String> excludedProducts;
-
-  // Google Maps link parse
-  final String mapsLink;
-  final bool isParsingLink;
 
   const EditVenueState({
     this.isLoading = false,
@@ -551,15 +552,10 @@ class EditVenueState {
     this.name = '',
     this.city = '',
     this.notes,
-    this.latitude,
-    this.longitude,
-    this.googlePlaceId,
     this.selectedCriteriaIds = const [],
     this.selectedFoodItemIds = const [],
     this.foodHalalMode = 'selected',
     this.excludedProducts = const [],
-    this.mapsLink = '',
-    this.isParsingLink = false,
   });
 
   EditVenueState copyWith({
@@ -571,15 +567,10 @@ class EditVenueState {
     String? name,
     String? city,
     String? notes,
-    double? latitude,
-    double? longitude,
-    String? googlePlaceId,
     List<int>? selectedCriteriaIds,
     List<int>? selectedFoodItemIds,
     String? foodHalalMode,
     List<String>? excludedProducts,
-    String? mapsLink,
-    bool? isParsingLink,
   }) {
     return EditVenueState(
       isLoading: isLoading ?? this.isLoading,
@@ -590,15 +581,10 @@ class EditVenueState {
       name: name ?? this.name,
       city: city ?? this.city,
       notes: notes ?? this.notes,
-      latitude: latitude ?? this.latitude,
-      longitude: longitude ?? this.longitude,
-      googlePlaceId: googlePlaceId ?? this.googlePlaceId,
       selectedCriteriaIds: selectedCriteriaIds ?? this.selectedCriteriaIds,
       selectedFoodItemIds: selectedFoodItemIds ?? this.selectedFoodItemIds,
       foodHalalMode: foodHalalMode ?? this.foodHalalMode,
       excludedProducts: excludedProducts ?? this.excludedProducts,
-      mapsLink: mapsLink ?? this.mapsLink,
-      isParsingLink: isParsingLink ?? this.isParsingLink,
     );
   }
 }
@@ -618,14 +604,14 @@ class EditVenueNotifier extends Notifier<EditVenueState> {
           : (response.data['data'] as Map<String, dynamic>);
       final venue = Venue.fromJson(data);
 
+      // Konum düzenlemesi EditVenue'da yok (konum = mekan kimliği). Yalnız
+      // düzenlenebilir alanlar state'e alınır; koordinat/place_id yüklenmez.
       state = state.copyWith(
         isLoadingVenue: false,
         venueId: venue.id,
         name: venue.name,
         city: venue.city,
         notes: venue.notes,
-        latitude: venue.latitude,
-        longitude: venue.longitude,
         selectedCriteriaIds: venue.criteria.map((c) => c.id).toList(),
         selectedFoodItemIds: venue.foodItems.map((f) => f.id).toList(),
         foodHalalMode: venue.foodHalalMode,
@@ -642,45 +628,6 @@ class EditVenueNotifier extends Notifier<EditVenueState> {
   void setName(String name) => state = state.copyWith(name: name);
   void setCity(String city) => state = state.copyWith(city: city);
   void setNotes(String? notes) => state = state.copyWith(notes: notes);
-
-  void setCoordinates({required double latitude, required double longitude}) {
-    // Koordinat manuel değişince place_id geçersiz olur
-    state = state.copyWith(latitude: latitude, longitude: longitude, googlePlaceId: null);
-  }
-
-  Future<bool> parseMapsLink(String link) async {
-    state = state.copyWith(mapsLink: link, isParsingLink: true, error: null);
-
-    if (link.trim().isEmpty) {
-      state = state.copyWith(isParsingLink: false);
-      return false;
-    }
-
-    if (!GoogleMapsParser.isValidMapsLink(link)) {
-      state = state.copyWith(
-        isParsingLink: false,
-        error: 'Geçerli bir Google Maps linki girin.',
-      );
-      return false;
-    }
-
-    final coords = await GoogleMapsParser.parseLink(link);
-    if (coords != null) {
-      state = state.copyWith(
-        latitude: coords.latitude,
-        longitude: coords.longitude,
-        googlePlaceId: coords.placeId,
-        isParsingLink: false,
-      );
-      return true;
-    } else {
-      state = state.copyWith(
-        isParsingLink: false,
-        error: 'Linkten koordinat çıkarılamadı.',
-      );
-      return false;
-    }
-  }
 
   void toggleCriteria(int criteriaId) {
     final ids = List<int>.from(state.selectedCriteriaIds);
@@ -734,14 +681,13 @@ class EditVenueNotifier extends Notifier<EditVenueState> {
     state = state.copyWith(isLoading: true, error: null, isSuccess: false);
     try {
       final apiClient = ref.read(apiClientProvider);
+      // Konum gönderilmez: düzenleme konumu değiştirmez (backend, konum alanları
+      // yoksa mevcut değeri korur — venue update handler'ı *float64 kabul eder).
       await apiClient.put(
         ApiEndpoints.venueDetail(state.venueId),
         data: {
           'name': state.name.trim(),
           'city': state.city.trim(),
-          'latitude': state.latitude,
-          'longitude': state.longitude,
-          if (state.googlePlaceId != null) 'google_place_id': state.googlePlaceId,
           'notes': state.notes?.trim(),
           'criteria_ids': state.selectedCriteriaIds,
           'food_item_ids': state.selectedFoodItemIds,

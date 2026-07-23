@@ -675,21 +675,50 @@ geçersiz olur" derken `copyWith(googlePlaceId: null)` çağırır — ama `copy
 `googlePlaceId ?? this.googlePlaceId` null'ı **yok sayar**, eski place_id korunur. Kullanıcı
 düzenlemede konumu elle taşırsa **yanlış (eski) `google_place_id` submit'e gider**; backend o
 place_id'den adres/foto çekip yanlış mekana bağlayabilir. Aynı hata `AddVenueState.copyWith`'te
-de var (satır 105). *Karar: kullanıcı raporla-önce dedi; test şu an mevcut (hatalı) davranışı
-`⚠️ BUG` yorumuyla sabitliyor, düzeltilince beklenti `isNull`'a çevrilecek.*
-Düzeltme yolu: `copyWith`'te "verilmedi" ile "null verildi"yi ayıran sentinel.
+de var (satır 105).
+
+**✅ DÜZELTİLDİ (2026-07-23).** Her iki `copyWith`'te `googlePlaceId` parametresi
+`Object? = _unset` sentinel'ine çevrildi: `identical(googlePlaceId, _unset)` ile "argüman
+verilmedi" (eski değeri koru) ve "null verildi" (temizle) ayrıştırılıyor. `setCoordinates`
+artık place_id'yi gerçekten null'lıyor. Add + Edit için regresyon testleri null'lama ve
+"argüman verilmeyince koru" yönünü sabitliyor. `parseMapsLink`'in `coords.placeId` ataması
+etkilenmez (düz string/null atar).
 
 *Yan bulgu: `loadVenue`'daki `{data:...}` açma dalı ölü kod — backend venue detail'i düz obje
 döner (`venue_query_handler.go:141 c.JSON(venue)`), liste uçları gibi sarmalı değil.*
 
-Mobil test sayısı: **136 → 150** (14 dosya). Hepsi geçiyor.
+Mobil test sayısı: **136 → 151** (14 dosya, place_id düzeltmesiyle +1). Hepsi geçiyor.
 
 - [x] `google_maps_parser` testleri (koordinat/place_id/placeName/sınır/geçerlilik)
 - [x] `auth_provider` (mocktail — login/register/token saklama/logout/checkAuthStatus)
 - [x] `guide_provider` (AddVenueNotifier wizard/seçim mantığı) + `home_provider` search
-- [x] `edit_venue` (EditVenueNotifier + MyVenues) — place_id bug'ı belgelendi
+- [x] `edit_venue` (EditVenueNotifier + MyVenues)
+- [x] **`copyWith` place_id null-geçişi (sentinel) — DÜZELTİLDİ**
 - [ ] Konum-bağımlı akışlar (`fetchFeed`/`fetchPlaceDetails`) — fake `LocationService` refactor'u gerekir
-- [ ] **Bekleyen düzeltme:** `copyWith` place_id null-geçişi (sentinel) — onay bekliyor
+
+### 🟢 Faz 1.3 — Ürün kararı: Konum düzenleme akışları sadeleştirildi (2026-07-23)
+
+İki ilişkili ürün kararı, testlerle sabitlendi:
+
+**1. AddVenue — "Linksiz Devam Et" (manuel giriş) kaldırıldı.** Mekan eklemede Google Maps
+linki zorunlu oldu; `isManualMode`/`setManualMode` silindi, `canProceedStep0` link'ten
+koordinat gerektirir. (feat commit: manuel konum kaldır.)
+
+**2. EditVenue — konum düzenlemesi tamamen kaldırıldı.** *Gerekçe: konum = mekanın kimliği.
+Konum değişiyorsa o artık başka bir mekandır → update değil create olmalı; rehber farklı bir
+yer kastediyorsa yeni mekan ekler.* Kaldırılanlar: `EditVenueState`'ten
+`latitude/longitude/googlePlaceId/mapsLink/isParsingLink`; `EditVenueNotifier`'dan
+`setCoordinates`/`parseMapsLink`; `loadVenue` artık konum yüklemez; `submit` konum
+göndermez; `edit_venue_screen`'den tüm "Konum" bölümü (link input + "Haritada Seç" +
+`FullMapPicker`) ve kaydet-butonu koşulundaki konum kontrolü. **Backend uyumu:** venue update
+handler'ı konum alanlarını `*float64` (opsiyonel) kabul eder; gönderilmeyince mevcut konumu
+korur (`venue_write_handler.go:254-260`). Testler: `submit` gövdesinde
+`latitude/longitude/google_place_id` OLMADIĞI, `loadVenue`'nun yalnız düzenlenebilir
+alanları yüklediği sabitlendi.
+
+*Not: place_id `copyWith` sentinel düzeltmesi hâlâ AddVenue tarafında geçerli ve testli.*
+
+Mobil test sayısı: **151 → 147** (EditVenue konum testleri kaldırıldı). Hepsi geçiyor.
 
 #### 🔴 Faz 1'de ortaya çıkan üç bulgu
 

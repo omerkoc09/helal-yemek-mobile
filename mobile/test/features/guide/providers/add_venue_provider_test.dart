@@ -109,6 +109,30 @@ void main() {
     });
   });
 
+  group('setCoordinates', () {
+    test('koordinat elle değişince googlePlaceId geçersizleşir (null olur)', () {
+      // place_id'li bir başlangıç durumu kur (parseMapsLink ağa/binding'e
+      // dokunacağı için doğrudan copyWith ile — sentinel düzeltmesi sayesinde
+      // bu atama da düzgün çalışır).
+      notifier().state = state().copyWith(googlePlaceId: 'ChIJabc');
+      expect(state().googlePlaceId, 'ChIJabc');
+
+      // Konum haritadan elle taşınınca place_id o mekana ait olmaktan çıkar.
+      notifier().setCoordinates(latitude: 40.0, longitude: 28.0);
+
+      expect(state().latitude, 40.0);
+      expect(state().longitude, 28.0);
+      expect(state().googlePlaceId, isNull);
+    });
+
+    test('copyWith argüman verilmeyince mevcut place_id korunur', () {
+      // Sentinel'in diğer yönü: googlePlaceId geçilmezse eski değer kalmalı.
+      notifier().state = state().copyWith(googlePlaceId: 'ChIJkeep');
+      notifier().setName('Kafe'); // googlePlaceId'ye dokunmaz
+      expect(state().googlePlaceId, 'ChIJkeep');
+    });
+  });
+
   group('toggleCriteria', () {
     test('ekler ve tekrar çağırınca çıkarır', () {
       notifier().toggleCriteria(5);
