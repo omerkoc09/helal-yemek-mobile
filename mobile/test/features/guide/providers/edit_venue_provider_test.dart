@@ -78,14 +78,15 @@ void main() {
     // Not: Backend venue detail'i düz obje olarak döner (venue_query_handler.go:141
     // `c.JSON(venue)`), liste uçları gibi {data:...} sarmalı DEĞİL. loadVenue'daki
     // {data:...} açma dalı bu uç için ölü kod; düz obje yolu test edilir.
-    test('coğrafi ve helal alanları da yüklenir', () async {
+    // Konum düzenlemesi EditVenue'dan kaldırıldı (konum = mekan kimliği), bu
+    // yüzden latitude/longitude yüklenmez; yalnız düzenlenebilir alanlar yüklenir.
+    test('düzenlenebilir alanlar yüklenir', () async {
       when(() => mockApi.get(ApiEndpoints.venueDetail('v1')))
           .thenAnswer((_) async => _ok(_venueJson()));
 
       await notifier().loadVenue('v1');
 
-      expect(state().latitude, 41.0);
-      expect(state().longitude, 29.0);
+      expect(state().foodHalalMode, 'except');
       expect(state().selectedFoodItemIds, [10, 11]);
     });
 
@@ -99,63 +100,8 @@ void main() {
     });
   });
 
-  group('setCoordinates', () {
-    // ⚠️ BUG (kaynak): setCoordinates place_id'yi geçersizleştirmek için
-    // copyWith(googlePlaceId: null) çağırır (guide_provider.dart:656, yorumu da
-    // "koordinat manuel değişince place_id geçersiz olur" der) — AMA
-    // EditVenueState.copyWith'te `googlePlaceId ?? this.googlePlaceId` null'ı yok
-    // sayar, ESKİ place_id korunur. Kullanıcı konumu elle taşırsa yanlış (eski)
-    // google_place_id submit'e gider. Aynı hata AddVenueState.copyWith'te de var.
-    // Bu test şu an MEVCUT (hatalı) davranışı sabitler; kaynak düzeltilince
-    // beklenti `isNull`'a çevrilmeli.
-    test('koordinat değişir; place_id ŞU AN korunur (BUG — düzeltilince null olmalı)',
-        () async {
-      when(() => mockApi.get(ApiEndpoints.venueDetail('v1')))
-          .thenAnswer((_) async => _ok(_venueJson()));
-      await notifier().loadVenue('v1');
-      await notifier().parseMapsLink(
-        'https://www.google.com/maps/place/Kafe/data=!1sChIJabc!8m2!3d41.0!4d29.0',
-      );
-      expect(state().googlePlaceId, 'ChIJabc');
-
-      notifier().setCoordinates(latitude: 40.0, longitude: 28.0);
-
-      // Koordinat doğru güncelleniyor.
-      expect(state().latitude, 40.0);
-      expect(state().longitude, 28.0);
-      // BUG nedeniyle place_id null OLMUYOR — mevcut davranış sabitleniyor.
-      expect(state().googlePlaceId, 'ChIJabc');
-    });
-  });
-
-  group('parseMapsLink', () {
-    test('boş link false döner, hata set etmez', () async {
-      final ok = await notifier().parseMapsLink('   ');
-      expect(ok, isFalse);
-      expect(state().isParsingLink, isFalse);
-      expect(state().error, isNull);
-    });
-
-    test('geçersiz link false + hata mesajı', () async {
-      final ok = await notifier().parseMapsLink('https://example.com');
-      expect(ok, isFalse);
-      expect(state().error, isNotNull);
-    });
-
-    test('geçerli link koordinat + place_id çıkarır', () async {
-      final ok = await notifier().parseMapsLink(
-        'https://www.google.com/maps/place/Kafe/data=!1sChIJxyz!8m2!3d41.5!4d29.5',
-      );
-      expect(ok, isTrue);
-      expect(state().latitude, 41.5);
-      expect(state().longitude, 29.5);
-      expect(state().googlePlaceId, 'ChIJxyz');
-      expect(state().isParsingLink, isFalse);
-    });
-  });
-
   group('submit', () {
-    test('boş sakıncalı ürünler gönderilmeden filtrelenir', () async {
+    test('boş sakıncalı ürünler filtrelenir, konum GÖNDERİLMEZ', () async {
       when(() => mockApi.get(ApiEndpoints.venueDetail('v1')))
           .thenAnswer((_) async => _ok(_venueJson()));
       await notifier().loadVenue('v1');
@@ -176,6 +122,11 @@ void main() {
       expect(state().isSuccess, isTrue);
       // Boş ürün filtrelenmeli, sadece 'Jelatin' gitmeli.
       expect(sentData!['excluded_products'], ['Jelatin']);
+      // Konum düzenlemesi kaldırıldığından PUT gövdesinde konum alanları OLMAMALI;
+      // backend gönderilmeyen konumu korur (venue update handler'ı *float64 kabul eder).
+      expect(sentData!.containsKey('latitude'), isFalse);
+      expect(sentData!.containsKey('longitude'), isFalse);
+      expect(sentData!.containsKey('google_place_id'), isFalse);
     });
 
     test('hata durumunda isSuccess false + error set', () async {

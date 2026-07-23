@@ -2,14 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/error_retry_widget.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../providers/guide_provider.dart';
-import '../widgets/full_map_picker.dart';
-import '../widgets/location_selected_card.dart';
 
 class EditVenueScreen extends ConsumerStatefulWidget {
   final String venueId;
@@ -24,7 +21,6 @@ class _EditVenueScreenState extends ConsumerState<EditVenueScreen> {
   final _nameController = TextEditingController();
   final _cityController = TextEditingController();
   final _notesController = TextEditingController();
-  final _mapsLinkController = TextEditingController();
   bool _initialized = false;
 
   @override
@@ -41,7 +37,6 @@ class _EditVenueScreenState extends ConsumerState<EditVenueScreen> {
     _nameController.dispose();
     _cityController.dispose();
     _notesController.dispose();
-    _mapsLinkController.dispose();
     super.dispose();
   }
 
@@ -141,12 +136,6 @@ class _EditVenueScreenState extends ConsumerState<EditVenueScreen> {
                 ),
                 const SizedBox(height: 24),
 
-                // Konum
-                _buildSectionTitle('Konum'),
-                const SizedBox(height: 8),
-                _buildLocationSection(state),
-                const SizedBox(height: 24),
-
                 // Helal Kriterleri
                 _buildSectionTitle('Helal Kriterleri'),
                 const SizedBox(height: 8),
@@ -219,102 +208,6 @@ class _EditVenueScreenState extends ConsumerState<EditVenueScreen> {
       style: const TextStyle(
         fontSize: 16,
         fontWeight: FontWeight.w600,
-      ),
-    );
-  }
-
-  // ─── Konum ───
-
-  Widget _buildLocationSection(EditVenueState state) {
-    final hasCoordinates = state.latitude != null && state.longitude != null;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Google Maps linkini yapıştırarak veya haritadan seçerek konumu güncelleyebilirsiniz.',
-          style: TextStyle(
-            color: AppTheme.textSecondary,
-            fontSize: 12,
-            height: 1.4,
-          ),
-        ),
-        const SizedBox(height: 8),
-        TextField(
-          controller: _mapsLinkController,
-          decoration: InputDecoration(
-            labelText: 'Google Maps linki (isteğe bağlı)',
-            hintText: 'https://maps.app.goo.gl/...',
-            prefixIcon: const Icon(Icons.link),
-            suffixIcon: state.isParsingLink
-                ? const Padding(
-                    padding: EdgeInsets.all(12),
-                    child: SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                  )
-                : IconButton(
-                    icon: const Icon(Icons.content_paste),
-                    onPressed: _pasteFromClipboard,
-                  ),
-          ),
-          onChanged: _onMapsLinkChanged,
-          keyboardType: TextInputType.url,
-        ),
-        const SizedBox(height: 12),
-        if (hasCoordinates)
-          LocationSelectedCard(
-            latitude: state.latitude!,
-            longitude: state.longitude!,
-            onEdit: _openFullMapPicker,
-          )
-        else
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: _openFullMapPicker,
-              icon: const Icon(Icons.map_outlined),
-              label: const Text('Haritada Seç'),
-            ),
-          ),
-      ],
-    );
-  }
-
-  void _onMapsLinkChanged(String link) {
-    if (link.trim().isEmpty) return;
-
-    ref.read(editVenueProvider.notifier).parseMapsLink(link);
-  }
-
-  Future<void> _pasteFromClipboard() async {
-    final data = await Clipboard.getData(Clipboard.kTextPlain);
-    if (data?.text != null && data!.text!.isNotEmpty) {
-      _mapsLinkController.text = data.text!;
-      _onMapsLinkChanged(data.text!);
-    }
-  }
-
-  void _openFullMapPicker() {
-    final state = ref.read(editVenueProvider);
-    final initial = state.latitude != null && state.longitude != null
-        ? LatLng(state.latitude!, state.longitude!)
-        : null;
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        fullscreenDialog: true,
-        builder: (context) => FullMapPicker(
-          initialLocation: initial,
-          onLocationSelected: (position) {
-            ref.read(editVenueProvider.notifier).setCoordinates(
-                  latitude: position.latitude,
-                  longitude: position.longitude,
-                );
-            Navigator.pop(context);
-          },
-        ),
       ),
     );
   }
@@ -515,10 +408,10 @@ class _EditVenueScreenState extends ConsumerState<EditVenueScreen> {
   // ─── Bottom Bar ───
 
   Widget _buildBottomBar(EditVenueState state) {
-    final canSubmit = state.name.trim().isNotEmpty &&
-        state.city.trim().isNotEmpty &&
-        state.latitude != null &&
-        state.longitude != null;
+    // Konum düzenlenmiyor (mevcut mekanın konumu sabit kalır), bu yüzden yalnız
+    // düzenlenebilir zorunlu alanlar kontrol edilir.
+    final canSubmit =
+        state.name.trim().isNotEmpty && state.city.trim().isNotEmpty;
 
     return Container(
       padding: const EdgeInsets.all(16),
