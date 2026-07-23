@@ -42,22 +42,28 @@ func (f *fakeAdminVenueStore) Reject(_ context.Context, id, adminID string, note
 type fakeAdminGuideStore struct {
 	adminGuideStore
 
-	app       *models.GuideApplication
-	findErr   error
-	updateErr error
+	// ApproveApplication artık atomik: statü+rol+şehir repo transaction'ında.
+	// Fake yalnızca sonuç/hata döndürür; atomiklik integration testinde sınanır.
+	approveUserID string
+	approveErr    error
 
-	gotStatus models.ApplicationStatus
-	gotNote   *string
+	updateErr error // UpdateStatus (reddetme akışı) için
+
+	gotApproveID  string
+	gotApproveAdm string
+	gotStatus     models.ApplicationStatus
+	gotNote       *string
 }
 
-func (f *fakeAdminGuideStore) FindByID(_ context.Context, _ string) (*models.GuideApplication, error) {
-	if f.findErr != nil {
-		return nil, f.findErr
+func (f *fakeAdminGuideStore) ApproveApplication(_ context.Context, appID, adminID string) (string, error) {
+	f.gotApproveID, f.gotApproveAdm = appID, adminID
+	if f.approveErr != nil {
+		return "", f.approveErr
 	}
-	if f.app == nil {
-		return &models.GuideApplication{ID: "app1", UserID: "u1", City: "Ankara"}, nil
+	if f.approveUserID == "" {
+		return "user-1", nil
 	}
-	return f.app, nil
+	return f.approveUserID, nil
 }
 
 func (f *fakeAdminGuideStore) UpdateStatus(_ context.Context, _, _ string, status models.ApplicationStatus, note *string) error {
@@ -206,27 +212,21 @@ func TestAdminRejectVenue(t *testing.T) {
 // --- Rehber başvurusu: yetki yükseltme ---
 
 func TestAdminApproveApplicationGrantsGuideRole(t *testing.T) {
-	// Bu akış kullanıcıya guide yetkisi veriyor; yanlış çalışırsa ya yetki
-	// verilmez ya da yanlış kişiye verilir.
-	gs := &fakeAdminGuideStore{app: &models.GuideApplication{ID: "app1", UserID: "user-7", City: "İzmir"}}
-	us := &fakeAdminUserStore{}
+	// Onay artık atomik: handler tek ApproveApplication çağırıyor, statü+rol+
+	// şehir repo transaction'ında birlikte uygulanıyor. Handler seviyesinde
+	// doğrulanan: doğru başvuru id + admin id geçiliyor ve denetim kaydı yazılıyor.
+	// Atomikliğin kendisi repository integration testinde sınanır.
+	gs := &fakeAdminGuideStore{approveUserID: "user-7"}
 	audit := &fakeAdminAuditStore{}
-	app := setupAdminApp(&fakeAdminVenueStore{}, gs, us, audit, "a1")
+	app := setupAdminApp(&fakeAdminVenueStore{}, gs, &fakeAdminUserStore{}, audit, "admin-3")
 
 	resp := doJSON(t, app, http.MethodPut, "/admin/applications/app1/approve", "")
 	if resp.StatusCode != fiber.StatusOK {
 		t.Fatalf("beklenen 200, alınan %d", resp.StatusCode)
 	}
-	if gs.gotStatus != models.ApplicationStatusApproved {
-		t.Fatalf("başvuru durumu %q, beklenen approved", gs.gotStatus)
-	}
-	// Rol, başvurudaki kullanıcıya verilmeli — URL'deki başvuru id'sine değil.
-	if us.gotRoleUserID != "user-7" || us.gotRole != models.RoleGuide {
-		t.Fatalf("rol ataması yanlış: user=%s role=%s", us.gotRoleUserID, us.gotRole)
-	}
-	// Şehir başvurudaki beyandan alınmalı.
-	if us.gotCityUserID != "user-7" || us.gotCity != "İzmir" {
-		t.Fatalf("şehir ataması yanlış: user=%s city=%s", us.gotCityUserID, us.gotCity)
+	if gs.gotApproveID != "app1" || gs.gotApproveAdm != "admin-3" {
+		t.Fatalf("ApproveApplication yanlış argümanlarla çağrıldı: id=%s adm=%s",
+			gs.gotApproveID, gs.gotApproveAdm)
 	}
 	if len(audit.logs) != 1 || audit.logs[0].Action != "approve_guide_application" {
 		t.Fatalf("denetim kaydı yanlış: %+v", audit.logs)
@@ -238,22 +238,20 @@ func TestAdminApproveApplicationErrors(t *testing.T) {
 		name       string
 		adminID    string
 		gs         *fakeAdminGuideStore
-		us         *fakeAdminUserStore
 		wantStatus int
 	}{
-		{name: "giriş yapılmamış", adminID: "", gs: &fakeAdminGuideStore{}, us: &fakeAdminUserStore{}, wantStatus: fiber.StatusUnauthorized},
-		{name: "başvuru bulunamadı", adminID: "a1", gs: &fakeAdminGuideStore{findErr: repository.ErrNotFound}, us: &fakeAdminUserStore{}, wantStatus: fiber.StatusNotFound},
-		{name: "başvuru arama db hatası", adminID: "a1", gs: &fakeAdminGuideStore{findErr: errors.New("db")}, us: &fakeAdminUserStore{}, wantStatus: fiber.StatusInternalServerError},
+		{name: "giriş yapılmamış", adminID: "", gs: &fakeAdminGuideStore{}, wantStatus: fiber.StatusUnauthorized},
+		{name: "başvuru bulunamadı", adminID: "a1", gs: &fakeAdminGuideStore{approveErr: repository.ErrNotFound}, wantStatus: fiber.StatusNotFound},
 		// Aynı başvuru iki admin tarafından işlenirse ikincisi 409 almalı.
-		{name: "başvuru zaten incelenmiş — 409", adminID: "a1", gs: &fakeAdminGuideStore{updateErr: repository.ErrNotFound}, us: &fakeAdminUserStore{}, wantStatus: fiber.StatusConflict},
-		{name: "durum güncelleme db hatası", adminID: "a1", gs: &fakeAdminGuideStore{updateErr: errors.New("db")}, us: &fakeAdminUserStore{}, wantStatus: fiber.StatusInternalServerError},
-		// Rol verilemezse istek başarısız olmalı — sessizce "onaylandı" denmemeli.
-		{name: "rol atama hatası — 500", adminID: "a1", gs: &fakeAdminGuideStore{}, us: &fakeAdminUserStore{roleErr: errors.New("db")}, wantStatus: fiber.StatusInternalServerError},
+		{name: "başvuru zaten incelenmiş — 409", adminID: "a1", gs: &fakeAdminGuideStore{approveErr: repository.ErrAlreadyReviewed}, wantStatus: fiber.StatusConflict},
+		// Transaction içinde herhangi bir adım (rol/şehir) patlarsa 500;
+		// atomik olduğu için kısmi durum kalmaz.
+		{name: "transaction hatası — 500", adminID: "a1", gs: &fakeAdminGuideStore{approveErr: errors.New("db")}, wantStatus: fiber.StatusInternalServerError},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			app := setupAdminApp(&fakeAdminVenueStore{}, tt.gs, tt.us, &fakeAdminAuditStore{}, tt.adminID)
+			app := setupAdminApp(&fakeAdminVenueStore{}, tt.gs, &fakeAdminUserStore{}, &fakeAdminAuditStore{}, tt.adminID)
 			resp := doJSON(t, app, http.MethodPut, "/admin/applications/app1/approve", "")
 			if resp.StatusCode != tt.wantStatus {
 				t.Fatalf("beklenen %d, alınan %d", tt.wantStatus, resp.StatusCode)
@@ -262,22 +260,20 @@ func TestAdminApproveApplicationErrors(t *testing.T) {
 	}
 }
 
-func TestAdminApproveApplicationCityFailureIsTolerated(t *testing.T) {
-	// MEVCUT DAVRANIŞ: guide_city yazılamazsa istek yine 200 döner ve kullanıcı
-	// guide olarak kalır — yani rolü var ama şehri yok. Bu kısmi durum, şehir
-	// kısıtına dayanan akışları etkiler (ConfirmVenue, Create).
-	// Test bu davranışı sabitliyor; değiştirilmesi bilinçli bir karar olmalı.
-	gs := &fakeAdminGuideStore{}
-	us := &fakeAdminUserStore{cityErr: errors.New("db")}
-	app := setupAdminApp(&fakeAdminVenueStore{}, gs, us, &fakeAdminAuditStore{}, "a1")
+func TestAdminApproveApplicationCityFailureIsNotTolerated(t *testing.T) {
+	// DAVRANIŞ DEĞİŞTİ (2026-07-23, ürün kararı): şehir yazılamazsa artık istek
+	// BAŞARISIZ oluyor ve hiçbir kısmi değişiklik kalmıyor. Eskiden 200 dönüp
+	// kullanıcı "guide ama şehirsiz" kalıyordu; bu, şehir kısıtına dayanan
+	// akışları (ConfirmVenue, Create) sessizce bozuyordu.
+	//
+	// Atomiklik repo transaction'ında sağlanıyor; handler seviyesinde bu senaryo
+	// approveErr olarak temsil edilir (transaction rollback -> hata döner).
+	gs := &fakeAdminGuideStore{approveErr: errors.New("guide_city yazılamadı")}
+	app := setupAdminApp(&fakeAdminVenueStore{}, gs, &fakeAdminUserStore{}, &fakeAdminAuditStore{}, "a1")
 
 	resp := doJSON(t, app, http.MethodPut, "/admin/applications/app1/approve", "")
-	if resp.StatusCode != fiber.StatusOK {
-		t.Fatalf("beklenen 200 (şehir hatası tolere edilir), alınan %d", resp.StatusCode)
-	}
-	// Rol yine de verilmiş olmalı.
-	if us.gotRole != models.RoleGuide {
-		t.Fatal("şehir hatasına rağmen rol verilmeliydi")
+	if resp.StatusCode != fiber.StatusInternalServerError {
+		t.Fatalf("beklenen 500 (kısmi başarı tolere EDİLMEZ), alınan %d", resp.StatusCode)
 	}
 }
 

@@ -109,6 +109,64 @@ func (r *GuideRepo) FindLatestByUserID(ctx context.Context, userID string) (*mod
 	return app, err
 }
 
+// ApproveApplication — başvuruyu ONAYLAR: statüyü approved yapar, kullanıcıya
+// guide rolü verir ve şehrini ayarlar. Üçü TEK TRANSACTION içinde yapılır.
+//
+// Neden atomik: önceden bu üç yazma ayrı ayrı commit'leniyordu ve şehir
+// ayarlama başarısız olsa yalnızca loglanıyordu. Sonuç: kullanıcı guide olur
+// ama guide_city boş kalır — şehir kısıtına dayanan tüm akışlar (ConfirmVenue,
+// venue Create) bozulurdu. Artık herhangi bir adım başarısız olursa hepsi geri
+// sarılır; kullanıcı hiç guide olmamış gibi kalır ve işlem yeniden denenebilir.
+//
+// Başarıda, rol verilen kullanıcının ID'sini döndürür (bildirim/log için).
+func (r *GuideRepo) ApproveApplication(ctx context.Context, appID, adminID string) (userID string, err error) {
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return "", err
+	}
+	defer tx.Rollback(ctx) // commit edilirse no-op; edilmezse geri sarar
+
+	// Başvuruyu yükle (FOR UPDATE: eşzamanlı ikinci onayı engelle).
+	var appUserID, appCity string
+	err = tx.QueryRow(ctx,
+		`SELECT user_id, city FROM guide_applications WHERE id = $1 FOR UPDATE`,
+		appID,
+	).Scan(&appUserID, &appCity)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return "", ErrNotFound
+	}
+	if err != nil {
+		return "", err
+	}
+
+	// Statü: yalnızca pending'ken onaylanabilir. Satır etkilenmezse başvuru
+	// zaten incelenmiş demektir (aynı 409 semantiği korunur).
+	res, err := tx.Exec(ctx,
+		`UPDATE guide_applications
+		 SET status = 'approved', reviewed_by = $1, reviewed_at = NOW()
+		 WHERE id = $2 AND status = 'pending'`,
+		adminID, appID,
+	)
+	if err != nil {
+		return "", err
+	}
+	if res.RowsAffected() == 0 {
+		return "", ErrAlreadyReviewed
+	}
+
+	if _, err = tx.Exec(ctx,
+		`UPDATE users SET role = 'guide', guide_city = $1, updated_at = NOW() WHERE id = $2`,
+		appCity, appUserID,
+	); err != nil {
+		return "", err
+	}
+
+	if err = tx.Commit(ctx); err != nil {
+		return "", err
+	}
+	return appUserID, nil
+}
+
 // UpdateStatus — başvurunun durumunu günceller (admin işlemi).
 func (r *GuideRepo) UpdateStatus(ctx context.Context, id, adminID string, status models.ApplicationStatus, note *string) error {
 	result, err := r.db.Exec(ctx,
