@@ -561,7 +561,9 @@ inceleme/başvuru/yorum durumlarının 409 döndüğü, rehber şehrinin repo'ya
       test edildi (**%86-100** fonksiyon bazında). *(Aşağıda Faz 1.1)*
 - [ ] `email_service` (%0, 83 sat.) — SMTP/TLS sarmalayıcısı, soyutlama maliyeti yüksek,
       risk düşük; şimdilik atlandı
-- [ ] Mobil: 18.860 satıra karşılık 9 test dosyası — backend'den sonra
+- [~] Mobil: 9 → **14 test dosyası, 68 → 150 test**. parser + auth + add_venue wizard +
+      home search + **edit_venue** testlerle sabitlendi (Faz 1.2). Kalan: konum-bağımlı
+      akışlar (fake `LocationService`/geocoding gerekir → hafif refactor).
 - [x] ~~`LoginWithApple`~~ — **Apple girişi tümüyle kaldırıldı** (mobil + backend). Bkz. Faz 1.1
 
 ### 🟢 Faz 1.1 — Sosyal Giriş Testleri, Apple Kaldırma ve `is_active` Hatası (2026-07-23)
@@ -607,6 +609,87 @@ sınırlanması, proxy URL'sine **API anahtarının sızmaması**.
 - [x] Google sosyal giriş testleri (`is_active` hatası düzeltildi)
 - [x] PlacesService testleri (`httptest` ile)
 - [x] Apple kaldırma (mobil + backend), `go vet` + tüm testler `-race` temiz
+
+### 🟢 Faz 1.2 — Mobil Testler: parser + auth + guide/edit wizard + home search (2026-07-23)
+
+Backend test turu bitince mobil tarafa geçildi. Aynı **risk önceliği** yaklaşımı: saf mantık,
+ağsız, en yüksek regresyon değeri. İlk hedef `core/utils/google_maps_parser.dart` — mekan
+ekleme akışının kalbi, hiç mock gerektirmiyor.
+
+**Sabitlenen kritik iş kuralları** (21 yeni test):
+- **Koordinat format önceliği:** `!8m2!3d/!4d` (pin) `>` `!3d/!4d` `>` `/@` (kamera merkezi).
+  En önemli kural — yanlış öncelik mekanı kameranın baktığı yere (yanlış konuma) kaydederdi.
+- `place_id` çıkarımı: hem hex (`!1s0x...`) hem `ChIJ` formatları.
+- `placeName`: `+`→boşluk, URL-encoded Türkçe karakter decode, **koordinat gibi görünen
+  "isim"lerin reddi**.
+- Koordinat sınırları (`lat∈[-90,90]`, `lng∈[-180,180]`), negatif yarımküre, `isValidMapsLink`
+  host varyantları + normalize.
+
+*Kısa link (`goo.gl`) redirect çözümlemesi ağ gerektirdiği için kapsam dışı bırakıldı; tüm
+girdiler tam URL, dolayısıyla `parseLink` redirect'e girmeden çalışıyor.*
+
+Mobil test sayısı: **68 → 89** (10 dosya). Hepsi geçiyor.
+
+**İkinci hedef — `core/auth/auth_provider.dart`** (mocktail: `MockApiClient` +
+`MockTokenStorage`, `ProviderContainer` override). 13 yeni test. Sabitlenen iş kuralları:
+- **login/register:** başarılı yol token'ları doğru argümanlarla saklar (`saveTokens`
+  verify), authenticated'a geçer; **hata yolu token SAKLAMAZ**, `error` set eder,
+  authenticated olmaz (regresyon açısından en kritik güvenlik davranışı).
+- **`_handleAuthResponse` dalları:** yanıtta `user` objesi varsa `/me` çağrılmaz; yoksa
+  `/me`'den çekilir; `/me` hata verse bile token saklandığı için oturum authenticated sayılır.
+  *(Backend Google login düzeltmesiyle `user` objesi dönüyor — bu yolun mobil işleyişi artık kilitli.)*
+- **`checkAuthStatus`:** token yok→unauthenticated (`/me` çağrılmaz); token+`/me` ok→authenticated;
+  token+`/me` hata→**token temizlenir** + unauthenticated (onboarding bilgisi korunur).
+- **`logout`** token temizler + state sıfırlar; `markOnboardingSeen`/`updateUser`.
+
+Mobil test sayısı: **89 → 102** (11 dosya). Hepsi geçiyor.
+
+**Üçüncü hedef — `guide_provider` (AddVenueNotifier) + `home_provider` search.** Mekan
+ekleme sihirbazının saf state/wizard mantığı (konum/API gerektirmez) + arama akışı.
+30 + 6 yeni test. Sabitlenen iş kuralları:
+- **Wizard ilerleme kapıları `canProceedStep0..3`:** manuel-mod/koordinat kapısı; adım 1'in
+  **`cityAllowed` şehir kısıtı** (diğer her şey dolu olsa da uyumsuz şehirde ilerlenemez —
+  rehberin kendi şehri dışına mekan eklemesini engelleyen kural); adım 3'ün **`foodHalalMode`
+  dallanması** (`except` modunda yemek VAR ama sakıncalı ürün boşsa geçilemez).
+- **Seçim mantığı:** `toggleCriteria`, `toggleFoodItem` (kategori bazlı), `selectAllInCategory`/
+  `deselectAllInCategory`, `isCategoryFullySelected` (totalItemCount=0 → false),
+  `allSelectedFoodItemIds` (kategorileri düz listede toplar).
+- **`setFoodHalalMode` geçişi:** `except`'e girişte boş excluded `['']` ile başlar, `except`
+  dışına çıkışta temizlenir, mevcut dolu excluded korunur.
+- **Adım navigasyonu:** `nextStep`/`previousStep`/`goToStep` sınırları (0..4'te durma).
+- **`home` search:** boş sorgu API çağırmaz + temizler; `{data:[]}` ve düz liste yanıtı
+  ikisi de parse edilir; API hatasında sonuçlar temizlenir; `clearSearch`.
+
+Mobil test sayısı: **102 → 136** (13 dosya). Hepsi geçiyor.
+
+**Dördüncü hedef — `EditVenueNotifier` + `MyVenuesNotifier`.** AddVenue'nun aksine konum
+bağımlılığı yok (yalnız `apiClient` + saf `GoogleMapsParser`), refactorsuz test edildi.
+14 yeni test. Sabitlenenler: `loadVenue` mevcut mekanı state'e map'ler (kriter/yemek ID
+düz listeleri, halalMode, excluded) + hata yolu; `parseMapsLink` (boş/geçersiz/geçerli);
+`submit` **boş sakıncalı ürünleri filtreler** + başarı/hata; toggle/halalMode geçişi;
+`MyVenues` fetch.
+
+**🔴 BULUNAN BUG — `setCoordinates` place_id'yi geçersizleştiremiyor.** Test yazarken bulundu.
+`setCoordinates` (guide_provider.dart:656), kod yorumu "koordinat manuel değişince place_id
+geçersiz olur" derken `copyWith(googlePlaceId: null)` çağırır — ama `copyWith`'te
+`googlePlaceId ?? this.googlePlaceId` null'ı **yok sayar**, eski place_id korunur. Kullanıcı
+düzenlemede konumu elle taşırsa **yanlış (eski) `google_place_id` submit'e gider**; backend o
+place_id'den adres/foto çekip yanlış mekana bağlayabilir. Aynı hata `AddVenueState.copyWith`'te
+de var (satır 105). *Karar: kullanıcı raporla-önce dedi; test şu an mevcut (hatalı) davranışı
+`⚠️ BUG` yorumuyla sabitliyor, düzeltilince beklenti `isNull`'a çevrilecek.*
+Düzeltme yolu: `copyWith`'te "verilmedi" ile "null verildi"yi ayıran sentinel.
+
+*Yan bulgu: `loadVenue`'daki `{data:...}` açma dalı ölü kod — backend venue detail'i düz obje
+döner (`venue_query_handler.go:141 c.JSON(venue)`), liste uçları gibi sarmalı değil.*
+
+Mobil test sayısı: **136 → 150** (14 dosya). Hepsi geçiyor.
+
+- [x] `google_maps_parser` testleri (koordinat/place_id/placeName/sınır/geçerlilik)
+- [x] `auth_provider` (mocktail — login/register/token saklama/logout/checkAuthStatus)
+- [x] `guide_provider` (AddVenueNotifier wizard/seçim mantığı) + `home_provider` search
+- [x] `edit_venue` (EditVenueNotifier + MyVenues) — place_id bug'ı belgelendi
+- [ ] Konum-bağımlı akışlar (`fetchFeed`/`fetchPlaceDetails`) — fake `LocationService` refactor'u gerekir
+- [ ] **Bekleyen düzeltme:** `copyWith` place_id null-geçişi (sentinel) — onay bekliyor
 
 #### 🔴 Faz 1'de ortaya çıkan üç bulgu
 
