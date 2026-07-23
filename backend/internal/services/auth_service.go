@@ -31,21 +31,25 @@ type loginRecorder interface {
 	Record(ctx context.Context, userID string) error
 }
 
+// googleTokenValidator — Google ID token doğrulaması. Varsayılan uygulama
+// idtoken.Validate'i sarar; testte canlı ağ çağrısı yerine sahte verilir.
+type googleTokenValidator func(ctx context.Context, idToken, audience string) (*idtoken.Payload, error)
+
 type AuthService struct {
-	userRepo       authUserStore
-	loginRepo      loginRecorder
-	jwtSecret      string
-	googleClientID string
-	appleService   *AppleService
+	userRepo        authUserStore
+	loginRepo       loginRecorder
+	jwtSecret       string
+	googleClientID  string
+	googleValidator googleTokenValidator
 }
 
 func NewAuthService(userRepo *repository.UserRepo, loginRepo *repository.LoginRepo, jwtSecret, googleClientID string) *AuthService {
 	return &AuthService{
-		userRepo:       userRepo,
-		loginRepo:      loginRepo,
-		jwtSecret:      jwtSecret,
-		googleClientID: googleClientID,
-		appleService:   NewAppleService(),
+		userRepo:        userRepo,
+		loginRepo:       loginRepo,
+		jwtSecret:       jwtSecret,
+		googleClientID:  googleClientID,
+		googleValidator: idtoken.Validate,
 	}
 }
 
@@ -136,7 +140,7 @@ func (s *AuthService) Login(ctx context.Context, email, password string) (*jwtpk
 
 // LoginWithGoogle — Google ID token'ını doğrular, kullanıcı yoksa oluşturur.
 func (s *AuthService) LoginWithGoogle(ctx context.Context, idToken string) (*jwtpkg.TokenPair, error) {
-	payload, err := idtoken.Validate(ctx, idToken, s.googleClientID)
+	payload, err := s.googleValidator(ctx, idToken, s.googleClientID)
 	if err != nil {
 		return nil, errors.New("geçersiz Google token")
 	}
@@ -156,7 +160,10 @@ func (s *AuthService) LoginWithGoogle(ctx context.Context, idToken string) (*jwt
 			// Mevcut hesapla giriş yap
 			user = existing
 		} else if errors.Is(emailErr, repository.ErrNotFound) {
-			// Hiç hesap yok, yeni oluştur
+			// Hiç hesap yok, yeni oluştur.
+			// IsActive açıkça true: Create yalnızca id/created_at/updated_at'i
+			// geri okuyor, DB'deki "DEFAULT true" struct'a yansımıyor. Yazılmazsa
+			// hemen aşağıdaki !user.IsActive kontrolü yeni kullanıcıyı kilitler.
 			user = &models.User{
 				Email:      email,
 				Name:       name,
@@ -164,6 +171,7 @@ func (s *AuthService) LoginWithGoogle(ctx context.Context, idToken string) (*jwt
 				Role:       models.RoleTraveler,
 				Provider:   "google",
 				ProviderID: &providerID,
+				IsActive:   true,
 			}
 			if err := s.userRepo.Create(ctx, user); err != nil {
 				return nil, err
@@ -185,48 +193,6 @@ func (s *AuthService) LoginWithGoogle(ctx context.Context, idToken string) (*jwt
 	if user.Role != models.RoleAdmin {
 		go s.recordLogin(user.ID)
 	}
-	return pair, nil
-}
-
-// LoginWithApple — Apple identity token'ını doğrular, kullanıcı yoksa oluşturur.
-func (s *AuthService) LoginWithApple(ctx context.Context, identityToken, name string) (*jwtpkg.TokenPair, error) {
-	claims, err := s.appleService.ValidateToken(ctx, identityToken)
-	if err != nil {
-		return nil, errors.New("geçersiz Apple token")
-	}
-
-	providerID := claims.Subject
-	email := strings.ToLower(claims.Email)
-
-	// Apple ilk girişte adı gönderir, sonraki girişlerde göndermez
-	if name == "" {
-		name = "Apple Kullanıcısı"
-	}
-
-	user, err := s.userRepo.FindByProviderID(ctx, "apple", providerID)
-	if errors.Is(err, repository.ErrNotFound) {
-		user = &models.User{
-			Email:      email,
-			Name:       name,
-			Role:       models.RoleTraveler,
-			Provider:   "apple",
-			ProviderID: &providerID,
-		}
-		if err := s.userRepo.Create(ctx, user); err != nil {
-			return nil, err
-		}
-	} else if err != nil {
-		return nil, err
-	}
-
-	if !user.IsActive {
-		return nil, errors.New("hesabınız devre dışı bırakılmıştır")
-	}
-	pair, err := jwtpkg.GenerateTokenPair(user.ID, user.Email, string(user.Role), s.jwtSecret)
-	if err != nil {
-		return nil, err
-	}
-	go s.recordLogin(user.ID)
 	return pair, nil
 }
 

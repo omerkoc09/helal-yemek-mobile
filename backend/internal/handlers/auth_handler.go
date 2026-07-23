@@ -13,7 +13,6 @@ type AuthServiceInterface interface {
 	Register(ctx context.Context, email, password, name, surname, phone string) (*jwtpkg.TokenPair, error)
 	Login(ctx context.Context, email, password string) (*jwtpkg.TokenPair, error)
 	LoginWithGoogle(ctx context.Context, idToken string) (*jwtpkg.TokenPair, error)
-	LoginWithApple(ctx context.Context, identityToken, name string) (*jwtpkg.TokenPair, error)
 	RefreshTokens(ctx context.Context, refreshToken string) (*jwtpkg.TokenPair, error)
 	GetUser(ctx context.Context, userID string) (*models.User, error)
 	UpdateProfile(ctx context.Context, userID string, name, surname, phone *string) (*models.User, error)
@@ -83,24 +82,6 @@ func (h *AuthHandler) GoogleLogin(c *fiber.Ctx) error {
 	}
 
 	tokens, err := h.authService.LoginWithGoogle(c.Context(), req.IDToken)
-	if err != nil {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": err.Error()})
-	}
-	return c.JSON(tokens)
-}
-
-// AppleLogin godoc
-// POST /api/v1/auth/apple
-func (h *AuthHandler) AppleLogin(c *fiber.Ctx) error {
-	var req struct {
-		IdentityToken string `json:"identity_token"`
-		Name          string `json:"name"` // Sadece ilk girişte Apple gönderir
-	}
-	if err := c.BodyParser(&req); err != nil || req.IdentityToken == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "identity_token zorunludur"})
-	}
-
-	tokens, err := h.authService.LoginWithApple(c.Context(), req.IdentityToken, req.Name)
 	if err != nil {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": err.Error()})
 	}

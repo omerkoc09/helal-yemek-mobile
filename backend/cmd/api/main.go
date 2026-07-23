@@ -207,7 +207,6 @@ func main() {
 	auth.Post("/register", authHandler.Register)
 	auth.Post("/login", authHandler.Login)
 	auth.Post("/google", authHandler.GoogleLogin)
-	auth.Post("/apple", authHandler.AppleLogin)
 
 	// Auth endpoint'leri (korumalı)
 	auth.Post("/refresh", authHandler.Refresh)

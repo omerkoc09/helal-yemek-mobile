@@ -48,11 +48,6 @@ func (f *fakeAuthService) LoginWithGoogle(_ context.Context, idToken string) (*j
 	return f.tokens, f.err
 }
 
-func (f *fakeAuthService) LoginWithApple(_ context.Context, identityToken, name string) (*jwtpkg.TokenPair, error) {
-	f.gotToken, f.gotName = identityToken, name
-	return f.tokens, f.err
-}
-
 func (f *fakeAuthService) RefreshTokens(_ context.Context, refreshToken string) (*jwtpkg.TokenPair, error) {
 	f.gotToken = refreshToken
 	return f.tokens, f.err
@@ -91,7 +86,6 @@ func setupAuthApp(svc AuthServiceInterface, userID string) *fiber.App {
 	app.Post("/auth/register", h.Register)
 	app.Post("/auth/login", h.Login)
 	app.Post("/auth/google", h.GoogleLogin)
-	app.Post("/auth/apple", h.AppleLogin)
 	app.Post("/auth/refresh", h.Refresh)
 	app.Get("/auth/me", h.Me)
 	app.Put("/auth/profile", h.UpdateProfile)
@@ -193,7 +187,7 @@ func TestAuthLogin(t *testing.T) {
 	}
 }
 
-// --- Sosyal giriş (Google / Apple) ---
+// --- Sosyal giriş (Google) ---
 
 func TestAuthSocialLogin(t *testing.T) {
 	tests := []struct {
@@ -208,10 +202,6 @@ func TestAuthSocialLogin(t *testing.T) {
 		{name: "google token boş", path: "/auth/google", body: `{"id_token":""}`, wantStatus: fiber.StatusBadRequest},
 		{name: "google bozuk JSON", path: "/auth/google", body: `{bozuk`, wantStatus: fiber.StatusBadRequest},
 		{name: "google doğrulama hatası", path: "/auth/google", body: `{"id_token":"g-token"}`, svcErr: errors.New("token geçersiz"), wantStatus: fiber.StatusUnauthorized},
-
-		{name: "apple başarılı", path: "/auth/apple", body: `{"identity_token":"a-token","name":"Ali"}`, wantStatus: fiber.StatusOK, wantToken: "a-token"},
-		{name: "apple token boş", path: "/auth/apple", body: `{"identity_token":""}`, wantStatus: fiber.StatusBadRequest},
-		{name: "apple doğrulama hatası", path: "/auth/apple", body: `{"identity_token":"a-token"}`, svcErr: errors.New("token geçersiz"), wantStatus: fiber.StatusUnauthorized},
 	}
 
 	for _, tt := range tests {

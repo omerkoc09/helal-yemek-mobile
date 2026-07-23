@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"golang.org/x/crypto/bcrypt"
+	"google.golang.org/api/idtoken"
 
 	"github.com/omerkoc/caiz-mi/internal/models"
 	"github.com/omerkoc/caiz-mi/internal/repository"
@@ -96,6 +97,7 @@ func newTestAuthService(store authUserStore) *AuthService {
 		jwtSecret: testSecret,
 	}
 }
+
 
 func hashOf(t *testing.T, pw string) *string {
 	t.Helper()
@@ -394,6 +396,141 @@ func TestAuthServiceGetUserAndUpdateProfile(t *testing.T) {
 		store := &fakeAuthUserStore{updateErr: errors.New("db")}
 		if _, err := newTestAuthService(store).UpdateProfile(context.Background(), "u1", nil, nil, nil); err == nil {
 			t.Fatal("hata dönmeliydi")
+		}
+	})
+}
+
+// --- LoginWithGoogle ---
+//
+// idtoken.Validate canlı Google servisine ağ çağrısı yapar; sahte bir
+// googleValidator enjekte ederek doğrulama SONRASI iş kuralları test edilir.
+
+func TestAuthServiceLoginWithGoogle(t *testing.T) {
+	// googlePayload — belirtilen sub/email/name ile doğrulanmış sayılan token.
+	googlePayload := func(sub, email, name string) googleTokenValidator {
+		return func(context.Context, string, string) (*idtoken.Payload, error) {
+			return &idtoken.Payload{
+				Subject: sub,
+				Claims: map[string]interface{}{
+					"email":   email,
+					"name":    name,
+					"picture": "https://pic",
+				},
+			}, nil
+		}
+	}
+
+	withGoogle := func(store authUserStore, v googleTokenValidator) *AuthService {
+		s := newTestAuthService(store)
+		s.googleValidator = v
+		return s
+	}
+
+	t.Run("geçersiz token reddedilir", func(t *testing.T) {
+		failing := func(context.Context, string, string) (*idtoken.Payload, error) {
+			return nil, errors.New("doğrulama başarısız")
+		}
+		store := &fakeAuthUserStore{}
+		if _, err := withGoogle(store, failing).LoginWithGoogle(context.Background(), "bad"); err == nil {
+			t.Fatal("geçersiz Google token kabul edildi")
+		}
+		if store.gotCreated != nil {
+			t.Fatal("token geçersizken kullanıcı oluşturuldu")
+		}
+	})
+
+	t.Run("yeni kullanıcı google provider ile oluşturulur", func(t *testing.T) {
+		// Hiç hesap yok: hem provider hem email araması ErrNotFound döner.
+		store := &fakeAuthUserStore{
+			byProviderErr: repository.ErrNotFound,
+			byEmailErr:    repository.ErrNotFound,
+		}
+		pair, err := withGoogle(store, googlePayload("g-sub", "New@Gmail.com", "Yeni Kişi")).
+			LoginWithGoogle(context.Background(), "tok")
+		if err != nil {
+			t.Fatalf("giriş başarısız: %v", err)
+		}
+		if pair.AccessToken == "" {
+			t.Fatal("access token boş")
+		}
+		if store.gotCreated == nil {
+			t.Fatal("yeni kullanıcı oluşturulmadı")
+		}
+		if store.gotCreated.Provider != "google" {
+			t.Fatalf("provider %q, beklenen google", store.gotCreated.Provider)
+		}
+		if store.gotCreated.ProviderID == nil || *store.gotCreated.ProviderID != "g-sub" {
+			t.Fatal("provider ID token'daki sub ile eşleşmiyor")
+		}
+		if store.gotCreated.Email != "new@gmail.com" {
+			t.Fatalf("email normalize edilmedi: %q", store.gotCreated.Email)
+		}
+		if store.gotCreated.Role != models.RoleTraveler {
+			t.Fatalf("yeni sosyal kullanıcı %q rolüyle açıldı, beklenen traveler", store.gotCreated.Role)
+		}
+		// Regresyon kilidi: yeni kullanıcı aktif oluşturulmalı. Create yalnızca
+		// id/tarih'i geri okuduğu için IsActive struct'ta açıkça set edilmezse
+		// DB default'u (true) yansımaz ve kullanıcı ilk girişte kilitlenir.
+		if !store.gotCreated.IsActive {
+			t.Fatal("yeni Google kullanıcısı aktif olmayan (is_active=false) oluşturuldu — ilk girişte kilitlenir")
+		}
+	})
+
+	t.Run("aynı email'li mevcut hesaba bağlanır, yeni kayıt açılmaz", func(t *testing.T) {
+		// Email/şifre ile açılmış hesap Google ile giriş yapınca mükerrer
+		// kullanıcı YARATILMAMALI; mevcut hesapla giriş yapılmalı.
+		existing := &models.User{ID: "u1", Email: "a@b.com", IsActive: true, Role: models.RoleTraveler}
+		store := &fakeAuthUserStore{
+			byProviderErr: repository.ErrNotFound,
+			byEmail:       existing,
+		}
+		if _, err := withGoogle(store, googlePayload("g-sub", "a@b.com", "Ali")).
+			LoginWithGoogle(context.Background(), "tok"); err != nil {
+			t.Fatalf("giriş başarısız: %v", err)
+		}
+		if store.gotCreated != nil {
+			t.Fatal("mevcut email'e rağmen yeni kullanıcı oluşturuldu — mükerrer hesap")
+		}
+	})
+
+	t.Run("mevcut provider hesabıyla giriş", func(t *testing.T) {
+		linked := &models.User{ID: "u1", Email: "a@b.com", IsActive: true, Role: models.RoleTraveler}
+		store := &fakeAuthUserStore{byProvider: linked}
+		pair, err := withGoogle(store, googlePayload("g-sub", "a@b.com", "Ali")).
+			LoginWithGoogle(context.Background(), "tok")
+		if err != nil {
+			t.Fatalf("giriş başarısız: %v", err)
+		}
+		if pair.AccessToken == "" {
+			t.Fatal("access token boş")
+		}
+		if store.gotCreated != nil {
+			t.Fatal("mevcut provider hesabında yeni kullanıcı oluşturuldu")
+		}
+	})
+
+	t.Run("devre dışı hesap reddedilir", func(t *testing.T) {
+		disabled := &models.User{ID: "u1", Email: "a@b.com", IsActive: false}
+		store := &fakeAuthUserStore{byProvider: disabled}
+		if _, err := withGoogle(store, googlePayload("g-sub", "a@b.com", "Ali")).
+			LoginWithGoogle(context.Background(), "tok"); err == nil {
+			t.Fatal("devre dışı hesapla Google girişi yapıldı")
+		}
+	})
+
+	t.Run("beklenmeyen depo hatası taşınır", func(t *testing.T) {
+		// FindByEmail ErrNotFound dışında bir hata dönerse yeni hesap açmaya
+		// çalışmadan hatayı yukarı taşımalı.
+		store := &fakeAuthUserStore{
+			byProviderErr: repository.ErrNotFound,
+			byEmailErr:    errors.New("db patladı"),
+		}
+		if _, err := withGoogle(store, googlePayload("g-sub", "a@b.com", "Ali")).
+			LoginWithGoogle(context.Background(), "tok"); err == nil {
+			t.Fatal("depo hatası yutuldu")
+		}
+		if store.gotCreated != nil {
+			t.Fatal("depo hatasında kullanıcı oluşturuldu")
 		}
 	})
 }
