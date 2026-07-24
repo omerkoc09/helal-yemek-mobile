@@ -1,4 +1,11 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
+
+// Konum servisi provider'ı. Testte fake ile override edilebilir.
+final locationServiceProvider = Provider<LocationService>((ref) {
+  return LocationService();
+});
 
 class LocationService {
   Future<Position> getCurrentPosition() async {
@@ -26,6 +33,22 @@ class LocationService {
         accuracy: LocationAccuracy.high,
       ),
     );
+  }
+
+  /// Koordinattan il/şehir adını çözer (ör. "İstanbul"). Geocoding başarısız
+  /// olursa null döner (çağıran, şehir slider'ını göstermeyerek devam eder).
+  /// administrativeArea = il, locality = ilçe; il seviyesi önceliklidir.
+  Future<String?> getCityFromCoordinates(double lat, double lng) async {
+    try {
+      final placemarks = await placemarkFromCoordinates(lat, lng);
+      if (placemarks.isNotEmpty) {
+        return placemarks.first.administrativeArea ??
+            placemarks.first.locality;
+      }
+    } catch (_) {
+      // Geocoding hatası — şehir çözülemedi.
+    }
+    return null;
   }
 }
 

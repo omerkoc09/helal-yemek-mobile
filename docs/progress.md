@@ -482,27 +482,36 @@ sessizce zarar vermeleri.
   `pgxpool.New` tamamen varsayılan; `MaxConns`, connection/idle timeout, health check yok.
   Yük altında bağlantı tükenmesi ve zincirleme timeout.
 
-- [ ] **Google Maps API key — TEK anahtar üç yerde, üstelik istemciye sızıyor** 🔴 ⚠️ *hesap erişimi*
-  Denetimde ilk sanılandan **daha ciddi** çıktı. Aynı anahtar (`AIzaSyDLca...`) şurada:
-  `AndroidManifest.xml`, `AppDelegate.swift:12` **ve** backend `GOOGLE_MAPS_API_KEY` (Places API).
+- [ ] **Google Maps API key — anahtar bölme (deploy öncesi son adım)** 🔴 ⚠️ *hesap erişimi*
 
-  Dahası `places_service.go:207` anahtarı fotoğraf URL'sine gömüyor, `venue_handler.go:170`
-  bu URL'leri `photo_urls` olarak **istemciye gönderiyor**, mobil de `Image.network(url)` ile
-  (`add_venue_location_step.dart:250`) **cihazdan doğrudan çekiyor**.
+  **GÜNCELLEME (2026-07-25 denetimi):** İlk madde (2026-07-21) kısmen eskidi. Faz 3
+  fotoğraf proxy'si tamamlandığından **fotoğraf sızıntısı çözüldü** — `BuildPhotoURL` artık
+  `PhotoProxyPath` (`/api/v1/places/photo`) döndürüyor, Places anahtarı fotoğraf yoluyla
+  istemciye gitmiyor. Backend anahtarı da env'den geliyor (`config.go:70 GOOGLE_MAPS_API_KEY`),
+  kaynakta hardcoded değil.
 
-  **Sonuç: bu anahtar mevcut mimaride hiçbir uygulama-kısıtlaması alamaz.**
-  IP'ye kısıtlanırsa mobil önizleme kırılır (istek cihazdan geliyor); Android paketi + SHA-1'e
-  kısıtlanırsa backend'in Places çağrıları kırılır. Yani şu an mecburen açık.
+  **Kalan gerçek durum — tek anahtar iki katmanda:**
+  - Mobil binary'de gömülü (Maps SDK / harita render): `AndroidManifest.xml:42`,
+    `AppDelegate.swift:12` — **ikisi de aynı anahtar** (`...mE3yQk`), muhtemelen backend'in
+    Places anahtarıyla da aynı.
+  - `build/` git-ignore'lu, `google-services.json` git'te değil → **repoda sızıntı yok**,
+    yalnız dağıtılan binary'de (ki SDK anahtarı doğası gereği binary'de olur).
 
-  **KARAR (2026-07-21):** Proxy Faz 3'e ertelendi, anahtar bölme şimdi yapılacak.
-  - [ ] **Şimdi:** Android (paket+SHA-1) ve iOS (bundle ID) için **ayrı** Maps SDK anahtarları
-        üret ve kısıtla — bunlar kısıtlanabilir ve binary'de taşındıkları için en açık olanlar.
-  - [ ] **Şimdi (yara bandı):** Places/sunucu anahtarına **kota sınırı** koy. Anahtar sızmaya
-        devam edecek (kısıtlanamıyor), kota yalnızca faturayı sınırlar.
-  - [ ] **Faz 3:** Fotoğrafları backend üzerinden proxy'le → sunucu anahtarı istemciye hiç
-        gitmez, ancak o zaman IP kısıtlaması uygulanabilir. Faz 3'e bırakılmasının sebebi:
-        proxy fotoğraf URL mimarisini baştan yazıyor, S3 geçişi de aynı yeri yazıyor —
-        şimdi yapılırsa iki kez yazılmış olur.
+  **Neden ertelendi (hâlâ geçerli):** SDK anahtarını paket adı + SHA-1 (Android) / bundle ID
+  (iOS) ile kısıtlamak ancak **gerçek release imza anahtarı ve bundle ID belli olunca** doğru
+  yapılır. Şimdi debug SHA-1'e kısıtlanırsa release build'de harita kırılır. Fotoğraf/Places
+  sızıntısı zaten kapalı olduğundan acil değil.
+
+  **Checklist (çoğu Google Cloud Console'da, kod değil):**
+  - [x] **Fatura koruma (2026-07-25):** Cloud Console'da aylık bütçe uyarısı kuruldu
+        (₺10, "Alerts only", tüm projeler). Beklenmedik kullanımda mail gelir. *Not: bu
+        uyarıdır, otomatik kesme değil.*
+  - [ ] **Deploy'da:** Mobil için **ayrı** Maps SDK anahtarı üret; Android'i release paket+SHA-1,
+        iOS'u bundle ID ile kısıtla. Binary'deki anahtarı bununla değiştir.
+  - [ ] **Deploy'da:** Backend Places için **ayrı** sunucu anahtarı; artık fotoğraf proxy'de
+        olduğu için bu anahtar istemciye hiç gitmiyor → IP kısıtlaması uygulanabilir.
+  - [ ] Firebase anahtarı (`google-services.json`, `project_id: caizmi-e078b`) ayrı bir
+        anahtar; Maps SDK anahtarıyla karıştırma — Firebase Console'dan yönetilir.
 
 ### 🟠 Faz 1 — Güvenlik Ağı: Test Kapsamı — ✅ KRİTİK YOLLAR TAMAMLANDI (2026-07-22)
 
@@ -694,7 +703,18 @@ Mobil test sayısı: **136 → 151** (14 dosya, place_id düzeltmesiyle +1). Hep
 - [x] `guide_provider` (AddVenueNotifier wizard/seçim mantığı) + `home_provider` search
 - [x] `edit_venue` (EditVenueNotifier + MyVenues)
 - [x] **`copyWith` place_id null-geçişi (sentinel) — DÜZELTİLDİ**
-- [ ] Konum-bağımlı akışlar (`fetchFeed`/`fetchPlaceDetails`) — fake `LocationService` refactor'u gerekir
+- [x] Konum-bağımlı akışlar: **tamamlandı** (2026-07-25, +17 test).
+      - `VenuesNotifier` (+9): `_shouldFetch` cache/mesafe mantığı (ilk fetch / 500m içi cache /
+        500m ötesi yeniden fetch / `force`), `fetchNearbyVenues` parse + hata, `fetchCityVenues`.
+      - **LocationService refactor** (davranış korundu, 156 test hâlâ yeşil): `getCityFromCoordinates`
+        eklendi (3 yerdeki tekrarlanan `placemarkFromCoordinates` deseni tek yere toplandı +
+        mock'lanabilir oldu); `locationServiceProvider` `location_service.dart`'a taşındı;
+        `home_provider` (4×) ve `venue_filter_provider` `LocationService()` new yerine provider
+        kullanıyor; `geocoding` importu provider'lardan kalktı.
+      - `home.fetchFeed` (+4): şehir başarılı / geocoding-null → nearby atlanır / konum-reddi
+        `locationDenied` / genel hata. `venue_filter.fetchAllCityVenues` (+4): selectedCity varsa
+        geocoding atlanır / şehir çözülemezse erken çıkış / konum-reddi.
+      - *Kapsam dışı:* `app_header.dart` geocoding (UI widget, provider değil). Mobil test: **156 → 164**.
 
 ### 🟢 Faz 1.3 — Ürün kararı: Konum düzenleme akışları sadeleştirildi (2026-07-23)
 
