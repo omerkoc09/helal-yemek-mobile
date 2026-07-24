@@ -319,6 +319,35 @@ hem panelden hangi şehirlerde kaç tane rehber olduğunu görürüz (harita man
 >
 > Ölçüm anı: `main` @ 9a66869 — backend 10.097 satır / 73 dosya, mobil 18.860 satır / 92 dosya.
 
+### 🔵 Üretim Dayanıklılığı Denetimi — 8 Konu (2026-07-25)
+
+Soru: "yazdığımız testler yeterli mi — 422 / 409 / race / duplicate / retry / partial
+failure / eventual consistency / cache invalidation?" **Ayrım:** yazdığımız testler birim/
+regresyon testi; bu 8 konu ise önce **kodda** doğru ele alınması gereken davranışlar.
+Aşağıdaki her satır kod okunarak doğrulandı.
+
+| Konu | Kod durumu | Test | Risk |
+|------|-----------|:----:|:----:|
+| **422/400 validation** | 400 ağırlıklı (`review_handler.go:56` puan 1-5 vb.); mobilde `api_error.dart:15` 422 handler'ı | ✅ handler | Düşük |
+| **409 Conflict** | **Atomik** — DB `UNIQUE` + violation yakalama, check-then-insert değil (`review_handler.go:66`, `migrations/006 UNIQUE(venue_id,user_id)`). 6 uçta | ✅ handler | Düşük |
+| **Race condition** | 409'lar DB constraint'le race-safe; admin/onay transaction'lı (`venue_status_repo.go:152 Begin/defer Rollback/Commit`); mobil `_isRefreshing` flag'i eşzamanlı refresh'i engeller | ⚠️ **eşzamanlılık testi yok** | Orta-düşük |
+| **Duplicate request** | `ON CONFLICT DO NOTHING` (`favorite_repo.go:45`, `login_repo.go:26`, `venue_criteria/food`); review `UNIQUE`. DB seviyesi idempotent | Kısmi | Düşük |
+| **Retry** | 🔴 Backend'de **yok**; mobilde yalnız 401→token-refresh tek tekrar (`api_client.go:102`), genel transient (503/timeout) retry yok | Yok | **Orta** |
+| **Partial failure** | Transaction'lar (`guide_repo.go:123`, `venue_status_repo.go`) `defer Rollback` ile atomik; "rehber onayını atomik yap" commit'i düzeltti | ⚠️ rollback testi yok (gerçek DB gerekir) | Düşük |
+| **Eventual consistency** | Tek Postgres, senkron — dağıtık veri yok → **uygulanamaz** (S3 yalnız medya) | — | Yok |
+| **Cache invalidation** | Mobil `VenuesNotifier` 5dk+500m cache (test edildi); backend HTTP cache header yok; `foodCategoriesProvider` invalidate | ✅ client-side | Düşük |
+
+**Sonuç:** 8 konudan **5'i kodda zaten korunuyor** (409/race/duplicate/partial-failure/cache)
+— doğru araçla: DB constraint + transaction + `ON CONFLICT`. Bunlar "test eksik" değil,
+"zaten doğru" kategorisi. **Gerçek boşluklar 2 — ikisi de DEPLOY SONRASINA ertelendi
+(2026-07-25 kararı):** kritik veri bütünlüğü yolları (409/transaction) zaten sağlam olduğu
+için MVP'yi bloke etmiyorlar; gerçek trafikle önceliklendirmek daha isabetli.
+- [ ] 🔴 **Retry mekanizması** *(deploy sonrası)* — geçici hata (503/timeout) yeniden
+      denenmiyor (backend + mobil genel retry). Deploy sonrası hissedilir, MVP'de kabul edilebilir.
+- [ ] ⚠️ **Eşzamanlılık kanıtı** *(deploy sonrası)* — 409/duplicate yolları race-safe
+      *görünüyor* ama paralel istekle davranışı gösteren entegrasyon testi yok.
+- [ ] Backend HTTP cache header'ları (perf, ayrı madde — aşağıda mevcut).
+
 ### ✅ Denetimde Sağlam Çıkanlar (yeniden yapılmasına gerek YOK)
 
 | Alan | Bulgu |
