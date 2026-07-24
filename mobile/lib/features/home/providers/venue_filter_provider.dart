@@ -1,5 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:geocoding/geocoding.dart';
 
 import '../../../core/api/api_endpoints.dart';
 import '../../../core/auth/auth_provider.dart';
@@ -194,7 +193,7 @@ class VenueFilterNotifier extends Notifier<VenueFilterState> {
     state = state.copyWith(isLoading: true, locationDenied: false);
 
     try {
-      final locationService = LocationService();
+      final locationService = ref.read(locationServiceProvider);
       final position = await locationService.getCurrentPosition();
       final lat = position.latitude;
       final lng = position.longitude;
@@ -202,12 +201,7 @@ class VenueFilterNotifier extends Notifier<VenueFilterState> {
       // selectedCity varsa onu kullan, yoksa geocoding'den al
       String? city = state.selectedCity;
       if (city == null || city.isEmpty) {
-        try {
-          final placemarks = await placemarkFromCoordinates(lat, lng);
-          if (placemarks.isNotEmpty) {
-            city = placemarks.first.administrativeArea ?? placemarks.first.locality;
-          }
-        } catch (_) {}
+        city = await locationService.getCityFromCoordinates(lat, lng);
       }
 
       if (city == null || city.isEmpty) {

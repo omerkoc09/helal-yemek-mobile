@@ -1,5 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:geocoding/geocoding.dart';
 
 import '../../../core/api/api_endpoints.dart';
 import '../../../core/auth/auth_provider.dart';
@@ -76,23 +75,13 @@ class HomeNotifier extends Notifier<HomeState> {
     );
 
     try {
-      final locationService = LocationService();
+      final locationService = ref.read(locationServiceProvider);
       final position = await locationService.getCurrentPosition();
       final lat = position.latitude;
       final lng = position.longitude;
 
-      // Geocoding ile şehir adını çek
-      String? city;
-      try {
-        final placemarks = await placemarkFromCoordinates(lat, lng);
-        if (placemarks.isNotEmpty) {
-          // administrativeArea = il (İstanbul, Ankara…), locality = ilçe (Fatih, Kadıköy…)
-          // Şehir bazlı sorgu için il seviyesini kullanıyoruz.
-          city = placemarks.first.administrativeArea ?? placemarks.first.locality;
-        }
-      } catch (_) {
-        // geocoding başarısız — city null kalır, city slider gösterilmez
-      }
+      // Geocoding ile şehir adını çek (başarısız olursa null → city slider gizli)
+      final city = await locationService.getCityFromCoordinates(lat, lng);
 
       final apiClient = ref.read(apiClientProvider);
 
@@ -152,17 +141,14 @@ class HomeNotifier extends Notifier<HomeState> {
   Future<void> fetchCityAll() async {
     state = state.copyWith(isLoadingCity: true);
     try {
-      final locationService = LocationService();
+      final locationService = ref.read(locationServiceProvider);
       final position = await locationService.getCurrentPosition();
       final lat = position.latitude;
       final lng = position.longitude;
 
       String? city = state.cityName;
       if (city == null || city.isEmpty) {
-        try {
-          final placemarks = await placemarkFromCoordinates(lat, lng);
-          if (placemarks.isNotEmpty) city = placemarks.first.administrativeArea ?? placemarks.first.locality;
-        } catch (_) {}
+        city = await locationService.getCityFromCoordinates(lat, lng);
       }
       if (city == null || city.isEmpty) {
         state = state.copyWith(isLoadingCity: false);
@@ -195,7 +181,7 @@ class HomeNotifier extends Notifier<HomeState> {
   Future<void> fetchNearbyAll() async {
     state = state.copyWith(isLoadingNearby: true);
     try {
-      final locationService = LocationService();
+      final locationService = ref.read(locationServiceProvider);
       final position = await locationService.getCurrentPosition();
       final apiClient = ref.read(apiClientProvider);
       final response = await apiClient.get(
@@ -226,7 +212,7 @@ class HomeNotifier extends Notifier<HomeState> {
   Future<void> fetchPopularAll() async {
     state = state.copyWith(isLoadingPopular: true);
     try {
-      final locationService = LocationService();
+      final locationService = ref.read(locationServiceProvider);
       final position = await locationService.getCurrentPosition();
       final apiClient = ref.read(apiClientProvider);
       final response = await apiClient.get(

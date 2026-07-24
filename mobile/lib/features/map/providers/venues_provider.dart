@@ -6,11 +6,6 @@ import '../../../core/auth/auth_provider.dart';
 import '../../../core/models/venue.dart';
 import '../../../core/utils/location_service.dart';
 
-// Konum provider
-final locationServiceProvider = Provider<LocationService>((ref) {
-  return LocationService();
-});
-
 final userLocationProvider = FutureProvider<Position>((ref) async {
   final locationService = ref.read(locationServiceProvider);
   return locationService.getCurrentPosition();
