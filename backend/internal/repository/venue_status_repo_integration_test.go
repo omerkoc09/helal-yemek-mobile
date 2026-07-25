@@ -368,3 +368,43 @@ func TestSetStatus_NotFound(t *testing.T) {
 		t.Fatalf("TC-11: ErrNotFound beklendi, %v geldi", err)
 	}
 }
+
+// TC-12: FreshConfirmationCount son periyot içindeki farklı guide sayısını döner.
+func TestFreshConfirmationCount(t *testing.T) {
+	truncate(t)
+	ctx := context.Background()
+	repo := repository.NewVenueRepo(testPool)
+
+	guideA := insertTestUser(t)
+	guideB := insertTestUser(t)
+	adder := insertTestUser(t)
+	venueID := insertTestVenue(t, adder, venueOpts{})
+
+	// İki taze doğrulama — ConfirmVenue imzası Task 2'de değişeceği için
+	// bu test doğrudan venue_confirmations'a INSERT yapar (imzadan bağımsız).
+	for _, gid := range []string{guideA, guideB} {
+		if _, err := testPool.Exec(ctx,
+			`INSERT INTO venue_confirmations (venue_id, guide_id, period_start, created_at)
+			 VALUES ($1, $2, NOW(), NOW())`,
+			venueID, gid); err != nil {
+			t.Fatalf("insert confirmation %s: %v", gid, err)
+		}
+	}
+
+	got, err := repo.FreshConfirmationCount(ctx, venueID, 90)
+	if err != nil {
+		t.Fatalf("count: %v", err)
+	}
+	if got != 2 {
+		t.Errorf("FreshConfirmationCount = %d, want 2", got)
+	}
+
+	// Periyot 0 gün → hiçbiri taze sayılmaz
+	gotZero, err := repo.FreshConfirmationCount(ctx, venueID, 0)
+	if err != nil {
+		t.Fatalf("count zero: %v", err)
+	}
+	if gotZero != 0 {
+		t.Errorf("FreshConfirmationCount(period=0) = %d, want 0", gotZero)
+	}
+}

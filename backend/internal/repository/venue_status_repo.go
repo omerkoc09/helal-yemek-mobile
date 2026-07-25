@@ -356,6 +356,24 @@ func (r *VenueRepo) UpdateLastNotified(ctx context.Context, id string) error {
 	return err
 }
 
+// FreshConfirmationCount — son periodDays gün içinde bu mekana dönemsel
+// doğrulama yapmış farklı rehber sayısı. Rozetin (BadgeFromCount) kaynağı.
+// Kayıtlar silinmez; eskiyenler bu pencerenin dışında kaldığı için sayılmaz.
+func (r *VenueRepo) FreshConfirmationCount(ctx context.Context, venueID string, periodDays int) (int, error) {
+	var n int
+	err := r.db.QueryRow(ctx,
+		`SELECT COUNT(DISTINCT guide_id)
+		 FROM venue_confirmations
+		 WHERE venue_id = $1
+		   AND created_at > NOW() - ($2 * INTERVAL '1 day')`,
+		venueID, periodDays,
+	).Scan(&n)
+	if err != nil {
+		return 0, fmt.Errorf("taze doğrulama sayısı alınamadı: %w", err)
+	}
+	return n, nil
+}
+
 func scanVenuesForScheduler(rows interface {
 	Next() bool
 	Scan(...any) error
