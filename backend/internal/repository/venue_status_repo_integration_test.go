@@ -15,6 +15,7 @@ import (
 	"github.com/testcontainers/testcontainers-go/wait"
 
 	"github.com/omerkoc/caiz-mi/internal/database"
+	"github.com/omerkoc/caiz-mi/internal/models"
 	"github.com/omerkoc/caiz-mi/internal/repository"
 )
 
@@ -126,7 +127,7 @@ func TestFindDueForWarning_ReturnsVenueWithinWindow(t *testing.T) {
 	})
 
 	repo := repository.NewVenueRepo(testPool)
-	venues, err := repo.FindDueForWarning(context.Background(), 14)
+	venues, err := repo.FindDueForWarning(context.Background(), 14, 90)
 
 	if err != nil {
 		t.Fatalf("FindDueForWarning hatası: %v", err)
@@ -147,7 +148,7 @@ func TestFindDueForWarning_SkipsAlreadyNotifiedToday(t *testing.T) {
 	})
 
 	repo := repository.NewVenueRepo(testPool)
-	venues, err := repo.FindDueForWarning(context.Background(), 14)
+	venues, err := repo.FindDueForWarning(context.Background(), 14, 90)
 
 	if err != nil {
 		t.Fatalf("FindDueForWarning hatası: %v", err)
@@ -166,7 +167,7 @@ func TestFindDueForWarning_IgnoresVenueOutsideWindow(t *testing.T) {
 	})
 
 	repo := repository.NewVenueRepo(testPool)
-	venues, err := repo.FindDueForWarning(context.Background(), 14)
+	venues, err := repo.FindDueForWarning(context.Background(), 14, 90)
 
 	if err != nil {
 		t.Fatalf("FindDueForWarning hatası: %v", err)
@@ -187,7 +188,7 @@ func TestFindDueForWarning_IncludesNotifiedYesterday(t *testing.T) {
 	})
 
 	repo := repository.NewVenueRepo(testPool)
-	venues, err := repo.FindDueForWarning(context.Background(), 14)
+	venues, err := repo.FindDueForWarning(context.Background(), 14, 90)
 
 	if err != nil {
 		t.Fatalf("FindDueForWarning hatası: %v", err)
@@ -206,7 +207,7 @@ func TestFindDueForSuspension_ReturnsExpiredVenue(t *testing.T) {
 	})
 
 	repo := repository.NewVenueRepo(testPool)
-	venues, err := repo.FindDueForSuspension(context.Background())
+	venues, err := repo.FindDueForSuspension(context.Background(), 90)
 
 	if err != nil {
 		t.Fatalf("FindDueForSuspension hatası: %v", err)
@@ -230,7 +231,7 @@ func TestFindDueForSuspension_IgnoresNonApprovedVenues(t *testing.T) {
 	})
 
 	repo := repository.NewVenueRepo(testPool)
-	venues, err := repo.FindDueForSuspension(context.Background())
+	venues, err := repo.FindDueForSuspension(context.Background(), 90)
 
 	if err != nil {
 		t.Fatalf("FindDueForSuspension hatası: %v", err)
@@ -366,5 +367,137 @@ func TestSetStatus_NotFound(t *testing.T) {
 	err := repo.SetStatus(context.Background(), "00000000-0000-0000-0000-000000000000", "approved", "00000000-0000-0000-0000-000000000000", nil, 30)
 	if !errors.Is(err, repository.ErrNotFound) {
 		t.Fatalf("TC-11: ErrNotFound beklendi, %v geldi", err)
+	}
+}
+
+// TestVerifyByGuide_ConfirmerCanReverify — mekanı ekleyen değil ama daha önce
+// doğrulamış bir rehber de re-verify yapabilmeli (ownerless model).
+func TestVerifyByGuide_ConfirmerCanReverify(t *testing.T) {
+	truncate(t)
+	ctx := context.Background()
+	repo := repository.NewVenueRepo(testPool)
+
+	adder := insertTestUser(t)
+	confirmer := insertTestUser(t)
+	venueID := insertTestVenue(t, adder, venueOpts{
+		status:            "approved",
+		verificationDueAt: time.Now().Add(90 * 24 * time.Hour),
+	})
+
+	// confirmer mekanı doğrular
+	if err := repo.ConfirmVenue(ctx, venueID, confirmer, "", 90); err != nil {
+		t.Fatalf("confirm: %v", err)
+	}
+
+	// confirmer (ekleyen DEĞİL) re-verify yapabilmeli
+	if err := repo.VerifyByGuide(ctx, venueID, confirmer, 90); err != nil {
+		t.Fatalf("confirmer re-verify yapamadı: %v", err)
+	}
+
+	// confirmation kaydı SİLİNMEMELİ
+	n, err := repo.FreshConfirmationCount(ctx, venueID, 90)
+	if err != nil {
+		t.Fatalf("count: %v", err)
+	}
+	if n != 1 {
+		t.Errorf("re-verify sonrası taze sayı = %d, want 1 (silme olmamalı)", n)
+	}
+}
+
+// TestVerifyByGuide_UnrelatedGuideRejected — ne eklemiş ne doğrulamış bir
+// rehber repo katmanında re-verify yapamamalı (şehir politikası handler'da).
+func TestVerifyByGuide_UnrelatedGuideRejected(t *testing.T) {
+	truncate(t)
+	ctx := context.Background()
+	repo := repository.NewVenueRepo(testPool)
+
+	adder := insertTestUser(t)
+	stranger := insertTestUser(t)
+	venueID := insertTestVenue(t, adder, venueOpts{
+		status:            "approved",
+		verificationDueAt: time.Now().Add(90 * 24 * time.Hour),
+	})
+
+	// Doğrulamamış, eklememiş rehber re-verify YAPAMAMALI (repo katmanı)
+	err := repo.VerifyByGuide(ctx, venueID, stranger, 90)
+	if !errors.Is(err, repository.ErrNotFound) {
+		t.Errorf("stranger re-verify hatası = %v, want ErrNotFound", err)
+	}
+}
+
+// TestFindDueForWarning_MultipleRecipients — uyarı listesindeki mekanın
+// Recipients'ı ekleyen ∪ son periyottaki doğrulayanlar olmalı (ownerless model).
+func TestFindDueForWarning_MultipleRecipients(t *testing.T) {
+	truncate(t)
+	ctx := context.Background()
+	repo := repository.NewVenueRepo(testPool)
+
+	adder := insertTestUser(t)
+	confirmer := insertTestUser(t)
+	venueID := insertTestVenue(t, adder, venueOpts{
+		status:            "approved",
+		verificationDueAt: time.Now().Add(2 * 24 * time.Hour),
+	})
+	if err := repo.ConfirmVenue(ctx, venueID, confirmer, "", 90); err != nil {
+		t.Fatalf("confirm: %v", err)
+	}
+
+	venues, err := repo.FindDueForWarning(ctx, 7, 90)
+	if err != nil {
+		t.Fatalf("warning: %v", err)
+	}
+
+	var v *models.VenueForScheduler
+	for _, cand := range venues {
+		if cand.ID == venueID {
+			v = cand
+			break
+		}
+	}
+	if v == nil {
+		t.Fatalf("venue %s uyarı listesinde bulunamadı", venueID)
+	}
+	if len(v.Recipients) != 2 {
+		t.Errorf("recipients = %d, want 2 (ekleyen + doğrulayan)", len(v.Recipients))
+	}
+}
+
+// TC-12: FreshConfirmationCount son periyot içindeki farklı guide sayısını döner.
+func TestFreshConfirmationCount(t *testing.T) {
+	truncate(t)
+	ctx := context.Background()
+	repo := repository.NewVenueRepo(testPool)
+
+	guideA := insertTestUser(t)
+	guideB := insertTestUser(t)
+	adder := insertTestUser(t)
+	venueID := insertTestVenue(t, adder, venueOpts{})
+
+	// İki taze doğrulama — ConfirmVenue imzası Task 2'de değişeceği için
+	// bu test doğrudan venue_confirmations'a INSERT yapar (imzadan bağımsız).
+	for _, gid := range []string{guideA, guideB} {
+		if _, err := testPool.Exec(ctx,
+			`INSERT INTO venue_confirmations (venue_id, guide_id, period_start, created_at)
+			 VALUES ($1, $2, NOW(), NOW())`,
+			venueID, gid); err != nil {
+			t.Fatalf("insert confirmation %s: %v", gid, err)
+		}
+	}
+
+	got, err := repo.FreshConfirmationCount(ctx, venueID, 90)
+	if err != nil {
+		t.Fatalf("count: %v", err)
+	}
+	if got != 2 {
+		t.Errorf("FreshConfirmationCount = %d, want 2", got)
+	}
+
+	// Periyot 0 gün → hiçbiri taze sayılmaz
+	gotZero, err := repo.FreshConfirmationCount(ctx, venueID, 0)
+	if err != nil {
+		t.Fatalf("count zero: %v", err)
+	}
+	if gotZero != 0 {
+		t.Errorf("FreshConfirmationCount(period=0) = %d, want 0", gotZero)
 	}
 }

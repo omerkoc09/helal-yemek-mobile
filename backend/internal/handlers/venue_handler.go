@@ -62,19 +62,14 @@ type venueStore interface {
 	SetExcludedProducts(ctx context.Context, venueID string, products []string) error
 
 	// Onaylama / dönemsel doğrulama
-	ConfirmVenue(ctx context.Context, venueID, guideID, guideCity string) error
+	ConfirmVenue(ctx context.Context, venueID, guideID, guideCity string, periodDays int) error
 	HasConfirmed(ctx context.Context, venueID, guideID string) (bool, error)
-	VerifyByGuide(ctx context.Context, venueID, guideID string, periodDays int) ([]string, error)
+	VerifyByGuide(ctx context.Context, venueID, guideID string, periodDays int) error
 }
 
 // verificationLogger — doğrulama/onay eylemlerinin iz kaydını yazar.
 type verificationLogger interface {
 	Create(ctx context.Context, venueID, guideID, action string) error
-}
-
-// confirmationResetNotifier — dönemsel onayı sıfırlanan rehberleri bilgilendirir.
-type confirmationResetNotifier interface {
-	SendConfirmationReset(ctx context.Context, guideID, venueID, venueName string) error
 }
 
 type VenueHandler struct {
@@ -84,7 +79,6 @@ type VenueHandler struct {
 	placesService          *services.PlacesService
 	verifLogRepo           verificationLogger
 	directionRepo          directionClickCreator
-	notifService           confirmationResetNotifier
 	verificationPeriodDays int
 }
 
@@ -95,10 +89,9 @@ func NewVenueHandler(
 	placesService *services.PlacesService,
 	verifLogRepo *repository.VerificationLogRepo,
 	directionRepo *repository.DirectionClickRepo,
-	notifService *services.NotificationService,
 	verificationPeriodDays int,
 ) *VenueHandler {
-	h := &VenueHandler{
+	return &VenueHandler{
 		venueRepo:              venueRepo,
 		userRepo:               userRepo,
 		storageService:         storageService,
@@ -107,12 +100,4 @@ func NewVenueHandler(
 		directionRepo:          directionRepo,
 		verificationPeriodDays: verificationPeriodDays,
 	}
-	// notifService arayüz alanı olduğu için doğrudan atanamaz: nil bir
-	// *NotificationService atandığında alan "tipli nil" olur ve
-	// `h.notifService != nil` kontrolü YANLIŞLIKLA true döner, çağrı panic eder.
-	// Açık kontrolle alanın gerçekten nil kalması sağlanıyor.
-	if notifService != nil {
-		h.notifService = notifService
-	}
-	return h
 }

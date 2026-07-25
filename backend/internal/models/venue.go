@@ -85,7 +85,7 @@ type Venue struct {
 // Badge — mekanın dönemsel taze onay sayısından türetilen güven rozeti.
 type Badge struct {
 	Level string `json:"level"` // base | bronze | silver | gold | platinum
-	Count int    `json:"count"` // ekleyen hariç dönemsel onay sayısı
+	Count int    `json:"count"` // son periyottaki farklı doğrulayan sayısı (ekleyen dahil)
 }
 
 // BadgeFromCount — dönemsel onay sayısını rozet seviyesine çevirir.

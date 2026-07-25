@@ -22,7 +22,6 @@ type fakeVenueStore struct {
 	findErr    error
 	confirmErr error
 	verifyErr  error
-	dropped    []string
 
 	gotVenueID   string
 	gotGuideID   string
@@ -40,14 +39,14 @@ func (f *fakeVenueStore) FindByID(_ context.Context, _ string) (*models.Venue, e
 	return f.venue, nil
 }
 
-func (f *fakeVenueStore) ConfirmVenue(_ context.Context, venueID, guideID, guideCity string) error {
-	f.gotVenueID, f.gotGuideID, f.gotGuideCity = venueID, guideID, guideCity
+func (f *fakeVenueStore) ConfirmVenue(_ context.Context, venueID, guideID, guideCity string, periodDays int) error {
+	f.gotVenueID, f.gotGuideID, f.gotGuideCity, f.gotPeriod = venueID, guideID, guideCity, periodDays
 	return f.confirmErr
 }
 
-func (f *fakeVenueStore) VerifyByGuide(_ context.Context, venueID, guideID string, periodDays int) ([]string, error) {
+func (f *fakeVenueStore) VerifyByGuide(_ context.Context, venueID, guideID string, periodDays int) error {
 	f.gotVenueID, f.gotGuideID, f.gotPeriod = venueID, guideID, periodDays
-	return f.dropped, f.verifyErr
+	return f.verifyErr
 }
 
 func (f *fakeVenueStore) FindByGooglePlaceID(_ context.Context, _ string) (*models.Venue, error) {
@@ -74,18 +73,22 @@ func (f *fakeVenueStore) FindNearbyApproved(context.Context, float64, float64, f
 func (f *fakeVenueStore) FindPopular(context.Context, float64, float64, float64, int) ([]models.Venue, error) {
 	return nil, nil
 }
-func (f *fakeVenueStore) FindDistinctCities(context.Context) ([]string, error)          { return nil, nil }
-func (f *fakeVenueStore) SearchByText(context.Context, string) ([]models.Venue, error)  { return nil, nil }
-func (f *fakeVenueStore) Create(context.Context, *models.Venue) error                   { return nil }
-func (f *fakeVenueStore) ResetToPending(context.Context, string) error                  { return nil }
-func (f *fakeVenueStore) AddPhoto(context.Context, *models.VenuePhoto) error            { return nil }
-func (f *fakeVenueStore) DeletePhoto(context.Context, string, string) error             { return nil }
-func (f *fakeVenueStore) SetCriteria(context.Context, string, []int) error              { return nil }
-func (f *fakeVenueStore) SetVenueFoodItems(context.Context, string, []int) error        { return nil }
-func (f *fakeVenueStore) SetFoodHalalMode(context.Context, string, string) error        { return nil }
-func (f *fakeVenueStore) SetExcludedProducts(context.Context, string, []string) error   { return nil }
-func (f *fakeVenueStore) Approve(context.Context, string, string, int) error            { return nil }
-func (f *fakeVenueStore) HasConfirmed(context.Context, string, string) (bool, error)    { return false, nil }
+func (f *fakeVenueStore) FindDistinctCities(context.Context) ([]string, error) { return nil, nil }
+func (f *fakeVenueStore) SearchByText(context.Context, string) ([]models.Venue, error) {
+	return nil, nil
+}
+func (f *fakeVenueStore) Create(context.Context, *models.Venue) error                 { return nil }
+func (f *fakeVenueStore) ResetToPending(context.Context, string) error                { return nil }
+func (f *fakeVenueStore) AddPhoto(context.Context, *models.VenuePhoto) error          { return nil }
+func (f *fakeVenueStore) DeletePhoto(context.Context, string, string) error           { return nil }
+func (f *fakeVenueStore) SetCriteria(context.Context, string, []int) error            { return nil }
+func (f *fakeVenueStore) SetVenueFoodItems(context.Context, string, []int) error      { return nil }
+func (f *fakeVenueStore) SetFoodHalalMode(context.Context, string, string) error      { return nil }
+func (f *fakeVenueStore) SetExcludedProducts(context.Context, string, []string) error { return nil }
+func (f *fakeVenueStore) Approve(context.Context, string, string, int) error          { return nil }
+func (f *fakeVenueStore) HasConfirmed(context.Context, string, string) (bool, error) {
+	return false, nil
+}
 
 func (f *fakeVenueStore) UpdateVenue(context.Context, string, *string, *string, *string, *float64, *float64, *string, *string) error {
 	return nil
@@ -124,29 +127,16 @@ func (f *fakeVerifLogger) Create(_ context.Context, venueID, guideID, action str
 	return f.err
 }
 
-type fakeResetNotifier struct {
-	sentTo []string
-	err    error
-}
-
-func (f *fakeResetNotifier) SendConfirmationReset(_ context.Context, guideID, _, _ string) error {
-	f.sentTo = append(f.sentTo, guideID)
-	return f.err
-}
-
 // --- helper ---
 
 func setupVenueConfirmApp(store venueStore, getter guideCityGetter, logger verificationLogger,
-	notifier confirmationResetNotifier, userID, role string) *fiber.App {
+	userID, role string) *fiber.App {
 	app := fiber.New()
 	h := &VenueHandler{
 		venueRepo:              store,
 		userRepo:               getter,
 		verifLogRepo:           logger,
 		verificationPeriodDays: 180,
-	}
-	if notifier != nil {
-		h.notifService = notifier
 	}
 	app.Use(func(c *fiber.Ctx) error {
 		if userID != "" {
@@ -189,7 +179,7 @@ func TestConfirmVenue(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			store := &fakeVenueStore{confirmErr: tt.confirmErr}
 			getter := &fakeGuideCityGetter{city: str("İstanbul")}
-			app := setupVenueConfirmApp(store, getter, &fakeVerifLogger{}, &fakeResetNotifier{}, tt.userID, "guide")
+			app := setupVenueConfirmApp(store, getter, &fakeVerifLogger{}, tt.userID, "guide")
 			resp := doJSON(t, app, http.MethodPost, "/venues/v1/confirm", "")
 			if resp.StatusCode != tt.wantStatus {
 				t.Fatalf("beklenen %d, alınan %d", tt.wantStatus, resp.StatusCode)
@@ -204,7 +194,7 @@ func TestConfirmVenueFeedsGuideCity(t *testing.T) {
 	t.Run("guide rolünde şehir gönderilir", func(t *testing.T) {
 		store := &fakeVenueStore{}
 		getter := &fakeGuideCityGetter{city: str("Ankara")}
-		app := setupVenueConfirmApp(store, getter, &fakeVerifLogger{}, &fakeResetNotifier{}, "g1", "guide")
+		app := setupVenueConfirmApp(store, getter, &fakeVerifLogger{}, "g1", "guide")
 		doJSON(t, app, http.MethodPost, "/venues/v9/confirm", "")
 		if store.gotGuideCity != "Ankara" {
 			t.Fatalf("guideCity %q, beklenen Ankara", store.gotGuideCity)
@@ -218,7 +208,7 @@ func TestConfirmVenueFeedsGuideCity(t *testing.T) {
 	t.Run("admin rolünde şehir boş gider", func(t *testing.T) {
 		store := &fakeVenueStore{}
 		getter := &fakeGuideCityGetter{city: str("Ankara")}
-		app := setupVenueConfirmApp(store, getter, &fakeVerifLogger{}, &fakeResetNotifier{}, "a1", "admin")
+		app := setupVenueConfirmApp(store, getter, &fakeVerifLogger{}, "a1", "admin")
 		doJSON(t, app, http.MethodPost, "/venues/v1/confirm", "")
 		if store.gotGuideCity != "" {
 			t.Fatalf("admin için şehir boş olmalıydı, alınan %q", store.gotGuideCity)
@@ -227,7 +217,7 @@ func TestConfirmVenueFeedsGuideCity(t *testing.T) {
 
 	t.Run("şehir sorgusu hata verirse 500", func(t *testing.T) {
 		getter := &fakeGuideCityGetter{err: errors.New("db")}
-		app := setupVenueConfirmApp(&fakeVenueStore{}, getter, &fakeVerifLogger{}, &fakeResetNotifier{}, "g1", "guide")
+		app := setupVenueConfirmApp(&fakeVenueStore{}, getter, &fakeVerifLogger{}, "g1", "guide")
 		resp := doJSON(t, app, http.MethodPost, "/venues/v1/confirm", "")
 		if resp.StatusCode != fiber.StatusInternalServerError {
 			t.Fatalf("beklenen 500, alınan %d", resp.StatusCode)
@@ -254,7 +244,7 @@ func TestVenueVerify(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			store := &fakeVenueStore{verifyErr: tt.verifyErr}
-			app := setupVenueConfirmApp(store, &fakeGuideCityGetter{}, &fakeVerifLogger{}, &fakeResetNotifier{}, tt.userID, "guide")
+			app := setupVenueConfirmApp(store, &fakeGuideCityGetter{}, &fakeVerifLogger{}, tt.userID, "guide")
 			resp := doJSON(t, app, http.MethodPut, "/venues/v1/verify", "")
 			if resp.StatusCode != tt.wantStatus {
 				t.Fatalf("beklenen %d, alınan %d", tt.wantStatus, resp.StatusCode)
@@ -263,71 +253,24 @@ func TestVenueVerify(t *testing.T) {
 	}
 }
 
-func TestVenueVerifyNotifiesDroppedGuides(t *testing.T) {
-	// Yeniden doğrulama diğer rehberlerin onaylarını sıfırlıyor; sıfırlananlara
-	// haber verilmezse rozetleri sessizce düşer.
-	t.Run("düşen rehberlere bildirim gider", func(t *testing.T) {
-		store := &fakeVenueStore{dropped: []string{"g7", "g8"}}
-		notifier := &fakeResetNotifier{}
-		app := setupVenueConfirmApp(store, &fakeGuideCityGetter{}, &fakeVerifLogger{}, notifier, "g1", "guide")
-		doJSON(t, app, http.MethodPut, "/venues/v1/verify", "")
-		if len(notifier.sentTo) != 2 || notifier.sentTo[0] != "g7" || notifier.sentTo[1] != "g8" {
-			t.Fatalf("bildirim alıcıları yanlış: %v", notifier.sentTo)
-		}
-	})
-
-	t.Run("düşen yoksa bildirim gitmez", func(t *testing.T) {
-		store := &fakeVenueStore{dropped: nil}
-		notifier := &fakeResetNotifier{}
-		app := setupVenueConfirmApp(store, &fakeGuideCityGetter{}, &fakeVerifLogger{}, notifier, "g1", "guide")
-		doJSON(t, app, http.MethodPut, "/venues/v1/verify", "")
-		if len(notifier.sentTo) != 0 {
-			t.Fatalf("bildirim gitmemeliydi: %v", notifier.sentTo)
-		}
-	})
-
-	// Bildirim servisi yoksa istek yine de başarılı olmalı (fire-and-forget).
-	// Bu test aynı zamanda "tipli nil" tuzağını sabitler: notifService arayüz
-	// alanı olduğu için nil bir servis yanlışlıkla non-nil görünürse panic olur.
-	t.Run("bildirim servisi yokken panic olmaz", func(t *testing.T) {
-		store := &fakeVenueStore{dropped: []string{"g7"}}
-		app := setupVenueConfirmApp(store, &fakeGuideCityGetter{}, &fakeVerifLogger{}, nil, "g1", "guide")
-		resp := doJSON(t, app, http.MethodPut, "/venues/v1/verify", "")
-		if resp.StatusCode != fiber.StatusOK {
-			t.Fatalf("beklenen 200, alınan %d", resp.StatusCode)
-		}
-	})
-
-	t.Run("doğrulama iz kaydı yazılır", func(t *testing.T) {
-		logger := &fakeVerifLogger{}
-		app := setupVenueConfirmApp(&fakeVenueStore{}, &fakeGuideCityGetter{}, logger, &fakeResetNotifier{}, "g1", "guide")
-		doJSON(t, app, http.MethodPut, "/venues/v42/verify", "")
-		if len(logger.entries) != 1 || logger.entries[0] != "v42|g1|verified" {
-			t.Fatalf("iz kaydı yanlış: %v", logger.entries)
-		}
-	})
+func TestVenueVerifyWritesLog(t *testing.T) {
+	// Doğrulama sonrası iz kaydı (verifLogRepo) yazılmalı; aksi halde
+	// doğrulama geçmişi sessizce kaybolur.
+	logger := &fakeVerifLogger{}
+	app := setupVenueConfirmApp(&fakeVenueStore{}, &fakeGuideCityGetter{}, logger, "g1", "guide")
+	doJSON(t, app, http.MethodPut, "/venues/v42/verify", "")
+	if len(logger.entries) != 1 || logger.entries[0] != "v42|g1|verified" {
+		t.Fatalf("iz kaydı yanlış: %v", logger.entries)
+	}
 }
 
 func TestVenueVerifyPassesConfiguredPeriod(t *testing.T) {
 	// Periyot config'den geliyor; sabit kodlanırsa prod ayarı etkisiz kalır.
 	store := &fakeVenueStore{}
-	app := setupVenueConfirmApp(store, &fakeGuideCityGetter{}, &fakeVerifLogger{}, &fakeResetNotifier{}, "g1", "guide")
+	app := setupVenueConfirmApp(store, &fakeGuideCityGetter{}, &fakeVerifLogger{}, "g1", "guide")
 	doJSON(t, app, http.MethodPut, "/venues/v1/verify", "")
 	if store.gotPeriod != 180 {
 		t.Fatalf("periyot %d, beklenen 180 (handler config'i geçmeli)", store.gotPeriod)
-	}
-}
-
-// TestNewVenueHandlerNilNotifierStaysNil — "tipli nil" tuzağına karşı koruma.
-//
-// notifService arayüz alanı olduğu için, nil bir *services.NotificationService
-// doğrudan atanırsa alan non-nil GÖRÜNÜR (tipli nil) ve Verify içindeki
-// `h.notifService != nil` kontrolü yanlışlıkla geçip panic üretir.
-// Constructor açık kontrol yapmalı; bu test o kontrolü sabitler.
-func TestNewVenueHandlerNilNotifierStaysNil(t *testing.T) {
-	h := NewVenueHandler(nil, nil, nil, nil, nil, nil, nil, 180)
-	if h.notifService != nil {
-		t.Fatal("nil notifService atandığında alan gerçekten nil kalmalı (tipli nil tuzağı)")
 	}
 }
 
@@ -335,7 +278,7 @@ func TestNewVenueHandlerNilNotifierStaysNil(t *testing.T) {
 
 func TestVenueCheckDuplicate(t *testing.T) {
 	t.Run("place_id zorunlu", func(t *testing.T) {
-		app := setupVenueConfirmApp(&fakeVenueStore{}, &fakeGuideCityGetter{}, &fakeVerifLogger{}, &fakeResetNotifier{}, "g1", "guide")
+		app := setupVenueConfirmApp(&fakeVenueStore{}, &fakeGuideCityGetter{}, &fakeVerifLogger{}, "g1", "guide")
 		resp := doJSON(t, app, http.MethodGet, "/venues/check-duplicate", "")
 		if resp.StatusCode != fiber.StatusBadRequest {
 			t.Fatalf("beklenen 400, alınan %d", resp.StatusCode)
@@ -344,7 +287,7 @@ func TestVenueCheckDuplicate(t *testing.T) {
 
 	t.Run("mevcut mekan bulunur", func(t *testing.T) {
 		store := &fakeVenueStore{venue: &models.Venue{ID: "v1", Name: "Var Olan"}}
-		app := setupVenueConfirmApp(store, &fakeGuideCityGetter{}, &fakeVerifLogger{}, &fakeResetNotifier{}, "g1", "guide")
+		app := setupVenueConfirmApp(store, &fakeGuideCityGetter{}, &fakeVerifLogger{}, "g1", "guide")
 		resp := doJSON(t, app, http.MethodGet, "/venues/check-duplicate?google_place_id=ChIJabc", "")
 		if resp.StatusCode != fiber.StatusOK {
 			t.Fatalf("beklenen 200, alınan %d", resp.StatusCode)
@@ -353,7 +296,7 @@ func TestVenueCheckDuplicate(t *testing.T) {
 
 	t.Run("mekan yoksa da 200 döner", func(t *testing.T) {
 		store := &fakeVenueStore{findErr: repository.ErrNotFound}
-		app := setupVenueConfirmApp(store, &fakeGuideCityGetter{}, &fakeVerifLogger{}, &fakeResetNotifier{}, "g1", "guide")
+		app := setupVenueConfirmApp(store, &fakeGuideCityGetter{}, &fakeVerifLogger{}, "g1", "guide")
 		resp := doJSON(t, app, http.MethodGet, "/venues/check-duplicate?google_place_id=ChIJabc", "")
 		if resp.StatusCode != fiber.StatusOK {
 			t.Fatalf("beklenen 200, alınan %d", resp.StatusCode)

@@ -144,67 +144,31 @@ func (r *VenueRepo) SuspendForVerification(ctx context.Context, id string) error
 	return nil
 }
 
-// VerifyByGuide — ekleyen rehber mekanı yeniden doğrular: süreyi uzatır, mekanı
-// approved yapar VE yeni periyot başladığı için ekleyen hariç dönemsel onayları
-// sıfırlar. Düşen rehberlerin (silinen confirmation'ların guide_id'leri) listesini
-// döndürür — çağıran katman bunlara bildirim gönderir.
-func (r *VenueRepo) VerifyByGuide(ctx context.Context, venueID, guideID string, periodDays int) ([]string, error) {
-	tx, err := r.db.Begin(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer tx.Rollback(ctx) //nolint
-
-	// 1. Re-verify: yalnızca ekleyen (added_by) ve approved/suspended mekan.
-	result, err := tx.Exec(ctx,
-		`UPDATE venues
+// VerifyByGuide — bir rehber (ekleyen VEYA daha önce bu mekanı doğrulamış biri)
+// mekanı yeniden doğrular: süreyi uzatır, suspended ise approved yapar.
+// Dönem sıfırlama YOK — confirmation kayıtları silinmez, rozet türetilir.
+func (r *VenueRepo) VerifyByGuide(ctx context.Context, venueID, guideID string, periodDays int) error {
+	result, err := r.db.Exec(ctx,
+		`UPDATE venues v
 		 SET verified_at = NOW(),
 		     verification_due_at = NOW() + ($3 * INTERVAL '1 day'),
 		     status = 'approved',
-		     confirmation_count = 0,
-		     is_double_verified = false,
 		     updated_at = NOW()
-		 WHERE id = $1
-		   AND added_by = $2
-		   AND status IN ('approved', 'suspended')
-		   AND deleted_at IS NULL`,
+		 WHERE v.id = $1
+		   AND (v.added_by = $2 OR EXISTS (
+		         SELECT 1 FROM venue_confirmations vc
+		         WHERE vc.venue_id = v.id AND vc.guide_id = $2))
+		   AND v.status IN ('approved', 'suspended')
+		   AND v.deleted_at IS NULL`,
 		venueID, guideID, periodDays,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("mekan doğrulama başarısız: %w", err)
+		return fmt.Errorf("mekan doğrulama başarısız: %w", err)
 	}
 	if result.RowsAffected() == 0 {
-		return nil, ErrNotFound
+		return ErrNotFound
 	}
-
-	// 2. Ekleyen hariç dönemsel onayları sil, düşen guide'ları döndür.
-	rows, err := tx.Query(ctx,
-		`DELETE FROM venue_confirmations
-		 WHERE venue_id = $1 AND guide_id <> $2
-		 RETURNING guide_id`,
-		venueID, guideID,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("dönemsel onaylar silinemedi: %w", err)
-	}
-	var dropped []string
-	for rows.Next() {
-		var gid string
-		if err := rows.Scan(&gid); err != nil {
-			rows.Close()
-			return nil, fmt.Errorf("düşen rehber taranamadı: %w", err)
-		}
-		dropped = append(dropped, gid)
-	}
-	rows.Close()
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-
-	if err := tx.Commit(ctx); err != nil {
-		return nil, err
-	}
-	return dropped, nil
+	return nil
 }
 
 // ReactivateVenue — admin'in suspended mekânı manuel olarak yeniden açması.
@@ -245,16 +209,17 @@ func (r *VenueRepo) ResetToPending(ctx context.Context, id string) error {
 	return nil
 }
 
-// ConfirmVenue — başka bir Guide onaylı mekana dönemsel doğrulama verir.
+// ConfirmVenue — bir Guide onaylı mekana dönemsel doğrulama verir. Mekanı
+// ekleyen Guide de dahil (ownerless doğrulama modeli): confirmation_count
+// artık türetilmiş bir değerdir (FreshConfirmationCount ile senkron).
 // guideCity boşsa şehir kontrolü atlanır (admin / belirsizlik).
-func (r *VenueRepo) ConfirmVenue(ctx context.Context, venueID, guideID, guideCity string) error {
-	var addedBy string
+func (r *VenueRepo) ConfirmVenue(ctx context.Context, venueID, guideID, guideCity string, periodDays int) error {
 	var status string
 	var venueCity string
 	err := r.db.QueryRow(ctx,
-		`SELECT added_by, status, city FROM venues WHERE id = $1 AND deleted_at IS NULL`,
+		`SELECT status, city FROM venues WHERE id = $1 AND deleted_at IS NULL`,
 		venueID,
-	).Scan(&addedBy, &status, &venueCity)
+	).Scan(&status, &venueCity)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return ErrNotFound
 	}
@@ -263,9 +228,6 @@ func (r *VenueRepo) ConfirmVenue(ctx context.Context, venueID, guideID, guideCit
 	}
 	if status != "approved" {
 		return fmt.Errorf("yalnızca onaylı mekanlar doğrulanabilir")
-	}
-	if addedBy == guideID {
-		return fmt.Errorf("kendi eklediğiniz mekanı doğrulayamazsınız")
 	}
 	if guideCity != "" {
 		venueCanonical, vOK := models.NormalizeCity(venueCity)
@@ -297,14 +259,25 @@ func (r *VenueRepo) ConfirmVenue(ctx context.Context, venueID, guideID, guideCit
 		return fmt.Errorf("doğrulama kaydı eklenemedi: %w", err)
 	}
 
+	// Türetilmiş taze sayı: bu tx içinde eklenen kayıt dahil son periyottaki
+	// farklı doğrulayan sayısı (FreshConfirmationCount ile aynı mantık, tx içinde).
+	var fresh int
+	if err := tx.QueryRow(ctx,
+		`SELECT COUNT(DISTINCT guide_id) FROM venue_confirmations
+		 WHERE venue_id = $1 AND created_at > NOW() - ($2 * INTERVAL '1 day')`,
+		venueID, periodDays,
+	).Scan(&fresh); err != nil {
+		return fmt.Errorf("taze sayı hesaplanamadı: %w", err)
+	}
+
 	if _, err := tx.Exec(ctx,
 		`UPDATE venues
-		 SET confirmation_count = confirmation_count + 1,
-		     is_double_verified = true,
+		 SET confirmation_count = $2,
+		     is_double_verified = ($2 >= 1),
 		     verified_at = NOW(),
 		     updated_at = NOW()
 		 WHERE id = $1`,
-		venueID,
+		venueID, fresh,
 	); err != nil {
 		return fmt.Errorf("doğrulama güncellemesi başarısız: %w", err)
 	}
@@ -313,7 +286,8 @@ func (r *VenueRepo) ConfirmVenue(ctx context.Context, venueID, guideID, guideCit
 }
 
 // FindDueForWarning — verilen gün sayısı içinde süresi dolacak ve henüz bugün bildirilmemiş mekanlar.
-func (r *VenueRepo) FindDueForWarning(ctx context.Context, withinDays int) ([]*models.VenueForScheduler, error) {
+// Her mekanın Recipients'ı ekleyen ∪ son periyottaki doğrulayanlarla doldurulur.
+func (r *VenueRepo) FindDueForWarning(ctx context.Context, withinDays, periodDays int) ([]*models.VenueForScheduler, error) {
 	rows, err := r.db.Query(ctx,
 		`SELECT v.id, v.name, v.added_by, u.email, u.name, v.verification_due_at
 		 FROM venues v
@@ -327,12 +301,17 @@ func (r *VenueRepo) FindDueForWarning(ctx context.Context, withinDays int) ([]*m
 	if err != nil {
 		return nil, fmt.Errorf("uyarı listesi alınamadı: %w", err)
 	}
-	defer rows.Close()
-	return scanVenuesForScheduler(rows)
+	venues, err := scanVenuesForScheduler(rows)
+	rows.Close()
+	if err != nil {
+		return nil, err
+	}
+	return r.attachRecipients(ctx, venues, periodDays)
 }
 
 // FindDueForSuspension — süresi dolmuş approved mekanlar.
-func (r *VenueRepo) FindDueForSuspension(ctx context.Context) ([]*models.VenueForScheduler, error) {
+// Her mekanın Recipients'ı ekleyen ∪ son periyottaki doğrulayanlarla doldurulur.
+func (r *VenueRepo) FindDueForSuspension(ctx context.Context, periodDays int) ([]*models.VenueForScheduler, error) {
 	rows, err := r.db.Query(ctx,
 		`SELECT v.id, v.name, v.added_by, u.email, u.name, v.verification_due_at
 		 FROM venues v
@@ -343,8 +322,52 @@ func (r *VenueRepo) FindDueForSuspension(ctx context.Context) ([]*models.VenueFo
 	if err != nil {
 		return nil, fmt.Errorf("askıya alınacaklar listesi alınamadı: %w", err)
 	}
+	venues, err := scanVenuesForScheduler(rows)
+	rows.Close()
+	if err != nil {
+		return nil, err
+	}
+	return r.attachRecipients(ctx, venues, periodDays)
+}
+
+// attachRecipients — her mekan için alıcı listesini doldurur (N+1 kabul edilebilir;
+// scheduler günde bir çalışır).
+func (r *VenueRepo) attachRecipients(ctx context.Context, venues []*models.VenueForScheduler, periodDays int) ([]*models.VenueForScheduler, error) {
+	for _, v := range venues {
+		recs, err := r.loadRecipients(ctx, v.ID, periodDays)
+		if err != nil {
+			return nil, err
+		}
+		v.Recipients = recs
+	}
+	return venues, nil
+}
+
+// loadRecipients — mekanın ekleyeni + son periyottaki doğrulayanlarını döner (DISTINCT).
+func (r *VenueRepo) loadRecipients(ctx context.Context, venueID string, periodDays int) ([]models.SchedulerRecipient, error) {
+	rows, err := r.db.Query(ctx,
+		`SELECT DISTINCT u.id, u.email, u.name
+		 FROM users u
+		 WHERE u.id = (SELECT added_by FROM venues WHERE id = $1)
+		    OR u.id IN (
+		         SELECT guide_id FROM venue_confirmations
+		         WHERE venue_id = $1
+		           AND created_at > NOW() - ($2 * INTERVAL '1 day'))`,
+		venueID, periodDays,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("alıcılar alınamadı: %w", err)
+	}
 	defer rows.Close()
-	return scanVenuesForScheduler(rows)
+	var recs []models.SchedulerRecipient
+	for rows.Next() {
+		var rec models.SchedulerRecipient
+		if err := rows.Scan(&rec.GuideID, &rec.Email, &rec.Name); err != nil {
+			return nil, err
+		}
+		recs = append(recs, rec)
+	}
+	return recs, rows.Err()
 }
 
 // UpdateLastNotified — spam önleme: son bildirim zamanını günceller.
@@ -354,6 +377,24 @@ func (r *VenueRepo) UpdateLastNotified(ctx context.Context, id string) error {
 		id,
 	)
 	return err
+}
+
+// FreshConfirmationCount — son periodDays gün içinde bu mekana dönemsel
+// doğrulama yapmış farklı rehber sayısı. Rozetin (BadgeFromCount) kaynağı.
+// Kayıtlar silinmez; eskiyenler bu pencerenin dışında kaldığı için sayılmaz.
+func (r *VenueRepo) FreshConfirmationCount(ctx context.Context, venueID string, periodDays int) (int, error) {
+	var n int
+	err := r.db.QueryRow(ctx,
+		`SELECT COUNT(DISTINCT guide_id)
+		 FROM venue_confirmations
+		 WHERE venue_id = $1
+		   AND created_at > NOW() - ($2 * INTERVAL '1 day')`,
+		venueID, periodDays,
+	).Scan(&n)
+	if err != nil {
+		return 0, fmt.Errorf("taze doğrulama sayısı alınamadı: %w", err)
+	}
+	return n, nil
 }
 
 func scanVenuesForScheduler(rows interface {

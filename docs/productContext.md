@@ -47,7 +47,7 @@
 
 #### Venue Rozet Sistemi (Dönemsel Doğrulama)
 
-**Rozet seviyeleri** (mevcut periyottaki ekleyen-hariç onay sayısına göre):
+**Rozet seviyeleri** (mevcut periyottaki farklı doğrulayan sayısına göre, ekleyen dahil):
 
 | Sayı | Seviye  |
 |------|---------|
@@ -62,9 +62,9 @@
 - **Düzenleme**: Guide'lar `correction_suggestions` üzerinden öneri gönderir; admin onaylar.
 
 **Dönemsel tazelik doğrulaması:**
-- Mekânı ekleyen guide kalıcı sorumludur (ilk ekleyenin onayı her zaman sayılır).
-- Diğer guide'ların onayları periyot başına bir kez geçerlidir.
-- Periyot dolduğunda ekleyen hariç tüm onaylar sıfırlanır; rozet bir sonraki dönem yeniden kazanılır.
+- O şehirdeki herhangi bir onaylı rehber mekanı tazeleyebilir; bir kişinin doğrulaması bile mekanı canlı tutar. Ekleyen ayrıcalıklı değildir — `added_by` yalnızca tarihsel atıftır.
+- Her guide'ın onayı periyot başına bir kez geçerlidir.
+- Doğrulama kayıtları silinmez; rozet, son periyottaki farklı doğrulayan sayısından (ekleyen dahil) türetilir.
 
 #### 3. Kullanıcı Yönetimi
 - **Çoklu Giriş**: Email/şifre, Google

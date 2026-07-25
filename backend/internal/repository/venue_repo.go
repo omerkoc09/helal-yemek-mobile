@@ -145,8 +145,9 @@ func (r *VenueRepo) FindByGooglePlaceID(ctx context.Context, placeID string) (*m
 }
 
 // HasConfirmed — verilen rehberin bu mekanı (içinde bulunulan dönemde) doğrulayıp
-// doğrulamadığını döner. venue_confirmations'ta kayıt varsa true. Periyot reset'i
-// (VerifyByGuide) bu satırları sildiği için bu doğal olarak dönemsel kalır.
+// doğrulamadığını döner. venue_confirmations'ta kayıt varsa true. Kayıtlar silinmez;
+// dönemselliği belirlemek isteyen çağıranlar created_at'i güncel periyot penceresiyle
+// karşılaştırmalıdır.
 func (r *VenueRepo) HasConfirmed(ctx context.Context, venueID, guideID string) (bool, error) {
 	var exists bool
 	err := r.db.QueryRow(ctx,
@@ -168,9 +169,9 @@ type ConfirmingGuide struct {
 	CreatedAt    time.Time `json:"created_at"`
 }
 
-// ListConfirmingGuides — içinde bulunulan dönemde mekanı doğrulamış (ekleyen hariç)
-// rehberlerin listesi. Dönem sıfırlanınca (VerifyByGuide) bu satırlar silindiği için
-// yalnızca güncel dönemi yansıtır.
+// ListConfirmingGuides — mekanı doğrulamış tüm rehberlerin listesi (ekleyen dahil,
+// eğer ekleyen de doğrulamışsa). Kayıtlar silinmez; yalnızca güncel periyodu görmek
+// isteyen çağıranlar sonucu created_at'e göre filtrelemelidir.
 func (r *VenueRepo) ListConfirmingGuides(ctx context.Context, venueID string) ([]ConfirmingGuide, error) {
 	rows, err := r.db.Query(ctx,
 		`SELECT vc.guide_id, u.name, u.surname, u.email, vc.created_at

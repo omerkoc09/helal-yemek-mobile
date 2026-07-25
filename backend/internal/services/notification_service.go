@@ -18,9 +18,9 @@ func NewNotificationService(notifRepo *repository.NotificationRepo, email EmailS
 }
 
 // SendVerificationWarning — VERIFICATION_WARNING_DAYS kadar kala uyarı: DB kaydı + email.
-func (s *NotificationService) SendVerificationWarning(ctx context.Context, v *models.VenueForScheduler) error {
+func (s *NotificationService) SendVerificationWarning(ctx context.Context, v *models.VenueForScheduler, rec models.SchedulerRecipient) error {
 	n := &models.Notification{
-		UserID: v.AddedBy,
+		UserID: rec.GuideID,
 		Type:   models.NotificationTypeVerificationWarning,
 		Title:  fmt.Sprintf("“%s” için doğrulama zamanı yaklaşıyor", v.Name),
 		Body:   fmt.Sprintf("“%s” mekanının doğrulama süresi yakında dolacak. Lütfen uygulamadan onaylayın.", v.Name),
@@ -30,15 +30,15 @@ func (s *NotificationService) SendVerificationWarning(ctx context.Context, v *mo
 		return fmt.Errorf("uyarı bildirimi kaydedilemedi: %w", err)
 	}
 
-	htmlBody := warningEmailHTML(v.GuideName, v.Name)
-	_ = s.email.Send(v.GuideEmail, n.Title, htmlBody) // email hatası scheduler'ı durdurmaz
+	htmlBody := warningEmailHTML(rec.Name, v.Name)
+	_ = s.email.Send(rec.Email, n.Title, htmlBody) // email hatası scheduler'ı durdurmaz
 	return nil
 }
 
 // SendSuspensionNotice — mekan askıya alındı: DB kaydı + email.
-func (s *NotificationService) SendSuspensionNotice(ctx context.Context, v *models.VenueForScheduler) error {
+func (s *NotificationService) SendSuspensionNotice(ctx context.Context, v *models.VenueForScheduler, rec models.SchedulerRecipient) error {
 	n := &models.Notification{
-		UserID: v.AddedBy,
+		UserID: rec.GuideID,
 		Type:   models.NotificationTypeVenueSuspended,
 		Title:  fmt.Sprintf("“%s” askıya alındı", v.Name),
 		Body:   fmt.Sprintf("“%s” mekanı doğrulama yapılmadığı için askıya alındı. Uygulamadan doğrulayarak yeniden aktif edebilirsiniz.", v.Name),
@@ -48,24 +48,8 @@ func (s *NotificationService) SendSuspensionNotice(ctx context.Context, v *model
 		return fmt.Errorf("askıya alma bildirimi kaydedilemedi: %w", err)
 	}
 
-	htmlBody := suspensionEmailHTML(v.GuideName, v.Name)
-	_ = s.email.Send(v.GuideEmail, n.Title, htmlBody)
-	return nil
-}
-
-// SendConfirmationReset — bir mekanın doğrulama periyodu yenilendiğinde, önceki
-// dönemde onay vermiş (ve şimdi düşen) rehbere in-app bildirim. Email gönderilmez.
-func (s *NotificationService) SendConfirmationReset(ctx context.Context, guideID, venueID, venueName string) error {
-	n := &models.Notification{
-		UserID: guideID,
-		Type:   models.NotificationTypeConfirmationReset,
-		Title:  fmt.Sprintf("“%s” yeniden doğrulanmalı", venueName),
-		Body:   fmt.Sprintf("Doğruladığın “%s” mekanının doğrulama süresi doldu. Hâlâ geçerliyse tekrar doğrulayabilirsin.", venueName),
-		Data:   map[string]string{"venue_id": venueID, "venue_name": venueName},
-	}
-	if err := s.notifRepo.Create(ctx, n); err != nil {
-		return fmt.Errorf("reset bildirimi kaydedilemedi: %w", err)
-	}
+	htmlBody := suspensionEmailHTML(rec.Name, v.Name)
+	_ = s.email.Send(rec.Email, n.Title, htmlBody)
 	return nil
 }
 
