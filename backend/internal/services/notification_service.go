@@ -53,22 +53,6 @@ func (s *NotificationService) SendSuspensionNotice(ctx context.Context, v *model
 	return nil
 }
 
-// SendConfirmationReset — bir mekanın doğrulama periyodu yenilendiğinde, önceki
-// dönemde onay vermiş (ve şimdi düşen) rehbere in-app bildirim. Email gönderilmez.
-func (s *NotificationService) SendConfirmationReset(ctx context.Context, guideID, venueID, venueName string) error {
-	n := &models.Notification{
-		UserID: guideID,
-		Type:   models.NotificationTypeConfirmationReset,
-		Title:  fmt.Sprintf("“%s” yeniden doğrulanmalı", venueName),
-		Body:   fmt.Sprintf("Doğruladığın “%s” mekanının doğrulama süresi doldu. Hâlâ geçerliyse tekrar doğrulayabilirsin.", venueName),
-		Data:   map[string]string{"venue_id": venueID, "venue_name": venueName},
-	}
-	if err := s.notifRepo.Create(ctx, n); err != nil {
-		return fmt.Errorf("reset bildirimi kaydedilemedi: %w", err)
-	}
-	return nil
-}
-
 func warningEmailHTML(guideName, venueName string) string {
 	return fmt.Sprintf(`<!DOCTYPE html><html><body>
 <p>Merhaba %s,</p>

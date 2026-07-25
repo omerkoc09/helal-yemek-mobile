@@ -72,11 +72,6 @@ type verificationLogger interface {
 	Create(ctx context.Context, venueID, guideID, action string) error
 }
 
-// confirmationResetNotifier — dönemsel onayı sıfırlanan rehberleri bilgilendirir.
-type confirmationResetNotifier interface {
-	SendConfirmationReset(ctx context.Context, guideID, venueID, venueName string) error
-}
-
 type VenueHandler struct {
 	venueRepo              venueStore
 	userRepo               guideCityGetter
@@ -84,7 +79,6 @@ type VenueHandler struct {
 	placesService          *services.PlacesService
 	verifLogRepo           verificationLogger
 	directionRepo          directionClickCreator
-	notifService           confirmationResetNotifier
 	verificationPeriodDays int
 }
 
@@ -95,10 +89,9 @@ func NewVenueHandler(
 	placesService *services.PlacesService,
 	verifLogRepo *repository.VerificationLogRepo,
 	directionRepo *repository.DirectionClickRepo,
-	notifService *services.NotificationService,
 	verificationPeriodDays int,
 ) *VenueHandler {
-	h := &VenueHandler{
+	return &VenueHandler{
 		venueRepo:              venueRepo,
 		userRepo:               userRepo,
 		storageService:         storageService,
@@ -107,12 +100,4 @@ func NewVenueHandler(
 		directionRepo:          directionRepo,
 		verificationPeriodDays: verificationPeriodDays,
 	}
-	// notifService arayüz alanı olduğu için doğrudan atanamaz: nil bir
-	// *NotificationService atandığında alan "tipli nil" olur ve
-	// `h.notifService != nil` kontrolü YANLIŞLIKLA true döner, çağrı panic eder.
-	// Açık kontrolle alanın gerçekten nil kalması sağlanıyor.
-	if notifService != nil {
-		h.notifService = notifService
-	}
-	return h
 }

@@ -7,7 +7,6 @@ type NotificationType string
 const (
 	NotificationTypeVerificationWarning NotificationType = "verification_warning"
 	NotificationTypeVenueSuspended      NotificationType = "venue_suspended"
-	NotificationTypeConfirmationReset   NotificationType = "confirmation_reset"
 )
 
 type Notification struct {
