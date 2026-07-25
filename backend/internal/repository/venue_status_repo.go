@@ -245,16 +245,17 @@ func (r *VenueRepo) ResetToPending(ctx context.Context, id string) error {
 	return nil
 }
 
-// ConfirmVenue — başka bir Guide onaylı mekana dönemsel doğrulama verir.
+// ConfirmVenue — bir Guide onaylı mekana dönemsel doğrulama verir. Mekanı
+// ekleyen Guide de dahil (ownerless doğrulama modeli): confirmation_count
+// artık türetilmiş bir değerdir (FreshConfirmationCount ile senkron).
 // guideCity boşsa şehir kontrolü atlanır (admin / belirsizlik).
-func (r *VenueRepo) ConfirmVenue(ctx context.Context, venueID, guideID, guideCity string) error {
-	var addedBy string
+func (r *VenueRepo) ConfirmVenue(ctx context.Context, venueID, guideID, guideCity string, periodDays int) error {
 	var status string
 	var venueCity string
 	err := r.db.QueryRow(ctx,
-		`SELECT added_by, status, city FROM venues WHERE id = $1 AND deleted_at IS NULL`,
+		`SELECT status, city FROM venues WHERE id = $1 AND deleted_at IS NULL`,
 		venueID,
-	).Scan(&addedBy, &status, &venueCity)
+	).Scan(&status, &venueCity)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return ErrNotFound
 	}
@@ -263,9 +264,6 @@ func (r *VenueRepo) ConfirmVenue(ctx context.Context, venueID, guideID, guideCit
 	}
 	if status != "approved" {
 		return fmt.Errorf("yalnızca onaylı mekanlar doğrulanabilir")
-	}
-	if addedBy == guideID {
-		return fmt.Errorf("kendi eklediğiniz mekanı doğrulayamazsınız")
 	}
 	if guideCity != "" {
 		venueCanonical, vOK := models.NormalizeCity(venueCity)
@@ -297,14 +295,25 @@ func (r *VenueRepo) ConfirmVenue(ctx context.Context, venueID, guideID, guideCit
 		return fmt.Errorf("doğrulama kaydı eklenemedi: %w", err)
 	}
 
+	// Türetilmiş taze sayı: bu tx içinde eklenen kayıt dahil son periyottaki
+	// farklı doğrulayan sayısı (FreshConfirmationCount ile aynı mantık, tx içinde).
+	var fresh int
+	if err := tx.QueryRow(ctx,
+		`SELECT COUNT(DISTINCT guide_id) FROM venue_confirmations
+		 WHERE venue_id = $1 AND created_at > NOW() - ($2 * INTERVAL '1 day')`,
+		venueID, periodDays,
+	).Scan(&fresh); err != nil {
+		return fmt.Errorf("taze sayı hesaplanamadı: %w", err)
+	}
+
 	if _, err := tx.Exec(ctx,
 		`UPDATE venues
-		 SET confirmation_count = confirmation_count + 1,
-		     is_double_verified = true,
+		 SET confirmation_count = $2,
+		     is_double_verified = ($2 >= 1),
 		     verified_at = NOW(),
 		     updated_at = NOW()
 		 WHERE id = $1`,
-		venueID,
+		venueID, fresh,
 	); err != nil {
 		return fmt.Errorf("doğrulama güncellemesi başarısız: %w", err)
 	}

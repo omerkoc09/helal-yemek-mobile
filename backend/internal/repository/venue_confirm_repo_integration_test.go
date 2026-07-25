@@ -56,7 +56,7 @@ func TestConfirmVenueIncrementsCount(t *testing.T) {
 	confirmer := insertGuideInCity(t, "İstanbul")
 	venueID := insertVenueInCity(t, adder, "İstanbul", nil)
 
-	if err := repo.ConfirmVenue(ctx, venueID, confirmer, "İstanbul"); err != nil {
+	if err := repo.ConfirmVenue(ctx, venueID, confirmer, "İstanbul", 90); err != nil {
 		t.Fatalf("ConfirmVenue hata: %v", err)
 	}
 
@@ -72,7 +72,7 @@ func TestConfirmVenueIncrementsCount(t *testing.T) {
 	}
 
 	// Aynı guide tekrar doğrulayamaz.
-	if err := repo.ConfirmVenue(ctx, venueID, confirmer, "İstanbul"); err == nil {
+	if err := repo.ConfirmVenue(ctx, venueID, confirmer, "İstanbul", 90); err == nil {
 		t.Errorf("ikinci ConfirmVenue hata vermeli (zaten doğrulanmış)")
 	}
 }
@@ -86,7 +86,7 @@ func TestConfirmVenueRejectsWrongCity(t *testing.T) {
 	confirmer := insertGuideInCity(t, "Ankara")
 	venueID := insertVenueInCity(t, adder, "İstanbul", nil)
 
-	if err := repo.ConfirmVenue(ctx, venueID, confirmer, "Ankara"); err == nil {
+	if err := repo.ConfirmVenue(ctx, venueID, confirmer, "Ankara", 90); err == nil {
 		t.Errorf("farklı şehir guide'ı doğrulayamamalı")
 	}
 }
@@ -101,10 +101,10 @@ func TestFindByIDIncludesBadge(t *testing.T) {
 	c2 := insertGuideInCity(t, "İzmir")
 	venueID := insertVenueInCity(t, adder, "İzmir", nil)
 
-	if err := repo.ConfirmVenue(ctx, venueID, c1, "İzmir"); err != nil {
+	if err := repo.ConfirmVenue(ctx, venueID, c1, "İzmir", 90); err != nil {
 		t.Fatalf("c1 confirm: %v", err)
 	}
-	if err := repo.ConfirmVenue(ctx, venueID, c2, "İzmir"); err != nil {
+	if err := repo.ConfirmVenue(ctx, venueID, c2, "İzmir", 90); err != nil {
 		t.Fatalf("c2 confirm: %v", err)
 	}
 
@@ -156,10 +156,10 @@ func TestVerifyByGuideResetsConfirmations(t *testing.T) {
 	c2 := insertGuideInCity(t, "İstanbul")
 	venueID := insertVenueInCity(t, adder, "İstanbul", nil)
 
-	if err := repo.ConfirmVenue(ctx, venueID, c1, "İstanbul"); err != nil {
+	if err := repo.ConfirmVenue(ctx, venueID, c1, "İstanbul", 90); err != nil {
 		t.Fatalf("c1 confirm: %v", err)
 	}
-	if err := repo.ConfirmVenue(ctx, venueID, c2, "İstanbul"); err != nil {
+	if err := repo.ConfirmVenue(ctx, venueID, c2, "İstanbul", 90); err != nil {
 		t.Fatalf("c2 confirm: %v", err)
 	}
 
@@ -217,5 +217,35 @@ func TestVerifyByGuideRejectsNonAdder(t *testing.T) {
 	// added_by olmayan biri re-verify edemez → ErrNotFound, reset olmaz.
 	if _, err := repo.VerifyByGuide(ctx, venueID, other, 30); err == nil {
 		t.Errorf("added_by olmayan için hata bekleniyor")
+	}
+}
+
+// TestConfirmVenue_AdderCanConfirm — ownerless doğrulama: mekanı ekleyen kişi
+// artık kendi mekanını doğrulayabilmeli ve confirmation_count türetilmiş
+// (FreshConfirmationCount ile senkron) olmalı.
+func TestConfirmVenue_AdderCanConfirm(t *testing.T) {
+	truncate(t)
+	ctx := context.Background()
+	repo := repository.NewVenueRepo(testPool)
+
+	adder := insertTestUser(t)
+	venueID := insertTestVenue(t, adder, venueOpts{
+		status:            "approved",
+		verificationDueAt: time.Now().Add(90 * 24 * time.Hour),
+	})
+
+	// Ekleyen artık kendi mekanını doğrulayabilmeli (yeni imza: periodDays'li).
+	// guideCity boş bırakılır çünkü insertTestUser guide_city'yi NULL bırakıyor
+	// (şehir kontrolü bu durumda atlanır).
+	if err := repo.ConfirmVenue(ctx, venueID, adder, "", 90); err != nil {
+		t.Fatalf("ekleyen doğrulayamadı: %v", err)
+	}
+
+	n, err := repo.FreshConfirmationCount(ctx, venueID, 90)
+	if err != nil {
+		t.Fatalf("count: %v", err)
+	}
+	if n != 1 {
+		t.Errorf("count = %d, want 1", n)
 	}
 }

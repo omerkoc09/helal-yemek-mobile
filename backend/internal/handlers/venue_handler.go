@@ -62,7 +62,7 @@ type venueStore interface {
 	SetExcludedProducts(ctx context.Context, venueID string, products []string) error
 
 	// Onaylama / dönemsel doğrulama
-	ConfirmVenue(ctx context.Context, venueID, guideID, guideCity string) error
+	ConfirmVenue(ctx context.Context, venueID, guideID, guideCity string, periodDays int) error
 	HasConfirmed(ctx context.Context, venueID, guideID string) (bool, error)
 	VerifyByGuide(ctx context.Context, venueID, guideID string, periodDays int) ([]string, error)
 }

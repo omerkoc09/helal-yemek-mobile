@@ -40,8 +40,8 @@ func (f *fakeVenueStore) FindByID(_ context.Context, _ string) (*models.Venue, e
 	return f.venue, nil
 }
 
-func (f *fakeVenueStore) ConfirmVenue(_ context.Context, venueID, guideID, guideCity string) error {
-	f.gotVenueID, f.gotGuideID, f.gotGuideCity = venueID, guideID, guideCity
+func (f *fakeVenueStore) ConfirmVenue(_ context.Context, venueID, guideID, guideCity string, periodDays int) error {
+	f.gotVenueID, f.gotGuideID, f.gotGuideCity, f.gotPeriod = venueID, guideID, guideCity, periodDays
 	return f.confirmErr
 }
 

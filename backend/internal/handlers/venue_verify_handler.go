@@ -29,7 +29,7 @@ func (h *VenueHandler) ConfirmVenue(c *fiber.Ctx) error {
 		}
 	}
 
-	if err := h.venueRepo.ConfirmVenue(c.Context(), venueID, guideID, guideCity); err != nil {
+	if err := h.venueRepo.ConfirmVenue(c.Context(), venueID, guideID, guideCity, h.verificationPeriodDays); err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
 			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "mekan bulunamadı"})
 		}
