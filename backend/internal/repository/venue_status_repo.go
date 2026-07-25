@@ -396,6 +396,33 @@ func (r *VenueRepo) FreshConfirmationCount(ctx context.Context, venueID string, 
 	return n, nil
 }
 
+// RecomputeConfirmationCounts — TÜM onaylı (silinmemiş) mekanların
+// confirmation_count sütununu, mevcut zaman penceresine göre TEK bir
+// set-based UPDATE ile yeniden hesaplar. Rozet (BadgeFromCount) zamanla
+// bayatlayabilir: ConfirmVenue anında yazılan sayı, doğrulamalar
+// periodDays penceresinin dışına çıktıkça güncel değeri yansıtmaz hale
+// gelir. Bu metod nightly scheduler'dan çağrılarak o kaymayı düzeltir.
+// verified_at'a DOKUNMAZ — bu bir yeniden doğrulama değildir, sadece
+// rozet sayacının tazelenmesidir.
+func (r *VenueRepo) RecomputeConfirmationCounts(ctx context.Context, periodDays int) (int64, error) {
+	result, err := r.db.Exec(ctx,
+		`UPDATE venues v
+		 SET confirmation_count = COALESCE((
+		         SELECT COUNT(DISTINCT vc.guide_id)
+		         FROM venue_confirmations vc
+		         WHERE vc.venue_id = v.id
+		           AND vc.created_at > NOW() - ($1 * INTERVAL '1 day')
+		     ), 0),
+		     updated_at = NOW()
+		 WHERE v.status = 'approved' AND v.deleted_at IS NULL`,
+		periodDays,
+	)
+	if err != nil {
+		return 0, fmt.Errorf("confirmation_count yeniden hesaplama başarısız: %w", err)
+	}
+	return result.RowsAffected(), nil
+}
+
 func scanVenuesForScheduler(rows interface {
 	Next() bool
 	Scan(...any) error
