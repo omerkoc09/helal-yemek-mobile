@@ -146,79 +146,11 @@ func TestFindByGooglePlaceID(t *testing.T) {
 	}
 }
 
-func TestVerifyByGuideResetsConfirmations(t *testing.T) {
-	truncate(t)
-	ctx := context.Background()
-	repo := repository.NewVenueRepo(testPool)
-
-	adder := insertGuideInCity(t, "İstanbul")
-	c1 := insertGuideInCity(t, "İstanbul")
-	c2 := insertGuideInCity(t, "İstanbul")
-	venueID := insertVenueInCity(t, adder, "İstanbul", nil)
-
-	if err := repo.ConfirmVenue(ctx, venueID, c1, "İstanbul", 90); err != nil {
-		t.Fatalf("c1 confirm: %v", err)
-	}
-	if err := repo.ConfirmVenue(ctx, venueID, c2, "İstanbul", 90); err != nil {
-		t.Fatalf("c2 confirm: %v", err)
-	}
-
-	// Ekleyen yeniden doğrular → reset tetiklenir.
-	dropped, err := repo.VerifyByGuide(ctx, venueID, adder, 30)
-	if err != nil {
-		t.Fatalf("VerifyByGuide: %v", err)
-	}
-
-	// İki dönemsel onay düşmeli.
-	if len(dropped) != 2 {
-		t.Errorf("dropped guide sayısı = %d, want 2", len(dropped))
-	}
-	gotSet := map[string]bool{}
-	for _, g := range dropped {
-		gotSet[g] = true
-	}
-	if !gotSet[c1] || !gotSet[c2] {
-		t.Errorf("dropped = %v, c1=%s c2=%s beklendi", dropped, c1, c2)
-	}
-
-	v, err := repo.FindByID(ctx, venueID)
-	if err != nil {
-		t.Fatalf("FindByID: %v", err)
-	}
-	if v.ConfirmationCount != 0 {
-		t.Errorf("ConfirmationCount = %d, want 0", v.ConfirmationCount)
-	}
-	if v.IsDoubleVerified {
-		t.Errorf("IsDoubleVerified = true, want false")
-	}
-	if v.Badge == nil || v.Badge.Level != "base" {
-		t.Errorf("Badge = %+v, want level base", v.Badge)
-	}
-
-	// venue_confirmations gerçekten temizlendi mi?
-	var remaining int
-	_ = testPool.QueryRow(ctx,
-		`SELECT COUNT(*) FROM venue_confirmations WHERE venue_id = $1`, venueID,
-	).Scan(&remaining)
-	if remaining != 0 {
-		t.Errorf("kalan confirmation = %d, want 0", remaining)
-	}
-}
-
-func TestVerifyByGuideRejectsNonAdder(t *testing.T) {
-	truncate(t)
-	ctx := context.Background()
-	repo := repository.NewVenueRepo(testPool)
-
-	adder := insertGuideInCity(t, "İstanbul")
-	other := insertGuideInCity(t, "İstanbul")
-	venueID := insertVenueInCity(t, adder, "İstanbul", nil)
-
-	// added_by olmayan biri re-verify edemez → ErrNotFound, reset olmaz.
-	if _, err := repo.VerifyByGuide(ctx, venueID, other, 30); err == nil {
-		t.Errorf("added_by olmayan için hata bekleniyor")
-	}
-}
+// Not: eski TestVerifyByGuideResetsConfirmations / TestVerifyByGuideRejectsNonAdder
+// testleri kaldırıldı — VerifyByGuide artık dönemsel onayları silmiyor (ownerless
+// model) ve yetkiyi "ekleyen VEYA daha önce doğrulamış rehber"e genişletti.
+// Yerlerini alan testler: TestVerifyByGuide_ConfirmerCanReverify ve
+// TestVerifyByGuide_UnrelatedGuideRejected (venue_status_repo_integration_test.go).
 
 // TestConfirmVenue_AdderCanConfirm — ownerless doğrulama: mekanı ekleyen kişi
 // artık kendi mekanını doğrulayabilmeli ve confirmation_count türetilmiş

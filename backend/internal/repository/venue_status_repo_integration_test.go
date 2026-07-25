@@ -369,6 +369,61 @@ func TestSetStatus_NotFound(t *testing.T) {
 	}
 }
 
+// TestVerifyByGuide_ConfirmerCanReverify — mekanı ekleyen değil ama daha önce
+// doğrulamış bir rehber de re-verify yapabilmeli (ownerless model).
+func TestVerifyByGuide_ConfirmerCanReverify(t *testing.T) {
+	truncate(t)
+	ctx := context.Background()
+	repo := repository.NewVenueRepo(testPool)
+
+	adder := insertTestUser(t)
+	confirmer := insertTestUser(t)
+	venueID := insertTestVenue(t, adder, venueOpts{
+		status:            "approved",
+		verificationDueAt: time.Now().Add(90 * 24 * time.Hour),
+	})
+
+	// confirmer mekanı doğrular
+	if err := repo.ConfirmVenue(ctx, venueID, confirmer, "", 90); err != nil {
+		t.Fatalf("confirm: %v", err)
+	}
+
+	// confirmer (ekleyen DEĞİL) re-verify yapabilmeli
+	if err := repo.VerifyByGuide(ctx, venueID, confirmer, 90); err != nil {
+		t.Fatalf("confirmer re-verify yapamadı: %v", err)
+	}
+
+	// confirmation kaydı SİLİNMEMELİ
+	n, err := repo.FreshConfirmationCount(ctx, venueID, 90)
+	if err != nil {
+		t.Fatalf("count: %v", err)
+	}
+	if n != 1 {
+		t.Errorf("re-verify sonrası taze sayı = %d, want 1 (silme olmamalı)", n)
+	}
+}
+
+// TestVerifyByGuide_UnrelatedGuideRejected — ne eklemiş ne doğrulamış bir
+// rehber repo katmanında re-verify yapamamalı (şehir politikası handler'da).
+func TestVerifyByGuide_UnrelatedGuideRejected(t *testing.T) {
+	truncate(t)
+	ctx := context.Background()
+	repo := repository.NewVenueRepo(testPool)
+
+	adder := insertTestUser(t)
+	stranger := insertTestUser(t)
+	venueID := insertTestVenue(t, adder, venueOpts{
+		status:            "approved",
+		verificationDueAt: time.Now().Add(90 * 24 * time.Hour),
+	})
+
+	// Doğrulamamış, eklememiş rehber re-verify YAPAMAMALI (repo katmanı)
+	err := repo.VerifyByGuide(ctx, venueID, stranger, 90)
+	if !errors.Is(err, repository.ErrNotFound) {
+		t.Errorf("stranger re-verify hatası = %v, want ErrNotFound", err)
+	}
+}
+
 // TC-12: FreshConfirmationCount son periyot içindeki farklı guide sayısını döner.
 func TestFreshConfirmationCount(t *testing.T) {
 	truncate(t)

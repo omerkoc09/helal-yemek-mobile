@@ -64,7 +64,7 @@ type venueStore interface {
 	// Onaylama / dönemsel doğrulama
 	ConfirmVenue(ctx context.Context, venueID, guideID, guideCity string, periodDays int) error
 	HasConfirmed(ctx context.Context, venueID, guideID string) (bool, error)
-	VerifyByGuide(ctx context.Context, venueID, guideID string, periodDays int) ([]string, error)
+	VerifyByGuide(ctx context.Context, venueID, guideID string, periodDays int) error
 }
 
 // verificationLogger — doğrulama/onay eylemlerinin iz kaydını yazar.

@@ -144,67 +144,31 @@ func (r *VenueRepo) SuspendForVerification(ctx context.Context, id string) error
 	return nil
 }
 
-// VerifyByGuide — ekleyen rehber mekanı yeniden doğrular: süreyi uzatır, mekanı
-// approved yapar VE yeni periyot başladığı için ekleyen hariç dönemsel onayları
-// sıfırlar. Düşen rehberlerin (silinen confirmation'ların guide_id'leri) listesini
-// döndürür — çağıran katman bunlara bildirim gönderir.
-func (r *VenueRepo) VerifyByGuide(ctx context.Context, venueID, guideID string, periodDays int) ([]string, error) {
-	tx, err := r.db.Begin(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer tx.Rollback(ctx) //nolint
-
-	// 1. Re-verify: yalnızca ekleyen (added_by) ve approved/suspended mekan.
-	result, err := tx.Exec(ctx,
-		`UPDATE venues
+// VerifyByGuide — bir rehber (ekleyen VEYA daha önce bu mekanı doğrulamış biri)
+// mekanı yeniden doğrular: süreyi uzatır, suspended ise approved yapar.
+// Dönem sıfırlama YOK — confirmation kayıtları silinmez, rozet türetilir.
+func (r *VenueRepo) VerifyByGuide(ctx context.Context, venueID, guideID string, periodDays int) error {
+	result, err := r.db.Exec(ctx,
+		`UPDATE venues v
 		 SET verified_at = NOW(),
 		     verification_due_at = NOW() + ($3 * INTERVAL '1 day'),
 		     status = 'approved',
-		     confirmation_count = 0,
-		     is_double_verified = false,
 		     updated_at = NOW()
-		 WHERE id = $1
-		   AND added_by = $2
-		   AND status IN ('approved', 'suspended')
-		   AND deleted_at IS NULL`,
+		 WHERE v.id = $1
+		   AND (v.added_by = $2 OR EXISTS (
+		         SELECT 1 FROM venue_confirmations vc
+		         WHERE vc.venue_id = v.id AND vc.guide_id = $2))
+		   AND v.status IN ('approved', 'suspended')
+		   AND v.deleted_at IS NULL`,
 		venueID, guideID, periodDays,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("mekan doğrulama başarısız: %w", err)
+		return fmt.Errorf("mekan doğrulama başarısız: %w", err)
 	}
 	if result.RowsAffected() == 0 {
-		return nil, ErrNotFound
+		return ErrNotFound
 	}
-
-	// 2. Ekleyen hariç dönemsel onayları sil, düşen guide'ları döndür.
-	rows, err := tx.Query(ctx,
-		`DELETE FROM venue_confirmations
-		 WHERE venue_id = $1 AND guide_id <> $2
-		 RETURNING guide_id`,
-		venueID, guideID,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("dönemsel onaylar silinemedi: %w", err)
-	}
-	var dropped []string
-	for rows.Next() {
-		var gid string
-		if err := rows.Scan(&gid); err != nil {
-			rows.Close()
-			return nil, fmt.Errorf("düşen rehber taranamadı: %w", err)
-		}
-		dropped = append(dropped, gid)
-	}
-	rows.Close()
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-
-	if err := tx.Commit(ctx); err != nil {
-		return nil, err
-	}
-	return dropped, nil
+	return nil
 }
 
 // ReactivateVenue — admin'in suspended mekânı manuel olarak yeniden açması.
