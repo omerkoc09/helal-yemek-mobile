@@ -501,3 +501,97 @@ func TestFreshConfirmationCount(t *testing.T) {
 		t.Errorf("FreshConfirmationCount(period=0) = %d, want 0", gotZero)
 	}
 }
+
+// readConfirmationCount — venues.confirmation_count sütununu doğrudan okur.
+func readConfirmationCount(t *testing.T, venueID string) int {
+	t.Helper()
+	var n int
+	if err := testPool.QueryRow(context.Background(),
+		`SELECT confirmation_count FROM venues WHERE id = $1`, venueID,
+	).Scan(&n); err != nil {
+		t.Fatalf("confirmation_count okunamadı: %v", err)
+	}
+	return n
+}
+
+// TestRecomputeConfirmationCounts_DropsStaleCount — asıl amaç: eski
+// doğrulamalar pencere dışına çıktığında saklanan confirmation_count'un
+// DÜŞMESİ gerektiğini kanıtlamak (bayat rozet bug'ı).
+func TestRecomputeConfirmationCounts_DropsStaleCount(t *testing.T) {
+	truncate(t)
+	ctx := context.Background()
+	repo := repository.NewVenueRepo(testPool)
+
+	adder := insertTestUser(t)
+	guideA := insertTestUser(t)
+	guideB := insertTestUser(t)
+	venueID := insertTestVenue(t, adder, venueOpts{
+		status:            "approved",
+		verificationDueAt: time.Now().Add(90 * 24 * time.Hour),
+	})
+
+	// İki ESKİ doğrulama (200 gün önce) — pencere (180 gün) dışında kalacak.
+	for _, gid := range []string{guideA, guideB} {
+		if _, err := testPool.Exec(ctx,
+			`INSERT INTO venue_confirmations (venue_id, guide_id, period_start, created_at)
+			 VALUES ($1, $2, NOW(), NOW() - INTERVAL '200 days')`,
+			venueID, gid); err != nil {
+			t.Fatalf("insert eski confirmation %s: %v", gid, err)
+		}
+	}
+
+	// Bayat anlık görüntüyü simüle et: sütun hâlâ 2 diyor.
+	if _, err := testPool.Exec(ctx,
+		`UPDATE venues SET confirmation_count = 2 WHERE id = $1`, venueID); err != nil {
+		t.Fatalf("hazırlık güncellemesi başarısız: %v", err)
+	}
+
+	affected, err := repo.RecomputeConfirmationCounts(ctx, 180)
+	if err != nil {
+		t.Fatalf("RecomputeConfirmationCounts hatası: %v", err)
+	}
+	if affected < 1 {
+		t.Errorf("affected = %d, want >= 1", affected)
+	}
+
+	if got := readConfirmationCount(t, venueID); got != 0 {
+		t.Errorf("recompute sonrası confirmation_count = %d, want 0 (ikisi de eskimiş)", got)
+	}
+}
+
+// TestRecomputeConfirmationCounts_CountsFreshConfirmation — sıfırlamakla
+// kalmayıp taze doğrulamaları doğru saydığını da kanıtlar.
+func TestRecomputeConfirmationCounts_CountsFreshConfirmation(t *testing.T) {
+	truncate(t)
+	ctx := context.Background()
+	repo := repository.NewVenueRepo(testPool)
+
+	adder := insertTestUser(t)
+	guideA := insertTestUser(t)
+	venueID := insertTestVenue(t, adder, venueOpts{
+		status:            "approved",
+		verificationDueAt: time.Now().Add(90 * 24 * time.Hour),
+	})
+
+	// TEK taze doğrulama (şimdi) — pencere içinde.
+	if _, err := testPool.Exec(ctx,
+		`INSERT INTO venue_confirmations (venue_id, guide_id, period_start, created_at)
+		 VALUES ($1, $2, NOW(), NOW())`,
+		venueID, guideA); err != nil {
+		t.Fatalf("insert taze confirmation: %v", err)
+	}
+
+	// Sütun başlangıçta 0 (hiç recompute edilmemiş gibi).
+	if _, err := testPool.Exec(ctx,
+		`UPDATE venues SET confirmation_count = 0 WHERE id = $1`, venueID); err != nil {
+		t.Fatalf("hazırlık güncellemesi başarısız: %v", err)
+	}
+
+	if _, err := repo.RecomputeConfirmationCounts(ctx, 180); err != nil {
+		t.Fatalf("RecomputeConfirmationCounts hatası: %v", err)
+	}
+
+	if got := readConfirmationCount(t, venueID); got != 1 {
+		t.Errorf("recompute sonrası confirmation_count = %d, want 1 (taze doğrulama sayılmalı)", got)
+	}
+}

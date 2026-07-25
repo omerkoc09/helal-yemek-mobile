@@ -67,6 +67,16 @@ func (s *SchedulerService) RunNow(ctx context.Context) {
 }
 
 func (s *SchedulerService) runVerificationCycle(ctx context.Context) {
+	// Faz 0: Rozet yeniden hesaplama — confirmation_count zamanla bayatlar
+	// (ConfirmVenue anında yazılan sayı, doğrulamalar periodDays penceresi
+	// dışına çıktıkça güncelliğini yitirir). Bu adım tüm onaylı mekanlar
+	// için sayacı taze pencereye göre yeniden hesaplar.
+	if affected, err := s.venueRepo.RecomputeConfirmationCounts(ctx, s.periodDays); err != nil {
+		log.Printf("scheduler rozet yeniden hesaplama hatası: %v", err)
+	} else {
+		log.Printf("rozet sayaçları yeniden hesaplandı: %d mekan güncellendi", affected)
+	}
+
 	// Faz 1: Uyarı
 	warnings, err := s.venueRepo.FindDueForWarning(ctx, s.warningDays, s.periodDays)
 	if err != nil {
