@@ -286,7 +286,8 @@ func (r *VenueRepo) ConfirmVenue(ctx context.Context, venueID, guideID, guideCit
 }
 
 // FindDueForWarning — verilen gün sayısı içinde süresi dolacak ve henüz bugün bildirilmemiş mekanlar.
-func (r *VenueRepo) FindDueForWarning(ctx context.Context, withinDays int) ([]*models.VenueForScheduler, error) {
+// Her mekanın Recipients'ı ekleyen ∪ son periyottaki doğrulayanlarla doldurulur.
+func (r *VenueRepo) FindDueForWarning(ctx context.Context, withinDays, periodDays int) ([]*models.VenueForScheduler, error) {
 	rows, err := r.db.Query(ctx,
 		`SELECT v.id, v.name, v.added_by, u.email, u.name, v.verification_due_at
 		 FROM venues v
@@ -300,12 +301,17 @@ func (r *VenueRepo) FindDueForWarning(ctx context.Context, withinDays int) ([]*m
 	if err != nil {
 		return nil, fmt.Errorf("uyarı listesi alınamadı: %w", err)
 	}
-	defer rows.Close()
-	return scanVenuesForScheduler(rows)
+	venues, err := scanVenuesForScheduler(rows)
+	rows.Close()
+	if err != nil {
+		return nil, err
+	}
+	return r.attachRecipients(ctx, venues, periodDays)
 }
 
 // FindDueForSuspension — süresi dolmuş approved mekanlar.
-func (r *VenueRepo) FindDueForSuspension(ctx context.Context) ([]*models.VenueForScheduler, error) {
+// Her mekanın Recipients'ı ekleyen ∪ son periyottaki doğrulayanlarla doldurulur.
+func (r *VenueRepo) FindDueForSuspension(ctx context.Context, periodDays int) ([]*models.VenueForScheduler, error) {
 	rows, err := r.db.Query(ctx,
 		`SELECT v.id, v.name, v.added_by, u.email, u.name, v.verification_due_at
 		 FROM venues v
@@ -316,8 +322,52 @@ func (r *VenueRepo) FindDueForSuspension(ctx context.Context) ([]*models.VenueFo
 	if err != nil {
 		return nil, fmt.Errorf("askıya alınacaklar listesi alınamadı: %w", err)
 	}
+	venues, err := scanVenuesForScheduler(rows)
+	rows.Close()
+	if err != nil {
+		return nil, err
+	}
+	return r.attachRecipients(ctx, venues, periodDays)
+}
+
+// attachRecipients — her mekan için alıcı listesini doldurur (N+1 kabul edilebilir;
+// scheduler günde bir çalışır).
+func (r *VenueRepo) attachRecipients(ctx context.Context, venues []*models.VenueForScheduler, periodDays int) ([]*models.VenueForScheduler, error) {
+	for _, v := range venues {
+		recs, err := r.loadRecipients(ctx, v.ID, periodDays)
+		if err != nil {
+			return nil, err
+		}
+		v.Recipients = recs
+	}
+	return venues, nil
+}
+
+// loadRecipients — mekanın ekleyeni + son periyottaki doğrulayanlarını döner (DISTINCT).
+func (r *VenueRepo) loadRecipients(ctx context.Context, venueID string, periodDays int) ([]models.SchedulerRecipient, error) {
+	rows, err := r.db.Query(ctx,
+		`SELECT DISTINCT u.id, u.email, u.name
+		 FROM users u
+		 WHERE u.id = (SELECT added_by FROM venues WHERE id = $1)
+		    OR u.id IN (
+		         SELECT guide_id FROM venue_confirmations
+		         WHERE venue_id = $1
+		           AND created_at > NOW() - ($2 * INTERVAL '1 day'))`,
+		venueID, periodDays,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("alıcılar alınamadı: %w", err)
+	}
 	defer rows.Close()
-	return scanVenuesForScheduler(rows)
+	var recs []models.SchedulerRecipient
+	for rows.Next() {
+		var rec models.SchedulerRecipient
+		if err := rows.Scan(&rec.GuideID, &rec.Email, &rec.Name); err != nil {
+			return nil, err
+		}
+		recs = append(recs, rec)
+	}
+	return recs, rows.Err()
 }
 
 // UpdateLastNotified — spam önleme: son bildirim zamanını günceller.

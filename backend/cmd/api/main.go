@@ -112,7 +112,7 @@ func main() {
 		emailSvc = services.NewNoopEmailService()
 	}
 	notifService := services.NewNotificationService(notifRepo, emailSvc)
-	schedulerSvc := services.NewSchedulerService(venueRepo, verifLogRepo, notifService, cfg.SchedulerRunHour, cfg.VerificationWarningDays)
+	schedulerSvc := services.NewSchedulerService(venueRepo, verifLogRepo, notifService, cfg.SchedulerRunHour, cfg.VerificationWarningDays, cfg.VerificationPeriodDays)
 
 	// Handler katmanı
 	authHandler := handlers.NewAuthHandler(authService)

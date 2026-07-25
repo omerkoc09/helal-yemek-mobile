@@ -31,6 +31,13 @@ type VerificationLog struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
+// SchedulerRecipient — bir mekanın doğrulama bildirimini alacak rehber.
+type SchedulerRecipient struct {
+	GuideID string
+	Email   string
+	Name    string
+}
+
 // VenueForScheduler — scheduler'ın ihtiyaç duyduğu minimal venue bilgisi.
 type VenueForScheduler struct {
 	ID                string
@@ -39,4 +46,7 @@ type VenueForScheduler struct {
 	GuideEmail        string
 	GuideName         string
 	VerificationDueAt *time.Time
+	// Recipients — bu mekanın bildirimini alacak rehberler:
+	// ekleyen ∪ son periyottaki doğrulayanlar (DISTINCT).
+	Recipients []SchedulerRecipient
 }

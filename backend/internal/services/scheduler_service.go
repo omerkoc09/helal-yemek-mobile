@@ -14,13 +14,14 @@ type SchedulerService struct {
 	notifService *NotificationService
 	runHour      int
 	warningDays  int
+	periodDays   int
 }
 
 func NewSchedulerService(
 	venueRepo *repository.VenueRepo,
 	verifLogRepo *repository.VerificationLogRepo,
 	notifService *NotificationService,
-	runHour, warningDays int,
+	runHour, warningDays, periodDays int,
 ) *SchedulerService {
 	return &SchedulerService{
 		venueRepo:    venueRepo,
@@ -28,6 +29,7 @@ func NewSchedulerService(
 		notifService: notifService,
 		runHour:      runHour,
 		warningDays:  warningDays,
+		periodDays:   periodDays,
 	}
 }
 
@@ -66,23 +68,25 @@ func (s *SchedulerService) RunNow(ctx context.Context) {
 
 func (s *SchedulerService) runVerificationCycle(ctx context.Context) {
 	// Faz 1: Uyarı
-	warnings, err := s.venueRepo.FindDueForWarning(ctx, s.warningDays)
+	warnings, err := s.venueRepo.FindDueForWarning(ctx, s.warningDays, s.periodDays)
 	if err != nil {
 		log.Printf("scheduler uyarı sorgusu hatası: %v", err)
 	} else {
 		for _, v := range warnings {
-			if err := s.notifService.SendVerificationWarning(ctx, v); err != nil {
-				log.Printf("uyarı gönderilemedi (venue %s): %v", v.ID, err)
-				continue
+			for _, rec := range v.Recipients {
+				if err := s.notifService.SendVerificationWarning(ctx, v, rec); err != nil {
+					log.Printf("uyarı gönderilemedi (venue %s, guide %s): %v", v.ID, rec.GuideID, err)
+				}
 			}
+			// Spam önleme ve log yalnızca mekan başına bir kez.
 			_ = s.venueRepo.UpdateLastNotified(ctx, v.ID)
 			_ = s.verifLogRepo.Create(ctx, v.ID, v.AddedBy, "warning_sent")
-			log.Printf("uyarı gönderildi: venue=%s guide=%s", v.ID, v.AddedBy)
+			log.Printf("uyarı gönderildi: venue=%s alıcı=%d", v.ID, len(v.Recipients))
 		}
 	}
 
 	// Faz 2: Askıya alma
-	suspensions, err := s.venueRepo.FindDueForSuspension(ctx)
+	suspensions, err := s.venueRepo.FindDueForSuspension(ctx, s.periodDays)
 	if err != nil {
 		log.Printf("scheduler askıya alma sorgusu hatası: %v", err)
 	} else {
@@ -91,11 +95,13 @@ func (s *SchedulerService) runVerificationCycle(ctx context.Context) {
 				log.Printf("mekan askıya alınamadı (venue %s): %v", v.ID, err)
 				continue
 			}
-			if err := s.notifService.SendSuspensionNotice(ctx, v); err != nil {
-				log.Printf("askıya alma bildirimi gönderilemedi (venue %s): %v", v.ID, err)
+			for _, rec := range v.Recipients {
+				if err := s.notifService.SendSuspensionNotice(ctx, v, rec); err != nil {
+					log.Printf("askıya alma bildirimi gönderilemedi (venue %s, guide %s): %v", v.ID, rec.GuideID, err)
+				}
 			}
 			_ = s.verifLogRepo.Create(ctx, v.ID, v.AddedBy, "suspended")
-			log.Printf("mekan askıya alındı: venue=%s guide=%s", v.ID, v.AddedBy)
+			log.Printf("mekan askıya alındı: venue=%s alıcı=%d", v.ID, len(v.Recipients))
 		}
 	}
 }
