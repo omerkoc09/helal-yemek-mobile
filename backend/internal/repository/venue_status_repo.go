@@ -273,7 +273,6 @@ func (r *VenueRepo) ConfirmVenue(ctx context.Context, venueID, guideID, guideCit
 	if _, err := tx.Exec(ctx,
 		`UPDATE venues
 		 SET confirmation_count = $2,
-		     is_double_verified = ($2 >= 1),
 		     verified_at = NOW(),
 		     updated_at = NOW()
 		 WHERE id = $1`,

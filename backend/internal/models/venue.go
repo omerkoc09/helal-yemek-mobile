@@ -71,7 +71,6 @@ type Venue struct {
 	AverageRating    *float64        `json:"average_rating,omitempty"`
 	ReviewCount      int             `json:"review_count"`
 	ConfirmationCount int             `json:"confirmation_count"`
-	IsDoubleVerified bool            `json:"is_double_verified"`
 	Badge            *Badge          `json:"badge,omitempty"`
 	// ConfirmedByMe — yalnızca giriş yapmış viewer için detay sorgusunda doldurulur:
 	// bu kullanıcı mekanı içinde bulunulan dönemde doğrulamış mı? Anonim/diğer

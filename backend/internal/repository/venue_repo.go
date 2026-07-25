@@ -63,7 +63,7 @@ func (r *VenueRepo) FindByID(ctx context.Context, id string) (*models.Venue, err
 			v.food_halal_mode, v.excluded_products,
 			COALESCE(AVG(rv.rating), 0)::float8 AS average_rating,
 			COUNT(rv.id)::int AS review_count,
-			v.confirmation_count, v.is_double_verified
+			v.confirmation_count
 		FROM venues v
 		LEFT JOIN users u ON u.id = v.added_by
 		LEFT JOIN reviews rv ON rv.venue_id = v.id
@@ -82,7 +82,7 @@ func (r *VenueRepo) FindByID(ctx context.Context, id string) (*models.Venue, err
 		&v.RejectionNote, &v.ApprovedBy,
 		&v.FoodHalalMode, &v.ExcludedProducts,
 		&v.AverageRating, &v.ReviewCount,
-		&v.ConfirmationCount, &v.IsDoubleVerified,
+		&v.ConfirmationCount,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -123,7 +123,7 @@ func (r *VenueRepo) FindByID(ctx context.Context, id string) (*models.Venue, err
 func (r *VenueRepo) FindByGooglePlaceID(ctx context.Context, placeID string) (*models.Venue, error) {
 	query := `
 		SELECT v.id, v.name, v.city, v.status,
-		       v.added_by, v.confirmation_count, v.is_double_verified
+		       v.added_by, v.confirmation_count
 		FROM venues v
 		WHERE v.google_place_id = $1 AND v.deleted_at IS NULL
 		LIMIT 1`
@@ -131,7 +131,7 @@ func (r *VenueRepo) FindByGooglePlaceID(ctx context.Context, placeID string) (*m
 	v := &models.Venue{}
 	err := r.db.QueryRow(ctx, query, placeID).Scan(
 		&v.ID, &v.Name, &v.City, &v.Status,
-		&v.AddedBy, &v.ConfirmationCount, &v.IsDoubleVerified,
+		&v.AddedBy, &v.ConfirmationCount,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {

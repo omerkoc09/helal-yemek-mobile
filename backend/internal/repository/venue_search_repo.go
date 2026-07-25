@@ -23,7 +23,7 @@ func (r *VenueRepo) FindNearby(ctx context.Context, lat, lng, radiusMeters float
 			v.added_by, v.verified_at,
 			v.created_at, v.updated_at,
 			ST_Distance(v.location, ST_MakePoint($2, $1)::geography) AS distance,
-			v.confirmation_count, v.is_double_verified
+			v.confirmation_count
 		FROM venues v
 		WHERE v.status IN ('approved', 'pending')
 		  AND v.deleted_at IS NULL
@@ -111,7 +111,7 @@ func (r *VenueRepo) FindByCity(ctx context.Context, city string, lat, lng float6
 					LIMIT 2
 				) fc
 			) AS categories_str,
-			v.confirmation_count, v.is_double_verified
+			v.confirmation_count
 		FROM venues v
 		LEFT JOIN reviews rv ON rv.venue_id = v.id
 		WHERE v.city ILIKE $1
@@ -269,7 +269,7 @@ func (r *VenueRepo) FindByFoodCategory(ctx context.Context, categoryID int) ([]m
 					LIMIT 2
 				) fc
 			) AS categories_str,
-			v.confirmation_count, v.is_double_verified
+			v.confirmation_count
 		FROM venues v
 		JOIN venue_food_items vfi ON vfi.venue_id = v.id
 		JOIN food_items fi ON fi.id = vfi.food_item_id
@@ -319,7 +319,7 @@ func (r *VenueRepo) FindNearbyApproved(ctx context.Context, lat, lng, radiusMete
 					LIMIT 2
 				) fc
 			) AS categories_str,
-			v.confirmation_count, v.is_double_verified
+			v.confirmation_count
 		FROM venues v
 		LEFT JOIN reviews rv ON rv.venue_id = v.id
 		WHERE v.status = 'approved'
@@ -385,7 +385,7 @@ func (r *VenueRepo) FindPopular(ctx context.Context, lat, lng, radiusMeters floa
 					LIMIT 2
 				) fc
 			) AS categories_str,
-			v.confirmation_count, v.is_double_verified
+			v.confirmation_count
 		FROM venues v
 		LEFT JOIN reviews rv ON rv.venue_id = v.id
 		LEFT JOIN (
@@ -415,7 +415,7 @@ func (r *VenueRepo) FindPopular(ctx context.Context, lat, lng, radiusMeters floa
 // scanVenueRowsNearbyWithPhotos — FindNearby sorgusundan dönen satırları tarar.
 // Sütun sırası: id, name, city, lat, lng, google_place_id,
 //               notes, status, added_by, verified_at, created_at, updated_at,
-//               distance, confirmation_count, is_double_verified
+//               distance, confirmation_count
 func (r *VenueRepo) scanVenueRowsNearbyWithPhotos(ctx context.Context, rows pgx.Rows) ([]models.Venue, error) {
 	var venues []models.Venue
 	for rows.Next() {
@@ -428,7 +428,7 @@ func (r *VenueRepo) scanVenueRowsNearbyWithPhotos(ctx context.Context, rows pgx.
 			&v.AddedBy, &v.VerifiedAt,
 			&v.CreatedAt, &v.UpdatedAt,
 			&v.Distance,
-			&v.ConfirmationCount, &v.IsDoubleVerified,
+			&v.ConfirmationCount,
 		)
 		if err != nil {
 			return nil, err
@@ -457,7 +457,7 @@ func (r *VenueRepo) scanVenueRowsNearbyWithPhotos(ctx context.Context, rows pgx.
 }
 
 // scanVenueRowsWithRatingAndPhotos — distance + avg_rating + review_count + categories_str +
-// confirmation_count + is_double_verified içeren satırları tarar.
+// confirmation_count içeren satırları tarar.
 // FindNearbyApproved ve FindPopular tarafından kullanılır.
 func (r *VenueRepo) scanVenueRowsWithRatingAndPhotos(ctx context.Context, rows pgx.Rows) ([]models.Venue, error) {
 	var venues []models.Venue
@@ -474,7 +474,7 @@ func (r *VenueRepo) scanVenueRowsWithRatingAndPhotos(ctx context.Context, rows p
 			&v.AverageRating,
 			&v.ReviewCount,
 			&v.CategoriesStr,
-			&v.ConfirmationCount, &v.IsDoubleVerified,
+			&v.ConfirmationCount,
 		)
 		if err != nil {
 			return nil, err
@@ -512,7 +512,7 @@ func (r *VenueRepo) scanVenueRowsWithRatingAndPhotos(ctx context.Context, rows p
 // Sütun sırası: id, name, city, district, lat, lng, google_place_id,
 //               notes, status, added_by, verified_at, created_at, updated_at,
 //               distance, avg_rating, review_count, categories_str,
-//               confirmation_count, is_double_verified
+//               confirmation_count
 func (r *VenueRepo) scanVenueCityRows(ctx context.Context, rows pgx.Rows) ([]models.Venue, error) {
 	var venues []models.Venue
 	for rows.Next() {
@@ -528,7 +528,7 @@ func (r *VenueRepo) scanVenueCityRows(ctx context.Context, rows pgx.Rows) ([]mod
 			&v.AverageRating,
 			&v.ReviewCount,
 			&v.CategoriesStr,
-			&v.ConfirmationCount, &v.IsDoubleVerified,
+			&v.ConfirmationCount,
 		)
 		if err != nil {
 			return nil, err

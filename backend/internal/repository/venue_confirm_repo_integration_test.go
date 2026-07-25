@@ -67,9 +67,6 @@ func TestConfirmVenueIncrementsCount(t *testing.T) {
 	if v.ConfirmationCount != 1 {
 		t.Errorf("ConfirmationCount = %d, want 1", v.ConfirmationCount)
 	}
-	if !v.IsDoubleVerified {
-		t.Errorf("IsDoubleVerified = false, want true")
-	}
 
 	// Aynı guide tekrar doğrulayamaz.
 	if err := repo.ConfirmVenue(ctx, venueID, confirmer, "İstanbul", 90); err == nil {

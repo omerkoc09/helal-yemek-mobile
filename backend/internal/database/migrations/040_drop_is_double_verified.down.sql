@@ -1,0 +1,1 @@
+ALTER TABLE venues ADD COLUMN IF NOT EXISTS is_double_verified BOOLEAN NOT NULL DEFAULT false;
