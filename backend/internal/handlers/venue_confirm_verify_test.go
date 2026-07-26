@@ -82,7 +82,7 @@ func (f *fakeVenueStore) ResetToPending(context.Context, string) error          
 func (f *fakeVenueStore) AddPhoto(context.Context, *models.VenuePhoto) error          { return nil }
 func (f *fakeVenueStore) DeletePhoto(context.Context, string, string) error           { return nil }
 func (f *fakeVenueStore) SetCriteria(context.Context, string, []int) error            { return nil }
-func (f *fakeVenueStore) SetVenueFoodItems(context.Context, string, []int) error      { return nil }
+func (f *fakeVenueStore) SetVenueCategories(context.Context, string, []int) error     { return nil }
 func (f *fakeVenueStore) SetFoodHalalMode(context.Context, string, string) error      { return nil }
 func (f *fakeVenueStore) SetExcludedProducts(context.Context, string, []string) error { return nil }
 func (f *fakeVenueStore) Approve(context.Context, string, string, int) error          { return nil }
@@ -105,13 +105,10 @@ func (f *fakeVenueStore) GetAllCriteria(context.Context) ([]models.TrustCriteria
 func (f *fakeVenueStore) GetCriteriaByVenueID(context.Context, string) ([]models.TrustCriteria, error) {
 	return nil, nil
 }
-func (f *fakeVenueStore) GetAllFoodCategoriesWithItems(context.Context) ([]models.FoodCategory, error) {
+func (f *fakeVenueStore) GetAllFoodCategories(context.Context) ([]models.FoodCategory, error) {
 	return nil, nil
 }
-func (f *fakeVenueStore) GetFoodItemsByVenueID(context.Context, string) ([]models.FoodItem, error) {
-	return nil, nil
-}
-func (f *fakeVenueStore) CreateCustomFoodItem(context.Context, int, string, string) (*models.FoodItem, error) {
+func (f *fakeVenueStore) GetCategoriesByVenueID(context.Context, string) ([]models.FoodCategory, error) {
 	return nil, nil
 }
 

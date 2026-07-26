@@ -10,8 +10,8 @@ import (
 	"github.com/omerkoc/caiz-mi/internal/models"
 )
 
-// GetAllFoodCategoriesWithItems — tüm yemek kategorilerini çeşitleriyle birlikte döndürür.
-func (r *VenueRepo) GetAllFoodCategoriesWithItems(ctx context.Context) ([]models.FoodCategory, error) {
+// GetAllFoodCategories — tüm yemek (mutfak) kategorilerini döndürür.
+func (r *VenueRepo) GetAllFoodCategories(ctx context.Context) ([]models.FoodCategory, error) {
 	catRows, err := r.db.Query(ctx,
 		`SELECT id, key, name, image_url FROM food_categories ORDER BY id`)
 	if err != nil {
@@ -30,61 +30,36 @@ func (r *VenueRepo) GetAllFoodCategoriesWithItems(ctx context.Context) ([]models
 			url := r.publicURL(*c.ImageURL)
 			c.ImageURL = &url
 		}
-		c.Items = []models.FoodItem{}
 		categories = append(categories, c)
 	}
 	if err := catRows.Err(); err != nil {
 		return nil, err
 	}
 
-	// Tüm item'ları tek sorguda çek
-	itemRows, err := r.db.Query(ctx,
-		`SELECT id, category_id, key, name, is_custom FROM food_items ORDER BY category_id, id`)
-	if err != nil {
-		return nil, fmt.Errorf("yemek çeşitleri sorgusu başarısız: %w", err)
-	}
-	defer itemRows.Close()
-
-	// category_id → index map
-	catIndex := make(map[int]int)
-	for i, c := range categories {
-		catIndex[c.ID] = i
-	}
-
-	for itemRows.Next() {
-		item := models.FoodItem{}
-		if err := itemRows.Scan(&item.ID, &item.CategoryID, &item.Key, &item.Name, &item.IsCustom); err != nil {
-			return nil, err
-		}
-		if idx, ok := catIndex[item.CategoryID]; ok {
-			categories[idx].Items = append(categories[idx].Items, item)
-		}
-	}
-
 	if categories == nil {
 		categories = []models.FoodCategory{}
 	}
-	return categories, itemRows.Err()
+	return categories, nil
 }
 
-// SetVenueFoodItems — mekanın yemek çeşitlerini kaydeder (delete+insert).
-func (r *VenueRepo) SetVenueFoodItems(ctx context.Context, venueID string, foodItemIDs []int) error {
+// SetVenueCategories — mekanın sunduğu mutfak kategorilerini kaydeder (delete+insert).
+func (r *VenueRepo) SetVenueCategories(ctx context.Context, venueID string, categoryIDs []int) error {
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback(ctx) //nolint
 
-	if _, err := tx.Exec(ctx, `DELETE FROM venue_food_items WHERE venue_id = $1`, venueID); err != nil {
-		return fmt.Errorf("yemek çeşitleri silinemedi: %w", err)
+	if _, err := tx.Exec(ctx, `DELETE FROM venue_categories WHERE venue_id = $1`, venueID); err != nil {
+		return fmt.Errorf("mekan kategorileri silinemedi: %w", err)
 	}
 
-	for _, fid := range foodItemIDs {
+	for _, cid := range categoryIDs {
 		if _, err := tx.Exec(ctx,
-			`INSERT INTO venue_food_items (venue_id, food_item_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
-			venueID, fid,
+			`INSERT INTO venue_categories (venue_id, category_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+			venueID, cid,
 		); err != nil {
-			return fmt.Errorf("yemek çeşidi eklenemedi (id=%d): %w", fid, err)
+			return fmt.Errorf("mekan kategorisi eklenemedi (id=%d): %w", cid, err)
 		}
 	}
 	return tx.Commit(ctx)
@@ -111,14 +86,14 @@ func (r *VenueRepo) SetExcludedProducts(ctx context.Context, venueID string, pro
 	return err
 }
 
-// GetFoodItemsByVenueID — mekanın seçili yemek çeşitlerini döndürür.
-func (r *VenueRepo) GetFoodItemsByVenueID(ctx context.Context, venueID string) ([]models.FoodItem, error) {
+// GetCategoriesByVenueID — mekanın sunduğu mutfak kategorilerini döndürür.
+func (r *VenueRepo) GetCategoriesByVenueID(ctx context.Context, venueID string) ([]models.FoodCategory, error) {
 	rows, err := r.db.Query(ctx,
-		`SELECT fi.id, fi.category_id, fi.key, fi.name, fi.is_custom
-		 FROM food_items fi
-		 JOIN venue_food_items vfi ON vfi.food_item_id = fi.id
-		 WHERE vfi.venue_id = $1
-		 ORDER BY fi.category_id, fi.id`,
+		`SELECT fc.id, fc.key, fc.name
+		 FROM food_categories fc
+		 JOIN venue_categories vc ON vc.category_id = fc.id
+		 WHERE vc.venue_id = $1
+		 ORDER BY fc.id`,
 		venueID,
 	)
 	if err != nil {
@@ -126,39 +101,23 @@ func (r *VenueRepo) GetFoodItemsByVenueID(ctx context.Context, venueID string) (
 	}
 	defer rows.Close()
 
-	var list []models.FoodItem
+	var list []models.FoodCategory
 	for rows.Next() {
-		item := models.FoodItem{}
-		if err := rows.Scan(&item.ID, &item.CategoryID, &item.Key, &item.Name, &item.IsCustom); err != nil {
+		cat := models.FoodCategory{}
+		if err := rows.Scan(&cat.ID, &cat.Key, &cat.Name); err != nil {
 			return nil, err
 		}
-		list = append(list, item)
+		list = append(list, cat)
 	}
 	if list == nil {
-		list = []models.FoodItem{}
+		list = []models.FoodCategory{}
 	}
 	return list, rows.Err()
 }
 
-// CreateCustomFoodItem — kullanıcının eklediği özel yemek çeşidini kaydeder.
-func (r *VenueRepo) CreateCustomFoodItem(ctx context.Context, categoryID int, key, name string) (*models.FoodItem, error) {
-	item := &models.FoodItem{}
-	err := r.db.QueryRow(ctx,
-		`INSERT INTO food_items (category_id, key, name, is_custom)
-		 VALUES ($1, $2, $3, true)
-		 ON CONFLICT (category_id, key) DO UPDATE SET key = food_items.key
-		 RETURNING id, category_id, key, name, is_custom`,
-		categoryID, key, name,
-	).Scan(&item.ID, &item.CategoryID, &item.Key, &item.Name, &item.IsCustom)
-	if err != nil {
-		return nil, fmt.Errorf("özel yemek çeşidi eklenemedi: %w", err)
-	}
-	return item, nil
-}
-
 // CreateFoodCategory — yeni bir yemek kategorisi oluşturur (admin).
 func (r *VenueRepo) CreateFoodCategory(ctx context.Context, key, name string) (*models.FoodCategory, error) {
-	cat := &models.FoodCategory{Items: []models.FoodItem{}}
+	cat := &models.FoodCategory{}
 	err := r.db.QueryRow(ctx,
 		`INSERT INTO food_categories (key, name)
 		 VALUES ($1, $2)
@@ -218,42 +177,13 @@ func (r *VenueRepo) GetFoodCategoryImageURL(ctx context.Context, id int) (*strin
 	return imageURL, nil
 }
 
-// DeleteFoodCategory — bir yemek kategorisini ve altındaki çeşitleri siler (admin).
-// food_items.category_id ON DELETE CASCADE olduğu için alt çeşitler otomatik silinir;
-// venue_food_items de food_items üzerinden CASCADE ile temizlenir.
+// DeleteFoodCategory — bir yemek (mutfak) kategorisini siler (admin).
+// venue_categories.category_id ON DELETE CASCADE olduğu için mekanlardaki
+// referanslar otomatik temizlenir.
 func (r *VenueRepo) DeleteFoodCategory(ctx context.Context, id int) error {
 	result, err := r.db.Exec(ctx, `DELETE FROM food_categories WHERE id = $1`, id)
 	if err != nil {
 		return fmt.Errorf("yemek kategorisi silinemedi: %w", err)
-	}
-	if result.RowsAffected() == 0 {
-		return ErrNotFound
-	}
-	return nil
-}
-
-// UpdateFoodItem — bir yemek çeşidinin adını günceller (admin).
-func (r *VenueRepo) UpdateFoodItem(ctx context.Context, id int, name string) error {
-	result, err := r.db.Exec(ctx,
-		`UPDATE food_items SET name = $1 WHERE id = $2`,
-		name, id,
-	)
-	if err != nil {
-		return fmt.Errorf("yemek çeşidi güncellenemedi: %w", err)
-	}
-	if result.RowsAffected() == 0 {
-		return ErrNotFound
-	}
-	return nil
-}
-
-// DeleteFoodItem — bir yemek çeşidini siler (admin).
-// venue_food_items.food_item_id ON DELETE CASCADE olduğu için mekanlardaki
-// referanslar otomatik temizlenir.
-func (r *VenueRepo) DeleteFoodItem(ctx context.Context, id int) error {
-	result, err := r.db.Exec(ctx, `DELETE FROM food_items WHERE id = $1`, id)
-	if err != nil {
-		return fmt.Errorf("yemek çeşidi silinemedi: %w", err)
 	}
 	if result.RowsAffected() == 0 {
 		return ErrNotFound

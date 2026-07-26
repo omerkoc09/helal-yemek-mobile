@@ -61,8 +61,8 @@ func venueBody(city string) io.Reader {
 		"city":           city,
 		"latitude":       41.01,
 		"longitude":      28.97,
-		"food_halal_mode": "selected",
-		"food_item_ids":  []int{},
+		"food_halal_mode": "all",
+		"category_ids":    []int{1},
 		// google_place_id yok → Places API çağrılmaz; city = req.City
 	}
 	b, _ := json.Marshal(body)

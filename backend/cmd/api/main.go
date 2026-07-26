@@ -275,11 +275,6 @@ func main() {
 		middleware.RequireRole("guide", "admin"),
 		venueHandler.Update,
 	)
-	api.Post("/food-categories/:id/items",
-		middleware.Auth(cfg.JWTSecret),
-		middleware.RequireRole("guide", "admin"),
-		venueHandler.CreateCustomFoodItem,
-	)
 	api.Post("/venues/:id/confirm",
 		middleware.Auth(cfg.JWTSecret),
 		middleware.RequireRole("guide", "admin"),
@@ -395,9 +390,6 @@ func main() {
 	admin.Post("/food-categories/:id/image", adminHandler.UploadFoodCategoryImage)
 	admin.Put("/food-categories/:id", adminHandler.UpdateFoodCategory)
 	admin.Delete("/food-categories/:id", adminHandler.DeleteFoodCategory)
-	admin.Post("/food-categories/:id/items", adminHandler.CreateFoodItem)
-	admin.Put("/food-items/:id", adminHandler.UpdateFoodItem)
-	admin.Delete("/food-items/:id", adminHandler.DeleteFoodItem)
 	admin.Get("/trust-criteria", adminHandler.ListTrustCriteria)
 	admin.Post("/trust-criteria", adminHandler.CreateTrustCriteria)
 	admin.Put("/trust-criteria/:id", adminHandler.UpdateTrustCriteria)
