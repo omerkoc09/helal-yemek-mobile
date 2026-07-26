@@ -1,22 +1,26 @@
 # Caiz mi? — Ürün Bağlamı
 
+## Konumlandırma
+
+Uygulama bir **güvenilirlik platformu**dur: son kullanıcı bir mekanın "güvenilir" olup olmadığını görür. Helallik, daha geniş **güven** kavramının bir bileşenidir (güven kriterlerinden biridir), tek ölçüt değildir. Son kullanıcı güven kriterlerinin ne olduğunu bilmez; yalnızca kaba bir güven sinyali (güven rozeti + doğrulayan sayısı cümlesi) görür. Güven kriterleri guide/admin bağlamında kalır; mekan onayı tamamen adminin inisiyatif ve içgörüsündedir.
+
 ## Kullanıcı Profilleri (Personas)
 
 ### 1. Müslüman Gezgin (Traveler)
 **Demografik**: şehir dışına seyahat eden, helal beslenmeye özen gösteren
 **İhtiyaçlar**: 
-- Yeni şehirde güvenilir helal mekan bulma
-- Mekan hakkında detaylı bilgi (helal kriterleri, fotoğraflar)
+- Yeni şehirde güvenilir mekan bulma
+- Mekanın güvenilirliği hakkında hızlı sinyal (güven rozeti), fotoğraflar
 - Kolay navigasyon ve yol tarifi
 **Davranış**: Harita üzerinde keşif yapar, yorumları okur, favoriler
 
 ### 2. Yerel Rehber (Guide)
-**Demografik**: yerel halktan, helal mekanları iyi bilen
+**Demografik**: yerel halktan, güvenilir mekanları iyi bilen
 **İhtiyaçlar**:
-- Bildiği helal mekanları paylaşma
+- Bildiği güvenilir mekanları paylaşma
 - Topluma katkı sağlama
 - Güvenilir bilgi kaynağı olma
-**Davranış**: Aktif mekan ekler, düzeltmeler önerir, fotoğraf paylaşır
+**Davranış**: Aktif mekan ekler, güven kriterlerini işaretler, düzeltmeler önerir, fotoğraf paylaşır
 
 ### 3. Sistem Yöneticisi (Admin)
 **Demografik**: Platform yöneticisi, içerik moderatörü
@@ -31,19 +35,23 @@
 ### Yüksek Öncelik (MVP)
 
 #### 1. Keşif ve Harita
-- **GPS Tabanlı Keşif**: Konum tespiti ile yakındaki helal mekanlar
+- **GPS Tabanlı Keşif**: Konum tespiti ile yakındaki güvenilir mekanlar
 - **Şehir Bazlı Arama**: Belirli şehirdeki mekanları listeleme
 - **Harita Görünümü**: Pin'ler ile mekan konumları (yeşil: onaylı, sarı: beklemede)
 - **Mekan Detayı**: Bottom sheet animasyonu ile hızlı bilgi
 
 #### 2. Mekan Bilgileri
 - **Temel Bilgiler**: Ad, adres, çalışma saatleri
-- **Helal Kriterleri**: Önceden tanımlı etiketler (her biri açıklama içerir, popup ile gösterilir)
+- **Güven Kriterleri** (`trust_criteria`): Guide'ın işaretlediği, adminin süzdüğü önceden tanımlı kriterler. **Son kullanıcıya GÖSTERİLMEZ** — yalnızca güven rozetine dolaylı katkı sağlar; guide/admin bağlamında görünür.
   - Helal Sertifikası
   - İşletme Sahibinden Teyit
   - Boykot Ürünü Yok
+  - Alkolsüz İşletme
+  - Temiz ve Bakımlı (öznel gözlem)
+  - Yerinde Görüldü
+  - Köklü İşletme
 - **Fotoğraf Galerisi**: Mekan fotoğrafları
-- **Güven Göstergeleri**: Son doğrulanma tarihi, çift doğrulanmış badge
+- **Güven Göstergeleri (son kullanıcı)**: Güven rozeti (Temel→Platin) + doğrulayan sayısı cümlesi ("N yerel rehber güvenilir buldu") + son doğrulanma tarihi. Kriter isimleri ve güven skoru gösterilmez.
 
 #### Venue Rozet Sistemi (Dönemsel Doğrulama)
 
@@ -93,7 +101,7 @@
 
 ### Traveler Hikayeleri
 1. **Mekan Keşfi**: "Yeni bir şehirdeyim ve yakınımda helal restoran arıyorum"
-2. **Detay İnceleme**: "Bir mekanın gerçekten helal olup olmadığını doğrulamak istiyorum"
+2. **Detay İnceleme**: "Bir mekanın ne kadar güvenilir olduğunu (kaç rehberin doğruladığını, ne kadar taze) görmek istiyorum"
 3. **Favorileme**: "Beğendiğim mekanları kaydetmek istiyorum"
 4. **Yorum Yapma**: "Gittiğim mekan hakkında deneyimimi paylaşmak istiyorum"
 
@@ -114,13 +122,13 @@
 
 ### Rekabet Avantajları
 - **Uzman Doğrulama**: Guide sistemi ile yerel uzman onayı
-- **Çift Doğrulama**: Birden fazla Guide onayı ile güvenilirlik
-- **Helal Odaklı**: Sadece helal kriterlere odaklanmış tasarım
+- **Dağıtık Güven**: Birden fazla rehberin doğrulamasından türetilen güven rozeti
+- **Güven Odaklı**: Helallik dahil çok boyutlu güven kriterlerine odaklı tasarım
 - **Yerel Topluluk**: Türkiye'deki Müslüman topluluk odaklı
 
 ### Farklılaştırıcı Özellikler
 - **Katmanlı Onay Sistemi**: Guide → Admin onay süreci
-- **Güven Göstergeleri**: Son doğrulanma, çift onay badge'leri
+- **Güven Göstergeleri**: Güven rozeti (dönemsel doğrulayan sayısından türetilir) + son doğrulanma
 - **Yerel Rehber Ağı**: Şehir bazlı uzman Guide sistemi
 - **Mobil Öncelikli**: Seyahat anında kullanım odaklı tasarım
 
