@@ -1,6 +1,6 @@
 # Caiz mi? — Proje İlerleme Durumu
 
-> Son güncelleme: 2026-06-19
+> Son güncelleme: 2026-07-27
 Mevcut Durum Notu: Proje genel hatlarıyla Faz 5'e (Test & Yayın) geçmiş gibi görünse de, Faz 1-4 arasındaki bazı özelliklerde (MVP çekirdeği) mimari değişiklikler, UX revizyonları ve bug fix'ler yapılmaktadır. Bir modülü düzenlerken, eski kodun kusursuz olduğunu varsayma; refactoring (kod iyileştirme) ve mantık değişiklikleri yapmak serbesttir ve gereklidir.
 ---
 
@@ -1030,3 +1030,16 @@ Bir dizi ürün kararı `main`'e uygulandı (hepsi lokal, henüz push edilmedi):
 | Tekil yemekler kaldırıldı | `food_items`+`venue_food_items` DROP → `venue_categories` (mekan doğrudan mutfak seçer); `food_halal_mode` 3→2 mod (`selected`→`all`); admin item CRUD kaldırıldı; dil "caiz"→"tavsiye edilen"; migration 046 | ✅ |
 
 **Doğrulama:** Her iş için backend integration (testcontainers, migration zinciri dahil) + mobil `flutter test` (158) + admin-panel build yeşil; JSON kontratları katmanlar arası elle senkron doğrulandı. Spec'ler `docs/superpowers/specs/2026-07-25..26-*` altında (gitignore, diskte).
+
+---
+
+## Venue Detail: Mutfak Sadeleştirme + Güven Kriteri Rozetleri (2026-07-27)
+
+Mekan detay ekranında iki UI iyileştirmesi `main`'e uygulandı (lokal, henüz push edilmedi):
+
+| İş | Özet | Durum |
+|----|------|-------|
+| Mutfak bölümü yeniden yapılandırma | Turuncu/uyarı pill'leri kaldırıldı; iki düz alt-başlık: "Şu ürünler hariç tavsiye edilir" (kırmızı chip'ler) + "Tavsiye edilenler" (mutfak chip'leri **turuncu→yeşil**) | ✅ |
+| Güven kriteri rozetleri | Daha önce son kullanıcıdan gizlenen kriterler artık amblem rozet olarak gösteriliyor: dairesel çerçeve + kritere özel Material ikon + kısa etiket; tek satır, sığmazsa yatay kaydırma; tıklayınca açıklama dialogu. 7 seed kritere özel ikon/renk, admin-ekli bilinmeyen key'lere deterministik renkli fallback. Yeni `trust_criteria_badge.dart`; ölü `trust_criteria_chip.dart` silindi | ✅ |
+
+**Doğrulama:** `flutter analyze` temiz; 3 yeni widget testi (`trust_criteria_badge_test.dart`) geçiyor; golden render ile tek-satır düzeni + renkler görsel teyit edildi. API/model değişikliği yok (`trust_criteria` zaten dönüyordu). Spec: `docs/superpowers/specs/2026-07-27-venue-detail-cuisine-trust-design.md`.

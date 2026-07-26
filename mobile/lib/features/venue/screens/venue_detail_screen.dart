@@ -19,6 +19,7 @@ import '../widgets/venue_status_badge.dart';
 import '../widgets/review_card.dart';
 import '../widgets/venue_photo_gallery.dart';
 import '../widgets/venue_badge_chip.dart';
+import '../widgets/trust_criteria_badge.dart';
 import '../widgets/verify_button_visibility.dart';
 
 class VenueDetailScreen extends ConsumerWidget {
@@ -239,6 +240,20 @@ class VenueDetailScreen extends ConsumerWidget {
                       ),
                       const SizedBox(height: 16),
 
+                      // Güven kriterleri — API'den gelen rozetler.
+                      if (venue.trustCriteria.isNotEmpty) ...[
+                        const Text(
+                          'Güven Kriterleri',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        TrustCriteriaBadges(criteria: venue.trustCriteria),
+                        const SizedBox(height: 16),
+                      ],
+
                       // Mutfaklar
                       if (venue.categories.isNotEmpty ||
                           venue.foodHalalMode == 'except') ...[
@@ -251,96 +266,43 @@ class VenueDetailScreen extends ConsumerWidget {
                         ),
                         const SizedBox(height: 8),
 
-                        // Mod bilgisi — mutfak listesinden bağımsız bir bağlam.
-                        if (venue.foodHalalMode == 'all')
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              color:
-                                  AppTheme.primary.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: AppTheme.primary
-                                    .withValues(alpha: 0.3),
-                              ),
-                            ),
-                            child: const Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.restaurant_menu,
-                                    size: 16, color: AppTheme.primary),
-                                SizedBox(width: 6),
-                                Text(
-                                  'Sunduğu tüm mutfaklar tavsiye edilir',
-                                  style: TextStyle(
-                                    color: AppTheme.primary,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 13,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          )
-                        else if (venue.foodHalalMode == 'except') ...[
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: Colors.orange.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: Colors.orange
-                                    .withValues(alpha: 0.3),
-                              ),
-                            ),
-                            child: const Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.warning_amber,
-                                    size: 16, color: Colors.orange),
-                                SizedBox(width: 6),
-                                Text(
-                                  'Şu ürünler hariç tavsiye edilir',
-                                  style: TextStyle(
-                                    color: Colors.orange,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 13,
-                                  ),
-                                ),
-                              ],
-                            ),
+                        // "Hariç tutulanlar" — yalnızca except modunda ve
+                        // ürün listesi doluyken düz bir alt-başlık altında.
+                        if (venue.foodHalalMode == 'except' &&
+                            venue.excludedProducts.isNotEmpty) ...[
+                          const _CuisineSubheading(
+                            'Sakıncalı Ürünler',
                           ),
-                          if (venue.excludedProducts.isNotEmpty) ...[
-                            const SizedBox(height: 8),
-                            Wrap(
-                              spacing: 6,
-                              runSpacing: 6,
-                              children: venue.excludedProducts
-                                  .map(
-                                    (product) => Chip(
-                                      label: Text(
-                                        product,
-                                        style: const TextStyle(fontSize: 12),
-                                      ),
-                                      materialTapTargetSize:
-                                          MaterialTapTargetSize.shrinkWrap,
-                                      visualDensity: VisualDensity.compact,
-                                      backgroundColor:
-                                          Colors.red.withValues(alpha: 0.08),
-                                      side: BorderSide(
-                                        color: Colors.red
-                                            .withValues(alpha: 0.2),
-                                      ),
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 6,
+                            runSpacing: 6,
+                            children: venue.excludedProducts
+                                .map(
+                                  (product) => Chip(
+                                    label: Text(
+                                      product,
+                                      style: const TextStyle(fontSize: 12),
                                     ),
-                                  )
-                                  .toList(),
-                            ),
-                          ],
+                                    materialTapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
+                                    visualDensity: VisualDensity.compact,
+                                    backgroundColor:
+                                        Colors.red.withValues(alpha: 0.08),
+                                    side: BorderSide(
+                                      color:
+                                          Colors.red.withValues(alpha: 0.2),
+                                    ),
+                                  ),
+                                )
+                                .toList(),
+                          ),
+                          const SizedBox(height: 12),
                         ],
 
-                        // Mutfaklar her iki modda da gösterilir.
+                        // "Tavsiye edilenler" — kategori chip'leri (yeşil).
                         if (venue.categories.isNotEmpty) ...[
+                          const _CuisineSubheading('Tavsiye edilenler'),
                           const SizedBox(height: 8),
                           _VenueCuisines(categories: venue.categories),
                         ],
@@ -510,12 +472,31 @@ class _VenueCuisines extends StatelessWidget {
           ),
           materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
           visualDensity: VisualDensity.compact,
-          backgroundColor: AppTheme.primary.withValues(alpha: 0.08),
+          backgroundColor: AppTheme.pinApproved.withValues(alpha: 0.08),
           side: BorderSide(
-            color: AppTheme.primary.withValues(alpha: 0.2),
+            color: AppTheme.pinApproved.withValues(alpha: 0.2),
           ),
         );
       }).toList(),
+    );
+  }
+}
+
+/// Mutfaklar bölümündeki düz alt-başlık (ör. "Tavsiye edilenler").
+class _CuisineSubheading extends StatelessWidget {
+  final String text;
+
+  const _CuisineSubheading(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: const TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.w600,
+        color: AppTheme.textPrimary,
+      ),
     );
   }
 }
