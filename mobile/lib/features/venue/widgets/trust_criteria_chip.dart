@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 import '../../../core/models/venue.dart';
 import '../../../core/theme/app_theme.dart';
 
-class HalalCriteriaChip extends StatelessWidget {
-  final HalalCriteria criteria;
+class TrustCriteriaChip extends StatelessWidget {
+  final TrustCriteria criteria;
 
-  const HalalCriteriaChip({super.key, required this.criteria});
+  const TrustCriteriaChip({super.key, required this.criteria});
 
   @override
   Widget build(BuildContext context) {
@@ -72,10 +72,10 @@ class HalalCriteriaChip extends StatelessWidget {
   }
 }
 
-class HalalCriteriaChips extends StatelessWidget {
-  final List<HalalCriteria> criteria;
+class TrustCriteriaChips extends StatelessWidget {
+  final List<TrustCriteria> criteria;
 
-  const HalalCriteriaChips({super.key, required this.criteria});
+  const TrustCriteriaChips({super.key, required this.criteria});
 
   @override
   Widget build(BuildContext context) {
@@ -83,7 +83,7 @@ class HalalCriteriaChips extends StatelessWidget {
     return Wrap(
       spacing: 8,
       runSpacing: 4,
-      children: criteria.map((c) => HalalCriteriaChip(criteria: c)).toList(),
+      children: criteria.map((c) => TrustCriteriaChip(criteria: c)).toList(),
     );
   }
 }

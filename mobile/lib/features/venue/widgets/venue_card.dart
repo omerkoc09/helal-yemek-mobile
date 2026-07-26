@@ -6,7 +6,6 @@ import '../../../core/models/venue.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/star_rating_widget.dart';
 import '../../favorites/providers/favorites_provider.dart';
-import 'halal_criteria_chip.dart';
 import 'venue_badge_chip.dart';
 
 class VenueCard extends ConsumerWidget {
@@ -111,10 +110,6 @@ class VenueCard extends ConsumerWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  if (venue.criteria.isNotEmpty) ...[
-                    const SizedBox(height: 8),
-                    HalalCriteriaChips(criteria: venue.criteria),
-                  ],
                 ],
               ),
             ),

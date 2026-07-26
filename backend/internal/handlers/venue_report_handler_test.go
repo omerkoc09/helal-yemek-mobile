@@ -68,13 +68,13 @@ func TestVenueReportCreateReasonValidation(t *testing.T) {
 		{name: "wrong_address — açıklamasız kabul", body: `{"reason":"wrong_address"}`, wantStatus: fiber.StatusCreated},
 
 		// Bu üç sebep için açıklama zorunlu: aksi halde admin ne olduğunu bilemez.
-		{name: "halal_criteria — açıklamasız reddedilir", body: `{"reason":"halal_criteria"}`, wantStatus: fiber.StatusBadRequest},
+		{name: "trust_criteria — açıklamasız reddedilir", body: `{"reason":"trust_criteria"}`, wantStatus: fiber.StatusBadRequest},
 		{name: "wrong_food — açıklamasız reddedilir", body: `{"reason":"wrong_food"}`, wantStatus: fiber.StatusBadRequest},
 		{name: "other — açıklamasız reddedilir", body: `{"reason":"other"}`, wantStatus: fiber.StatusBadRequest},
 		// Boşluktan ibaret açıklama da yok sayılmalı.
 		{name: "other — sadece boşluk reddedilir", body: `{"reason":"other","description":"   "}`, wantStatus: fiber.StatusBadRequest},
 		{name: "other — geçerli açıklama kabul", body: `{"reason":"other","description":"mekan taşınmış"}`, wantStatus: fiber.StatusCreated},
-		{name: "halal_criteria — geçerli açıklama kabul", body: `{"reason":"halal_criteria","description":"alkol servisi var"}`, wantStatus: fiber.StatusCreated},
+		{name: "trust_criteria — geçerli açıklama kabul", body: `{"reason":"trust_criteria","description":"alkol servisi var"}`, wantStatus: fiber.StatusCreated},
 
 		{name: "tanımsız sebep", body: `{"reason":"uydurma"}`, wantStatus: fiber.StatusBadRequest},
 		{name: "sebep boş", body: `{"reason":""}`, wantStatus: fiber.StatusBadRequest},

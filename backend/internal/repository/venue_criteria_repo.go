@@ -31,11 +31,11 @@ func (r *VenueRepo) SetCriteria(ctx context.Context, venueID string, criteriaIDs
 	return tx.Commit(ctx)
 }
 
-// GetCriteriaByVenueID — mekana ait helal kriter listesini döndürür.
-func (r *VenueRepo) GetCriteriaByVenueID(ctx context.Context, venueID string) ([]models.HalalCriteria, error) {
+// GetCriteriaByVenueID — mekana ait güvenilirlik kriter listesini döndürür.
+func (r *VenueRepo) GetCriteriaByVenueID(ctx context.Context, venueID string) ([]models.TrustCriteria, error) {
 	query := `
 		SELECT hc.id, hc.key, hc.name, hc.description
-		FROM halal_criteria hc
+		FROM trust_criteria hc
 		JOIN venue_criteria vc ON vc.criteria_id = hc.id
 		WHERE vc.venue_id = $1
 		ORDER BY hc.id`
@@ -46,31 +46,31 @@ func (r *VenueRepo) GetCriteriaByVenueID(ctx context.Context, venueID string) ([
 	}
 	defer rows.Close()
 
-	var list []models.HalalCriteria
+	var list []models.TrustCriteria
 	for rows.Next() {
-		c := models.HalalCriteria{}
+		c := models.TrustCriteria{}
 		if err := rows.Scan(&c.ID, &c.Key, &c.Name, &c.Description); err != nil {
 			return nil, err
 		}
 		list = append(list, c)
 	}
 	if list == nil {
-		list = []models.HalalCriteria{}
+		list = []models.TrustCriteria{}
 	}
 	return list, rows.Err()
 }
 
-// GetAllCriteria — tüm helal kriterleri döndürür.
-func (r *VenueRepo) GetAllCriteria(ctx context.Context) ([]models.HalalCriteria, error) {
-	rows, err := r.db.Query(ctx, `SELECT id, key, name, description FROM halal_criteria ORDER BY id`)
+// GetAllCriteria — tüm güvenilirlik kriterlerini döndürür.
+func (r *VenueRepo) GetAllCriteria(ctx context.Context) ([]models.TrustCriteria, error) {
+	rows, err := r.db.Query(ctx, `SELECT id, key, name, description FROM trust_criteria ORDER BY id`)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var list []models.HalalCriteria
+	var list []models.TrustCriteria
 	for rows.Next() {
-		c := models.HalalCriteria{}
+		c := models.TrustCriteria{}
 		if err := rows.Scan(&c.ID, &c.Key, &c.Name, &c.Description); err != nil {
 			return nil, err
 		}

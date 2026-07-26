@@ -7,7 +7,6 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/map_launcher.dart';
 import '../../../shared/widgets/star_rating_widget.dart';
 import '../../venue/providers/direction_tracking_provider.dart';
-import '../../venue/widgets/halal_criteria_chip.dart';
 import '../../venue/widgets/venue_badge_chip.dart';
 import '../../venue/widgets/venue_status_badge.dart';
 
@@ -121,12 +120,6 @@ class _VenueBottomSheetContent extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 12),
-
-          // Helal kriterleri
-          if (venue.criteria.isNotEmpty) ...[
-            HalalCriteriaChips(criteria: venue.criteria),
-            const SizedBox(height: 16),
-          ],
 
           // Butonlar
           Row(

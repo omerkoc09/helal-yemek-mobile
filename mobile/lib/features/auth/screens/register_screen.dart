@@ -74,7 +74,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                    'Join the halal community',
+                    'Join the trusted community',
                     style: TextStyle(
                       fontSize: 14,
                       color: Color(0xFF94A3B8),

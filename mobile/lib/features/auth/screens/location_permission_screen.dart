@@ -63,7 +63,7 @@ class LocationPermissionScreen extends ConsumerWidget {
                     const SizedBox(height: 32),
                     const _BulletItem(
                       icon: Icons.restaurant_outlined,
-                      text: 'Yakınınızdaki en iyi helal\nrestoran ve mekanları buluyoruz',
+                      text: 'Yakınınızdaki en güvenilir\nrestoran ve mekanları buluyoruz',
                     ),
                     const SizedBox(height: 16),
                     const _BulletItem(

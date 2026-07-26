@@ -86,7 +86,7 @@ class _MyVenuesScreenState extends ConsumerState<MyVenuesScreen> {
             ),
             const SizedBox(height: 8),
             const Text(
-              'Helal mekanları keşfeden diğer gezginlere yardımcı olmak için mekan ekleyin.',
+              'Güvenilir mekanları keşfeden diğer gezginlere yardımcı olmak için mekan ekleyin.',
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: AppTheme.textSecondary,
