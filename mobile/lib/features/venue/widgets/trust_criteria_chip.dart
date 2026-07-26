@@ -60,7 +60,7 @@ class TrustCriteriaChip extends StatelessWidget {
 
   IconData _iconForCriteria(String key) {
     switch (key) {
-      case 'halal_certified':
+      case 'trust_certified':
         return Icons.verified_outlined;
       case 'known_owner':
         return Icons.store_outlined;
