@@ -7,6 +7,7 @@ export default [
   { title: 'Düzeltmeler', to: { name: 'corrections' }, icon: { icon: 'tabler-edit' }, role: ['admin'] },
   { title: 'Mekan Raporları', to: { name: 'venue-reports' }, icon: { icon: 'tabler-flag' }, role: ['admin'] },
   { title: 'Yemek Kategorileri', to: { name: 'food-categories' }, icon: { icon: 'tabler-tools-kitchen-2' }, role: ['admin'] },
+  { title: 'Güven Kriterleri', to: { name: 'trust-criteria' }, icon: { icon: 'tabler-shield-check' }, role: ['admin'] },
   { title: 'Aktivite Raporu', to: { name: 'activity' }, icon: { icon: 'tabler-chart-bar' }, role: ['admin'] },
   { title: 'Audit Log', to: { name: 'audit-logs' }, icon: { icon: 'tabler-history' }, role: ['admin'] },
   { title: 'Doğrulama Logları', to: { name: 'verification-logs' }, icon: { icon: 'tabler-checks' }, role: ['admin'] },

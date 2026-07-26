@@ -398,6 +398,10 @@ func main() {
 	admin.Post("/food-categories/:id/items", adminHandler.CreateFoodItem)
 	admin.Put("/food-items/:id", adminHandler.UpdateFoodItem)
 	admin.Delete("/food-items/:id", adminHandler.DeleteFoodItem)
+	admin.Get("/trust-criteria", adminHandler.ListTrustCriteria)
+	admin.Post("/trust-criteria", adminHandler.CreateTrustCriteria)
+	admin.Put("/trust-criteria/:id", adminHandler.UpdateTrustCriteria)
+	admin.Delete("/trust-criteria/:id", adminHandler.DeleteTrustCriteria)
 
 	// Verification scheduler'ı başlat. Context, kapanış sinyalinde iptal edilir.
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)

@@ -31,6 +31,7 @@ declare module 'vue-router/auto-routes' {
     'guides-by-city': RouteRecordInfo<'guides-by-city', '/guides-by-city', Record<never, never>, Record<never, never>>,
     'not-authorized': RouteRecordInfo<'not-authorized', '/not-authorized', Record<never, never>, Record<never, never>>,
     'profile': RouteRecordInfo<'profile', '/profile', Record<never, never>, Record<never, never>>,
+    'trust-criteria': RouteRecordInfo<'trust-criteria', '/trust-criteria', Record<never, never>, Record<never, never>>,
     'users': RouteRecordInfo<'users', '/users', Record<never, never>, Record<never, never>>,
     'users-id': RouteRecordInfo<'users-id', '/users/:id', { id: ParamValue<true> }, { id: ParamValue<false> }>,
     'venue-reports': RouteRecordInfo<'venue-reports', '/venue-reports', Record<never, never>, Record<never, never>>,

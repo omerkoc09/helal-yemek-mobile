@@ -136,6 +136,89 @@ func (h *AdminHandler) DeleteFoodCategory(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"status": "deleted"})
 }
 
+// GET /admin/trust-criteria
+func (h *AdminHandler) ListTrustCriteria(c *fiber.Ctx) error {
+	criteria, err := h.venueRepo.GetAllCriteria(c.Context())
+	if err != nil {
+		return fiber.ErrInternalServerError
+	}
+	return c.JSON(criteria)
+}
+
+// POST /admin/trust-criteria
+func (h *AdminHandler) CreateTrustCriteria(c *fiber.Ctx) error {
+	var req struct {
+		Name        string  `json:"name"`
+		Description *string `json:"description"`
+	}
+	if err := c.BodyParser(&req); err != nil {
+		return fiber.ErrBadRequest
+	}
+	req.Name = strings.TrimSpace(req.Name)
+	if req.Name == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "name zorunludur"})
+	}
+
+	criteria, err := h.venueRepo.CreateTrustCriteria(c.Context(), slugifyKey(req.Name), req.Name, req.Description)
+	if err != nil {
+		if errors.Is(err, repository.ErrAlreadyExists) {
+			return c.Status(fiber.StatusConflict).JSON(fiber.Map{"error": "bu isimde bir kriter zaten mevcut"})
+		}
+		return fiber.ErrInternalServerError
+	}
+
+	h.writeAuditLog(c, "create_trust_criteria", "trust_criteria", strconv.Itoa(criteria.ID), nil)
+	return c.Status(fiber.StatusCreated).JSON(criteria)
+}
+
+// PUT /admin/trust-criteria/:id
+func (h *AdminHandler) UpdateTrustCriteria(c *fiber.Ctx) error {
+	id, err := c.ParamsInt("id")
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "geçersiz kriter ID"})
+	}
+
+	var req struct {
+		Name        string  `json:"name"`
+		Description *string `json:"description"`
+	}
+	if err := c.BodyParser(&req); err != nil {
+		return fiber.ErrBadRequest
+	}
+	req.Name = strings.TrimSpace(req.Name)
+	if req.Name == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "name zorunludur"})
+	}
+
+	if err := h.venueRepo.UpdateTrustCriteria(c.Context(), id, req.Name, req.Description); err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			return fiber.ErrNotFound
+		}
+		return fiber.ErrInternalServerError
+	}
+
+	h.writeAuditLog(c, "update_trust_criteria", "trust_criteria", strconv.Itoa(id), nil)
+	return c.JSON(fiber.Map{"status": "updated"})
+}
+
+// DELETE /admin/trust-criteria/:id
+func (h *AdminHandler) DeleteTrustCriteria(c *fiber.Ctx) error {
+	id, err := c.ParamsInt("id")
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "geçersiz kriter ID"})
+	}
+
+	if err := h.venueRepo.DeleteTrustCriteria(c.Context(), id); err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			return fiber.ErrNotFound
+		}
+		return fiber.ErrInternalServerError
+	}
+
+	h.writeAuditLog(c, "delete_trust_criteria", "trust_criteria", strconv.Itoa(id), nil)
+	return c.JSON(fiber.Map{"status": "deleted"})
+}
+
 // POST /admin/food-categories/:id/items
 func (h *AdminHandler) CreateFoodItem(c *fiber.Ctx) error {
 	categoryID, err := c.ParamsInt("id")

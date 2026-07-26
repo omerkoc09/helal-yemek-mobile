@@ -2,8 +2,10 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/omerkoc/caiz-mi/internal/models"
 )
 
@@ -77,4 +79,64 @@ func (r *VenueRepo) GetAllCriteria(ctx context.Context) ([]models.TrustCriteria,
 		list = append(list, c)
 	}
 	return list, rows.Err()
+}
+
+// CreateTrustCriteria — yeni bir güvenilirlik kriteri oluşturur (admin).
+func (r *VenueRepo) CreateTrustCriteria(ctx context.Context, key, name string, description *string) (*models.TrustCriteria, error) {
+	c := &models.TrustCriteria{}
+	err := r.db.QueryRow(ctx,
+		`INSERT INTO trust_criteria (key, name, description)
+		 VALUES ($1, $2, $3)
+		 RETURNING id, key, name, description`,
+		key, name, description,
+	).Scan(&c.ID, &c.Key, &c.Name, &c.Description)
+	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			return nil, ErrAlreadyExists
+		}
+		return nil, fmt.Errorf("güvenilirlik kriteri eklenemedi: %w", err)
+	}
+	return c, nil
+}
+
+// UpdateTrustCriteria — bir güvenilirlik kriterinin adını ve açıklamasını günceller (admin).
+// key kasıtlı olarak güncellenmez; kalıcı tanımlayıcı olarak kalır.
+func (r *VenueRepo) UpdateTrustCriteria(ctx context.Context, id int, name string, description *string) error {
+	result, err := r.db.Exec(ctx,
+		`UPDATE trust_criteria SET name = $2, description = $3 WHERE id = $1`,
+		id, name, description,
+	)
+	if err != nil {
+		return fmt.Errorf("güvenilirlik kriteri güncellenemedi: %w", err)
+	}
+	if result.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+// DeleteTrustCriteria — bir güvenilirlik kriterini siler (admin).
+// venue_criteria.criteria_id FK ilişkisi nedeniyle önce mekan işaretlemeleri
+// temizlenir, ardından kriter silinir (tek transaction).
+func (r *VenueRepo) DeleteTrustCriteria(ctx context.Context, id int) error {
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx) //nolint
+
+	if _, err := tx.Exec(ctx, `DELETE FROM venue_criteria WHERE criteria_id = $1`, id); err != nil {
+		return fmt.Errorf("kriter mekan bağlantıları silinemedi: %w", err)
+	}
+
+	result, err := tx.Exec(ctx, `DELETE FROM trust_criteria WHERE id = $1`, id)
+	if err != nil {
+		return fmt.Errorf("güvenilirlik kriteri silinemedi: %w", err)
+	}
+	if result.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+
+	return tx.Commit(ctx)
 }
