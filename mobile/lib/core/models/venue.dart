@@ -23,7 +23,7 @@ abstract class Venue with _$Venue {
     @JsonKey(name: 'verification_due_at') DateTime? verificationDueAt,
     @JsonKey(name: 'food_halal_mode') @Default('selected') String foodHalalMode,
     @JsonKey(name: 'excluded_products') @Default([]) List<String> excludedProducts,
-    @Default([]) List<HalalCriteria> criteria,
+    @JsonKey(name: 'trust_criteria') @Default([]) List<TrustCriteria> trustCriteria,
     @Default([]) List<VenuePhoto> photos,
     @JsonKey(name: 'food_items') @Default([]) List<FoodItem> foodItems,
     @JsonKey(name: 'average_rating') double? avgRating,
@@ -47,16 +47,16 @@ abstract class Venue with _$Venue {
 }
 
 @freezed
-abstract class HalalCriteria with _$HalalCriteria {
-  const factory HalalCriteria({
+abstract class TrustCriteria with _$TrustCriteria {
+  const factory TrustCriteria({
     required int id,
     required String key,
     required String name,
     String? description,
-  }) = _HalalCriteria;
+  }) = _TrustCriteria;
 
-  factory HalalCriteria.fromJson(Map<String, dynamic> json) =>
-      _$HalalCriteriaFromJson(json);
+  factory TrustCriteria.fromJson(Map<String, dynamic> json) =>
+      _$TrustCriteriaFromJson(json);
 }
 
 @freezed

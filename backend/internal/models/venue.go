@@ -11,7 +11,7 @@ const (
 	VenueStatusSuspended VenueStatus = "suspended"
 )
 
-type HalalCriteria struct {
+type TrustCriteria struct {
 	ID          int     `json:"id"`
 	Key         string  `json:"key"`
 	Name        string  `json:"name"`
@@ -65,7 +65,7 @@ type Venue struct {
 	Distance            *float64        `json:"distance,omitempty"` // metre cinsinden, yakın mekan sorgusunda dolar
 	FoodHalalMode    string          `json:"food_halal_mode"`
 	ExcludedProducts []string        `json:"excluded_products"`
-	Criteria         []HalalCriteria `json:"criteria"`
+	TrustCriteria    []TrustCriteria `json:"trust_criteria"`
 	Photos           []VenuePhoto    `json:"photos"`
 	FoodItems        []FoodItem      `json:"food_items"`
 	AverageRating    *float64        `json:"average_rating,omitempty"`

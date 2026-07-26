@@ -86,7 +86,7 @@ class _AddVenueScreenState extends ConsumerState<AddVenueScreen> {
   // ─── Adım 2: Helal Kriterleri + Not ───
 
   Widget _buildCriteriaAndNotesStep(AddVenueState state) {
-    final criteriaAsync = ref.watch(halalCriteriaProvider);
+    final criteriaAsync = ref.watch(trustCriteriaProvider);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),

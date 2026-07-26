@@ -96,7 +96,7 @@ func (r *VenueRepo) FindByID(ctx context.Context, id string) (*models.Venue, err
 	if err != nil {
 		return nil, err
 	}
-	v.Criteria = criteria
+	v.TrustCriteria = criteria
 
 	// Fotoğrafları yükle
 	photos, err := r.GetPhotosByVenueID(ctx, id)

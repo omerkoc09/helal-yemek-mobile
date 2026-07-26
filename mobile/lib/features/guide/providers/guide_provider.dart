@@ -612,7 +612,7 @@ class EditVenueNotifier extends Notifier<EditVenueState> {
         name: venue.name,
         city: venue.city,
         notes: venue.notes,
-        selectedCriteriaIds: venue.criteria.map((c) => c.id).toList(),
+        selectedCriteriaIds: venue.trustCriteria.map((c) => c.id).toList(),
         selectedFoodItemIds: venue.foodItems.map((f) => f.id).toList(),
         foodHalalMode: venue.foodHalalMode,
         excludedProducts: venue.excludedProducts,
@@ -714,9 +714,9 @@ final editVenueProvider =
   EditVenueNotifier.new,
 );
 
-// ─── Halal Criteria Provider ───
+// ─── Trust Criteria Provider ───
 
-final halalCriteriaProvider = FutureProvider<List<HalalCriteria>>((ref) async {
+final trustCriteriaProvider = FutureProvider<List<TrustCriteria>>((ref) async {
   final apiClient = ref.read(apiClientProvider);
   final response = await apiClient.get(ApiEndpoints.criteria);
 
@@ -726,7 +726,7 @@ final halalCriteriaProvider = FutureProvider<List<HalalCriteria>>((ref) async {
       : (data as List? ?? []);
 
   return list
-      .map((json) => HalalCriteria.fromJson(json as Map<String, dynamic>))
+      .map((json) => TrustCriteria.fromJson(json as Map<String, dynamic>))
       .toList();
 });
 

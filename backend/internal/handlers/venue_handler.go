@@ -51,8 +51,8 @@ type venueStore interface {
 	GetPhotosByVenueID(ctx context.Context, venueID string) ([]models.VenuePhoto, error)
 
 	// Kriter ve yemek
-	GetAllCriteria(ctx context.Context) ([]models.HalalCriteria, error)
-	GetCriteriaByVenueID(ctx context.Context, venueID string) ([]models.HalalCriteria, error)
+	GetAllCriteria(ctx context.Context) ([]models.TrustCriteria, error)
+	GetCriteriaByVenueID(ctx context.Context, venueID string) ([]models.TrustCriteria, error)
 	SetCriteria(ctx context.Context, venueID string, criteriaIDs []int) error
 	GetAllFoodCategoriesWithItems(ctx context.Context) ([]models.FoodCategory, error)
 	GetFoodItemsByVenueID(ctx context.Context, venueID string) ([]models.FoodItem, error)

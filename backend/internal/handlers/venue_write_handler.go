@@ -159,9 +159,9 @@ func (h *VenueHandler) Create(c *fiber.Ctx) error {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "kriterler kaydedilemedi"})
 		}
 		criteria, _ := h.venueRepo.GetCriteriaByVenueID(c.Context(), venue.ID)
-		venue.Criteria = criteria
+		venue.TrustCriteria = criteria
 	} else {
-		venue.Criteria = []models.HalalCriteria{}
+		venue.TrustCriteria = []models.TrustCriteria{}
 	}
 
 	// Yemek çeşitlerini kaydet (tüm modlarda zorunlu)

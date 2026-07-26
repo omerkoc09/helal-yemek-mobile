@@ -215,7 +215,7 @@ class _EditVenueScreenState extends ConsumerState<EditVenueScreen> {
   // ─── Kriterler ───
 
   Widget _buildCriteriaSection(EditVenueState state) {
-    final criteriaAsync = ref.watch(halalCriteriaProvider);
+    final criteriaAsync = ref.watch(trustCriteriaProvider);
 
     return criteriaAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),

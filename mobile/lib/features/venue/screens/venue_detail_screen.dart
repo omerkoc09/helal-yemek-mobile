@@ -15,7 +15,7 @@ import '../../guide/providers/guide_provider.dart';
 import '../providers/direction_tracking_provider.dart';
 import '../providers/venue_detail_provider.dart';
 import '../widgets/add_review_sheet.dart';
-import '../widgets/halal_criteria_chip.dart';
+import '../widgets/trust_criteria_chip.dart';
 import '../widgets/report_venue_sheet.dart';
 import '../widgets/venue_status_badge.dart';
 import '../widgets/review_card.dart';
@@ -235,7 +235,7 @@ class VenueDetailScreen extends ConsumerWidget {
                       const SizedBox(height: 16),
 
                       // Helal Kriterleri
-                      if (venue.criteria.isNotEmpty) ...[
+                      if (venue.trustCriteria.isNotEmpty) ...[
                         const Text(
                           'Helal Kriterleri',
                           style: TextStyle(
@@ -244,7 +244,7 @@ class VenueDetailScreen extends ConsumerWidget {
                           ),
                         ),
                         const SizedBox(height: 8),
-                        HalalCriteriaChips(criteria: venue.criteria),
+                        TrustCriteriaChips(criteria: venue.trustCriteria),
                         const SizedBox(height: 16),
                       ],
 

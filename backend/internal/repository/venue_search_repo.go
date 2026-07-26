@@ -199,7 +199,7 @@ func (r *VenueRepo) FindAll(ctx context.Context) ([]models.Venue, error) {
 		}
 		v.AverageRating = &avgRating
 		v.ReviewCount = reviewCount
-		v.Criteria = []models.HalalCriteria{}
+		v.TrustCriteria = []models.TrustCriteria{}
 		v.Photos = []models.VenuePhoto{}
 		venues = append(venues, v)
 	}
@@ -435,7 +435,7 @@ func (r *VenueRepo) scanVenueRowsNearbyWithPhotos(ctx context.Context, rows pgx.
 		}
 		badge := models.BadgeFromCount(v.ConfirmationCount)
 		v.Badge = &badge
-		v.Criteria = []models.HalalCriteria{}
+		v.TrustCriteria = []models.TrustCriteria{}
 		v.Photos = []models.VenuePhoto{}
 		venues = append(venues, v)
 	}
@@ -481,7 +481,7 @@ func (r *VenueRepo) scanVenueRowsWithRatingAndPhotos(ctx context.Context, rows p
 		}
 		badge := models.BadgeFromCount(v.ConfirmationCount)
 		v.Badge = &badge
-		v.Criteria = []models.HalalCriteria{}
+		v.TrustCriteria = []models.TrustCriteria{}
 		v.Photos = []models.VenuePhoto{}
 		venues = append(venues, v)
 	}
@@ -535,7 +535,7 @@ func (r *VenueRepo) scanVenueCityRows(ctx context.Context, rows pgx.Rows) ([]mod
 		}
 		badge := models.BadgeFromCount(v.ConfirmationCount)
 		v.Badge = &badge
-		v.Criteria = []models.HalalCriteria{}
+		v.TrustCriteria = []models.TrustCriteria{}
 		v.Photos = []models.VenuePhoto{}
 		venues = append(venues, v)
 	}
@@ -593,7 +593,7 @@ func scanVenueRows(rows pgx.Rows, withDistance bool) ([]models.Venue, error) {
 		if err != nil {
 			return nil, err
 		}
-		v.Criteria = []models.HalalCriteria{}
+		v.TrustCriteria = []models.TrustCriteria{}
 		v.Photos = []models.VenuePhoto{}
 		venues = append(venues, v)
 	}

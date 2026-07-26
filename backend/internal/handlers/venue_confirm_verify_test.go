@@ -99,10 +99,10 @@ func (f *fakeVenueStore) FindPhotoByID(context.Context, string) (*models.VenuePh
 func (f *fakeVenueStore) GetPhotosByVenueID(context.Context, string) ([]models.VenuePhoto, error) {
 	return nil, nil
 }
-func (f *fakeVenueStore) GetAllCriteria(context.Context) ([]models.HalalCriteria, error) {
+func (f *fakeVenueStore) GetAllCriteria(context.Context) ([]models.TrustCriteria, error) {
 	return nil, nil
 }
-func (f *fakeVenueStore) GetCriteriaByVenueID(context.Context, string) ([]models.HalalCriteria, error) {
+func (f *fakeVenueStore) GetCriteriaByVenueID(context.Context, string) ([]models.TrustCriteria, error) {
 	return nil, nil
 }
 func (f *fakeVenueStore) GetAllFoodCategoriesWithItems(context.Context) ([]models.FoodCategory, error) {
