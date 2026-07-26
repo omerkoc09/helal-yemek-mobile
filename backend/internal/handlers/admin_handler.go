@@ -34,22 +34,19 @@ type adminVenueStore interface {
 	FindByUserID(ctx context.Context, userID string) ([]models.Venue, error)
 	UpdateVenue(ctx context.Context, id string, name, city, district *string, lat, lng *float64, notes *string, googlePlaceID *string) error
 	SetCriteria(ctx context.Context, venueID string, criteriaIDs []int) error
-	SetVenueFoodItems(ctx context.Context, venueID string, foodItemIDs []int) error
+	SetVenueCategories(ctx context.Context, venueID string, categoryIDs []int) error
 	SetFoodHalalMode(ctx context.Context, venueID string, mode string) error
 	SetExcludedProducts(ctx context.Context, venueID string, products []string) error
 	ListConfirmingGuides(ctx context.Context, venueID string) ([]repository.ConfirmingGuide, error)
 	CountApprovedVenuesByCity(ctx context.Context) ([]repository.CityVenueCount, error)
 	CountByDay(ctx context.Context, from, to time.Time) ([]repository.DayCount, error)
 	CountToday(ctx context.Context, todayStart, tomorrow time.Time) (int, error)
-	GetAllFoodCategoriesWithItems(ctx context.Context) ([]models.FoodCategory, error)
+	GetAllFoodCategories(ctx context.Context) ([]models.FoodCategory, error)
 	CreateFoodCategory(ctx context.Context, key, name string) (*models.FoodCategory, error)
 	UpdateFoodCategory(ctx context.Context, id int, name string) error
 	DeleteFoodCategory(ctx context.Context, id int) error
 	GetFoodCategoryImageURL(ctx context.Context, id int) (*string, error)
 	SetFoodCategoryImage(ctx context.Context, id int, imageURL string) error
-	CreateCustomFoodItem(ctx context.Context, categoryID int, key, name string) (*models.FoodItem, error)
-	UpdateFoodItem(ctx context.Context, id int, name string) error
-	DeleteFoodItem(ctx context.Context, id int) error
 	GetAllCriteria(ctx context.Context) ([]models.TrustCriteria, error)
 	CreateTrustCriteria(ctx context.Context, key, name string, description *string) (*models.TrustCriteria, error)
 	UpdateTrustCriteria(ctx context.Context, id int, name string, description *string) error

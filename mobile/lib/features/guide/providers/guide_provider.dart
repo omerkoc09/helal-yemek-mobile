@@ -34,9 +34,9 @@ class AddVenueState {
   final List<int> selectedCriteriaIds;
   final String? notes;
 
-  // Yemek kategorileri
-  final Map<int, List<int>> selectedFoodItemIds; // kategori ID → seçili item ID listesi
-  final String foodHalalMode; // 'all', 'except', 'selected'
+  // Mutfak kategorileri
+  final List<int> selectedCategoryIds; // seçili mutfak (kategori) ID listesi
+  final String foodHalalMode; // 'all', 'except'
   final List<String> excludedProducts; // sakıncalı ürünler (except modunda)
 
   // Şehir kısıtı: mekanın şehri rehberin şehriyle uyumlu mu (backend preview'den gelir).
@@ -61,8 +61,8 @@ class AddVenueState {
     this.selectedPhotoUrl,
     this.selectedCriteriaIds = const [],
     this.notes,
-    this.selectedFoodItemIds = const {},
-    this.foodHalalMode = 'selected',
+    this.selectedCategoryIds = const [],
+    this.foodHalalMode = 'all',
     this.excludedProducts = const [],
     this.cityAllowed = true,
     this.guideCity,
@@ -86,7 +86,7 @@ class AddVenueState {
     String? selectedPhotoUrl,
     List<int>? selectedCriteriaIds,
     String? notes,
-    Map<int, List<int>>? selectedFoodItemIds,
+    List<int>? selectedCategoryIds,
     String? foodHalalMode,
     List<String>? excludedProducts,
     bool? cityAllowed,
@@ -112,7 +112,7 @@ class AddVenueState {
       selectedPhotoUrl: selectedPhotoUrl ?? this.selectedPhotoUrl,
       selectedCriteriaIds: selectedCriteriaIds ?? this.selectedCriteriaIds,
       notes: notes ?? this.notes,
-      selectedFoodItemIds: selectedFoodItemIds ?? this.selectedFoodItemIds,
+      selectedCategoryIds: selectedCategoryIds ?? this.selectedCategoryIds,
       foodHalalMode: foodHalalMode ?? this.foodHalalMode,
       excludedProducts: excludedProducts ?? this.excludedProducts,
       cityAllowed: cityAllowed ?? this.cityAllowed,
@@ -133,18 +133,15 @@ class AddVenueState {
       cityAllowed;
   // Step 2 (güven kriterleri + not) — kriter seçimi zorunlu, not opsiyonel
   bool get canProceedStep2 => selectedCriteriaIds.isNotEmpty;
-  // Step 3 (yemek kategorileri) — tüm modlarda yemek seçimi zorunlu
+  // Step 3 (mutfaklar) — her iki modda da mutfak seçimi zorunlu
   bool get canProceedStep3 {
-    final hasFoodItems =
-        selectedFoodItemIds.values.any((items) => items.isNotEmpty);
+    final hasCategories = selectedCategoryIds.isNotEmpty;
     switch (foodHalalMode) {
       case 'all':
-        return hasFoodItems;
+        return hasCategories;
       case 'except':
-        return hasFoodItems &&
+        return hasCategories &&
             excludedProducts.any((p) => p.trim().isNotEmpty);
-      case 'selected':
-        return hasFoodItems;
       default:
         return false;
     }
@@ -316,77 +313,15 @@ class AddVenueNotifier extends Notifier<AddVenueState> {
     state = state.copyWith(excludedProducts: list);
   }
 
-  void toggleFoodItem(int categoryId, int itemId) {
-    final map = Map<int, List<int>>.from(state.selectedFoodItemIds);
-    final items = List<int>.from(map[categoryId] ?? []);
-    if (items.contains(itemId)) {
-      items.remove(itemId);
+  /// Bir mutfağı (kategoriyi) seçer / seçimi kaldırır.
+  void toggleCategory(int categoryId) {
+    final ids = List<int>.from(state.selectedCategoryIds);
+    if (ids.contains(categoryId)) {
+      ids.remove(categoryId);
     } else {
-      items.add(itemId);
+      ids.add(categoryId);
     }
-    map[categoryId] = items;
-    state = state.copyWith(selectedFoodItemIds: map);
-  }
-
-  void selectAllInCategory(int categoryId, List<int> allItemIds) {
-    final map = Map<int, List<int>>.from(state.selectedFoodItemIds);
-    map[categoryId] = List<int>.from(allItemIds);
-    state = state.copyWith(selectedFoodItemIds: map);
-  }
-
-  void deselectAllInCategory(int categoryId) {
-    final map = Map<int, List<int>>.from(state.selectedFoodItemIds);
-    map[categoryId] = [];
-    state = state.copyWith(selectedFoodItemIds: map);
-  }
-
-  /// Kullanıcının eklediği özel çeşidi backend'e kaydeder ve seçili olarak ekler.
-  Future<void> addCustomFoodItem(int categoryId, String label) async {
-    try {
-      final apiClient = ref.read(apiClientProvider);
-      final response = await apiClient.post(
-        ApiEndpoints.foodCategoryItems(categoryId.toString()),
-        data: {'name': label},
-      );
-
-      final data = response.data is Map<String, dynamic>
-          ? response.data as Map<String, dynamic>
-          : (response.data['data'] as Map<String, dynamic>);
-      final itemId = data['id'] as int;
-
-      // Yeni eklenen çeşidi seçili olarak işaretle
-      final map = Map<int, List<int>>.from(state.selectedFoodItemIds);
-      final items = List<int>.from(map[categoryId] ?? []);
-      if (!items.contains(itemId)) {
-        items.add(itemId);
-      }
-      map[categoryId] = items;
-      state = state.copyWith(selectedFoodItemIds: map);
-
-      // Kategori listesini yenilemek için provider'ı invalidate et
-      ref.invalidate(foodCategoriesProvider);
-    } catch (e) {
-      state = state.copyWith(
-        error: 'Yemek çeşidi eklenemedi. Lütfen tekrar deneyin.',
-      );
-    }
-  }
-
-  /// Seçili yemeklerin tüm food_item_id listesini döndürür (tek düz liste).
-  List<int> get allSelectedFoodItemIds {
-    final ids = <int>[];
-    for (final items in state.selectedFoodItemIds.values) {
-      ids.addAll(items);
-    }
-    return ids;
-  }
-
-  // Bir kategorideki tüm çeşitler seçili mi?
-  // (Çiğ Köfte gibi alt çeşidi olmayan kategoriler için kullanılmaz.)
-  bool isCategoryFullySelected(int categoryId, int totalItemCount) {
-    if (totalItemCount == 0) return false;
-    final selected = state.selectedFoodItemIds[categoryId] ?? [];
-    return selected.length >= totalItemCount;
+    state = state.copyWith(selectedCategoryIds: ids);
   }
 
   void nextStep() {
@@ -429,7 +364,7 @@ class AddVenueNotifier extends Notifier<AddVenueState> {
           'excluded_products': state.excludedProducts
               .where((p) => p.trim().isNotEmpty)
               .toList(),
-          'food_item_ids': allSelectedFoodItemIds,
+          'category_ids': state.selectedCategoryIds,
         },
       );
 
@@ -539,7 +474,7 @@ class EditVenueState {
   final String city;
   final String? notes;
   final List<int> selectedCriteriaIds;
-  final List<int> selectedFoodItemIds;
+  final List<int> selectedCategoryIds;
   final String foodHalalMode;
   final List<String> excludedProducts;
 
@@ -553,8 +488,8 @@ class EditVenueState {
     this.city = '',
     this.notes,
     this.selectedCriteriaIds = const [],
-    this.selectedFoodItemIds = const [],
-    this.foodHalalMode = 'selected',
+    this.selectedCategoryIds = const [],
+    this.foodHalalMode = 'all',
     this.excludedProducts = const [],
   });
 
@@ -568,7 +503,7 @@ class EditVenueState {
     String? city,
     String? notes,
     List<int>? selectedCriteriaIds,
-    List<int>? selectedFoodItemIds,
+    List<int>? selectedCategoryIds,
     String? foodHalalMode,
     List<String>? excludedProducts,
   }) {
@@ -582,7 +517,7 @@ class EditVenueState {
       city: city ?? this.city,
       notes: notes ?? this.notes,
       selectedCriteriaIds: selectedCriteriaIds ?? this.selectedCriteriaIds,
-      selectedFoodItemIds: selectedFoodItemIds ?? this.selectedFoodItemIds,
+      selectedCategoryIds: selectedCategoryIds ?? this.selectedCategoryIds,
       foodHalalMode: foodHalalMode ?? this.foodHalalMode,
       excludedProducts: excludedProducts ?? this.excludedProducts,
     );
@@ -613,7 +548,7 @@ class EditVenueNotifier extends Notifier<EditVenueState> {
         city: venue.city,
         notes: venue.notes,
         selectedCriteriaIds: venue.trustCriteria.map((c) => c.id).toList(),
-        selectedFoodItemIds: venue.foodItems.map((f) => f.id).toList(),
+        selectedCategoryIds: venue.categories.map((c) => c.id).toList(),
         foodHalalMode: venue.foodHalalMode,
         excludedProducts: venue.excludedProducts,
       );
@@ -639,14 +574,14 @@ class EditVenueNotifier extends Notifier<EditVenueState> {
     state = state.copyWith(selectedCriteriaIds: ids);
   }
 
-  void toggleFoodItem(int itemId) {
-    final ids = List<int>.from(state.selectedFoodItemIds);
-    if (ids.contains(itemId)) {
-      ids.remove(itemId);
+  void toggleCategory(int categoryId) {
+    final ids = List<int>.from(state.selectedCategoryIds);
+    if (ids.contains(categoryId)) {
+      ids.remove(categoryId);
     } else {
-      ids.add(itemId);
+      ids.add(categoryId);
     }
-    state = state.copyWith(selectedFoodItemIds: ids);
+    state = state.copyWith(selectedCategoryIds: ids);
   }
 
   void setFoodHalalMode(String mode) {
@@ -690,7 +625,7 @@ class EditVenueNotifier extends Notifier<EditVenueState> {
           'city': state.city.trim(),
           'notes': state.notes?.trim(),
           'criteria_ids': state.selectedCriteriaIds,
-          'food_item_ids': state.selectedFoodItemIds,
+          'category_ids': state.selectedCategoryIds,
           'food_halal_mode': state.foodHalalMode,
           'excluded_products': state.excludedProducts
               .where((p) => p.trim().isNotEmpty)

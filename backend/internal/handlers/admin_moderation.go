@@ -47,7 +47,7 @@ func (h *AdminHandler) UpdateVenue(c *fiber.Ctx) error {
 		Notes            *string   `json:"notes"`
 		FoodHalalMode    *string   `json:"food_halal_mode"`
 		CriteriaIDs      *[]int    `json:"criteria_ids"`
-		FoodItemIDs      *[]int    `json:"food_item_ids"`
+		CategoryIDs      *[]int    `json:"category_ids"`
 		ExcludedProducts *[]string `json:"excluded_products"`
 		MapsLink         *string   `json:"maps_link"`
 		Latitude         *float64  `json:"latitude"`
@@ -113,10 +113,10 @@ func (h *AdminHandler) UpdateVenue(c *fiber.Ctx) error {
 		}
 	}
 
-	// Yemek çeşitleri
-	if req.FoodItemIDs != nil {
-		if err := h.venueRepo.SetVenueFoodItems(c.Context(), venueID, *req.FoodItemIDs); err != nil {
-			log.Printf("[ADMIN] UpdateVenue SetVenueFoodItems error for id=%s: %v", venueID, err)
+	// Mutfak kategorileri
+	if req.CategoryIDs != nil {
+		if err := h.venueRepo.SetVenueCategories(c.Context(), venueID, *req.CategoryIDs); err != nil {
+			log.Printf("[ADMIN] UpdateVenue SetVenueCategories error for id=%s: %v", venueID, err)
 			return fiber.ErrInternalServerError
 		}
 	}

@@ -134,8 +134,8 @@ List<Venue> filterAndSortVenues(
 
   if (selectedCuisineIds.isNotEmpty) {
     list = list.where((v) {
-      for (final item in v.foodItems) {
-        if (selectedCuisineIds.contains(item.categoryId)) return true;
+      for (final category in v.categories) {
+        if (selectedCuisineIds.contains(category.id)) return true;
       }
       return false;
     });

@@ -51,7 +51,7 @@ func (h *VenueHandler) Create(c *fiber.Ctx) error {
 		GooglePhotoURL   string   `json:"google_photo_url"`
 		Notes            *string  `json:"notes"`
 		CriteriaIDs      []int    `json:"criteria_ids"`
-		FoodItemIDs      []int    `json:"food_item_ids"`
+		CategoryIDs      []int    `json:"category_ids"`
 		FoodHalalMode    string   `json:"food_halal_mode"`
 		ExcludedProducts []string `json:"excluded_products"`
 	}
@@ -72,11 +72,11 @@ func (h *VenueHandler) Create(c *fiber.Ctx) error {
 
 	// food_halal_mode varsayılan değer
 	if req.FoodHalalMode == "" {
-		req.FoodHalalMode = "selected"
+		req.FoodHalalMode = "all"
 	}
-	if req.FoodHalalMode != "all" && req.FoodHalalMode != "except" && req.FoodHalalMode != "selected" {
+	if req.FoodHalalMode != "all" && req.FoodHalalMode != "except" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "food_halal_mode 'all', 'except' veya 'selected' olmalıdır",
+			"error": "food_halal_mode 'all' veya 'except' olmalıdır",
 		})
 	}
 
@@ -164,15 +164,15 @@ func (h *VenueHandler) Create(c *fiber.Ctx) error {
 		venue.TrustCriteria = []models.TrustCriteria{}
 	}
 
-	// Yemek çeşitlerini kaydet (tüm modlarda zorunlu)
-	if len(req.FoodItemIDs) == 0 {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "en az bir yemek çeşidi seçilmelidir"})
+	// Mutfak kategorilerini kaydet (her iki modda da zorunlu)
+	if len(req.CategoryIDs) == 0 {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "en az bir mutfak kategorisi seçilmelidir"})
 	}
-	if err := h.venueRepo.SetVenueFoodItems(c.Context(), venue.ID, req.FoodItemIDs); err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "yemek çeşitleri kaydedilemedi"})
+	if err := h.venueRepo.SetVenueCategories(c.Context(), venue.ID, req.CategoryIDs); err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "mutfak kategorileri kaydedilemedi"})
 	}
-	foodItems, _ := h.venueRepo.GetFoodItemsByVenueID(c.Context(), venue.ID)
-	venue.FoodItems = foodItems
+	categories, _ := h.venueRepo.GetCategoriesByVenueID(c.Context(), venue.ID)
+	venue.Categories = categories
 
 	// ExcludedProducts sadece except modunda anlamlı
 	if venue.FoodHalalMode != "except" {
@@ -236,7 +236,7 @@ func (h *VenueHandler) Update(c *fiber.Ctx) error {
 		GooglePlaceID    *string   `json:"google_place_id"`
 		Notes            *string   `json:"notes"`
 		CriteriaIDs      *[]int    `json:"criteria_ids"`
-		FoodItemIDs      *[]int    `json:"food_item_ids"`
+		CategoryIDs      *[]int    `json:"category_ids"`
 		FoodHalalMode    *string   `json:"food_halal_mode"`
 		ExcludedProducts *[]string `json:"excluded_products"`
 	}
@@ -293,17 +293,17 @@ func (h *VenueHandler) Update(c *fiber.Ctx) error {
 		}
 	}
 
-	if req.FoodItemIDs != nil {
-		if err := h.venueRepo.SetVenueFoodItems(c.Context(), venueID, *req.FoodItemIDs); err != nil {
+	if req.CategoryIDs != nil {
+		if err := h.venueRepo.SetVenueCategories(c.Context(), venueID, *req.CategoryIDs); err != nil {
 			return fiber.ErrInternalServerError
 		}
 	}
 
 	if req.FoodHalalMode != nil {
 		mode := *req.FoodHalalMode
-		if mode != "all" && mode != "except" && mode != "selected" {
+		if mode != "all" && mode != "except" {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-				"error": "food_halal_mode 'all', 'except' veya 'selected' olmalıdır",
+				"error": "food_halal_mode 'all' veya 'except' olmalıdır",
 			})
 		}
 		if err := h.venueRepo.SetFoodHalalMode(c.Context(), venueID, mode); err != nil {
@@ -326,29 +326,4 @@ func (h *VenueHandler) Update(c *fiber.Ctx) error {
 		return fiber.ErrInternalServerError
 	}
 	return c.JSON(updated)
-}
-
-// CreateCustomFoodItem godoc
-// POST /api/v1/food-categories/:id/items
-func (h *VenueHandler) CreateCustomFoodItem(c *fiber.Ctx) error {
-	categoryID, err := c.ParamsInt("id")
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "geçersiz kategori ID"})
-	}
-
-	var req struct {
-		Name string `json:"name"`
-	}
-	if err := c.BodyParser(&req); err != nil || req.Name == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "name zorunludur"})
-	}
-
-	// key oluştur: küçük harf, boşlukları _ ile değiştir
-	key := strings.ToLower(strings.ReplaceAll(req.Name, " ", "_"))
-
-	item, err := h.venueRepo.CreateCustomFoodItem(c.Context(), categoryID, key, req.Name)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "yemek çeşidi eklenemedi"})
-	}
-	return c.Status(fiber.StatusCreated).JSON(item)
 }

@@ -54,10 +54,9 @@ type venueStore interface {
 	GetAllCriteria(ctx context.Context) ([]models.TrustCriteria, error)
 	GetCriteriaByVenueID(ctx context.Context, venueID string) ([]models.TrustCriteria, error)
 	SetCriteria(ctx context.Context, venueID string, criteriaIDs []int) error
-	GetAllFoodCategoriesWithItems(ctx context.Context) ([]models.FoodCategory, error)
-	GetFoodItemsByVenueID(ctx context.Context, venueID string) ([]models.FoodItem, error)
-	SetVenueFoodItems(ctx context.Context, venueID string, foodItemIDs []int) error
-	CreateCustomFoodItem(ctx context.Context, categoryID int, key, name string) (*models.FoodItem, error)
+	GetAllFoodCategories(ctx context.Context) ([]models.FoodCategory, error)
+	GetCategoriesByVenueID(ctx context.Context, venueID string) ([]models.FoodCategory, error)
+	SetVenueCategories(ctx context.Context, venueID string, categoryIDs []int) error
 	SetFoodHalalMode(ctx context.Context, venueID string, mode string) error
 	SetExcludedProducts(ctx context.Context, venueID string, products []string) error
 

@@ -19,19 +19,10 @@ type TrustCriteria struct {
 }
 
 type FoodCategory struct {
-	ID       int        `json:"id"`
-	Key      string     `json:"key"`
-	Name     string     `json:"name"`
-	ImageURL *string    `json:"image_url,omitempty"`
-	Items    []FoodItem `json:"items"`
-}
-
-type FoodItem struct {
-	ID         int    `json:"id"`
-	CategoryID int    `json:"category_id"`
-	Key        string `json:"key"`
-	Name       string `json:"name"`
-	IsCustom   bool   `json:"is_custom"`
+	ID       int     `json:"id"`
+	Key      string  `json:"key"`
+	Name     string  `json:"name"`
+	ImageURL *string `json:"image_url,omitempty"`
 }
 
 type VenuePhoto struct {
@@ -67,7 +58,7 @@ type Venue struct {
 	ExcludedProducts []string        `json:"excluded_products"`
 	TrustCriteria    []TrustCriteria `json:"trust_criteria"`
 	Photos           []VenuePhoto    `json:"photos"`
-	FoodItems        []FoodItem      `json:"food_items"`
+	Categories       []FoodCategory  `json:"categories"`
 	AverageRating    *float64        `json:"average_rating,omitempty"`
 	ReviewCount      int             `json:"review_count"`
 	ConfirmationCount int             `json:"confirmation_count"`

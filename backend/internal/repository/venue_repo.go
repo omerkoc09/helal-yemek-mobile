@@ -105,12 +105,12 @@ func (r *VenueRepo) FindByID(ctx context.Context, id string) (*models.Venue, err
 	}
 	v.Photos = photos
 
-	// Yemek çeşitlerini yükle
-	foodItems, err := r.GetFoodItemsByVenueID(ctx, id)
+	// Mutfak kategorilerini yükle
+	categories, err := r.GetCategoriesByVenueID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
-	v.FoodItems = foodItems
+	v.Categories = categories
 
 	badge := models.BadgeFromCount(v.ConfirmationCount)
 	v.Badge = &badge

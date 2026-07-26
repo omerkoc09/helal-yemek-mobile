@@ -11,7 +11,7 @@ import (
 
 // GET /admin/food-categories
 func (h *AdminHandler) ListFoodCategories(c *fiber.Ctx) error {
-	categories, err := h.venueRepo.GetAllFoodCategoriesWithItems(c.Context())
+	categories, err := h.venueRepo.GetAllFoodCategories(c.Context())
 	if err != nil {
 		return fiber.ErrInternalServerError
 	}
@@ -216,76 +216,5 @@ func (h *AdminHandler) DeleteTrustCriteria(c *fiber.Ctx) error {
 	}
 
 	h.writeAuditLog(c, "delete_trust_criteria", "trust_criteria", strconv.Itoa(id), nil)
-	return c.JSON(fiber.Map{"status": "deleted"})
-}
-
-// POST /admin/food-categories/:id/items
-func (h *AdminHandler) CreateFoodItem(c *fiber.Ctx) error {
-	categoryID, err := c.ParamsInt("id")
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "geçersiz kategori ID"})
-	}
-
-	var req struct {
-		Name string `json:"name"`
-	}
-	if err := c.BodyParser(&req); err != nil || strings.TrimSpace(req.Name) == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "name zorunludur"})
-	}
-	req.Name = strings.TrimSpace(req.Name)
-
-	item, err := h.venueRepo.CreateCustomFoodItem(c.Context(), categoryID, slugifyKey(req.Name), req.Name)
-	if err != nil {
-		return fiber.ErrInternalServerError
-	}
-
-	h.writeAuditLog(c, "create_food_item", "food_item", strconv.Itoa(item.ID), nil)
-	return c.Status(fiber.StatusCreated).JSON(item)
-}
-
-// PUT /admin/food-items/:id
-func (h *AdminHandler) UpdateFoodItem(c *fiber.Ctx) error {
-	id, err := c.ParamsInt("id")
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "geçersiz yemek çeşidi ID"})
-	}
-
-	var req struct {
-		Name string `json:"name"`
-	}
-	if err := c.BodyParser(&req); err != nil {
-		return fiber.ErrBadRequest
-	}
-	req.Name = strings.TrimSpace(req.Name)
-	if req.Name == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "name zorunludur"})
-	}
-
-	if err := h.venueRepo.UpdateFoodItem(c.Context(), id, req.Name); err != nil {
-		if errors.Is(err, repository.ErrNotFound) {
-			return fiber.ErrNotFound
-		}
-		return fiber.ErrInternalServerError
-	}
-
-	h.writeAuditLog(c, "update_food_item", "food_item", strconv.Itoa(id), nil)
-	return c.JSON(fiber.Map{"status": "updated"})
-}
-
-// DELETE /admin/food-items/:id
-func (h *AdminHandler) DeleteFoodItem(c *fiber.Ctx) error {
-	id, err := c.ParamsInt("id")
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "geçersiz yemek çeşidi ID"})
-	}
-
-	if err := h.venueRepo.DeleteFoodItem(c.Context(), id); err != nil {
-		if errors.Is(err, repository.ErrNotFound) {
-			return fiber.ErrNotFound
-		}
-		return fiber.ErrInternalServerError
-	}
-
-	h.writeAuditLog(c, "delete_food_item", "food_item", strconv.Itoa(id), nil)
 	return c.JSON(fiber.Map{"status": "deleted"})
 }

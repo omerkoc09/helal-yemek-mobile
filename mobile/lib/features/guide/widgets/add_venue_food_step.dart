@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../providers/guide_provider.dart';
-import 'food_category_tile.dart';
 
 class AddVenueFoodStep extends ConsumerWidget {
   const AddVenueFoodStep({super.key});
@@ -20,7 +19,7 @@ class AddVenueFoodStep extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Caiz Yemekler',
+            'Mutfaklar',
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
@@ -28,18 +27,18 @@ class AddVenueFoodStep extends ConsumerWidget {
           ),
           const SizedBox(height: 8),
           const Text(
-            'Bu mekanda caiz olan yemekleri seçin.',
+            'Bu mekanın sunduğu mutfakları seçin.',
             style: TextStyle(color: AppTheme.textSecondary),
           ),
           const SizedBox(height: 16),
 
-          // 3 modlu radio seçimi
+          // 2 modlu radio seçimi
           _buildModeOption(
             context,
             value: 'all',
             groupValue: state.foodHalalMode,
-            title: 'Tüm Yemekler Caiz',
-            subtitle: 'Mekandaki tüm yemekler caizdir',
+            title: 'Tüm Mutfaklar Tavsiye Edilir',
+            subtitle: 'Sunduğu tüm mutfaklar tavsiye edilir',
             icon: Icons.restaurant_menu,
             onChanged: (v) => notifier.setFoodHalalMode(v!),
           ),
@@ -48,19 +47,9 @@ class AddVenueFoodStep extends ConsumerWidget {
             context,
             value: 'except',
             groupValue: state.foodHalalMode,
-            title: 'Şunlar Hariç Caiz',
-            subtitle: 'Bazı malzemeler hariç tüm yemekler caiz',
+            title: 'Şunlar Hariç Tavsiye Edilir',
+            subtitle: 'Bazı ürünler hariç sunduğu mutfaklar tavsiye edilir',
             icon: Icons.remove_circle_outline,
-            onChanged: (v) => notifier.setFoodHalalMode(v!),
-          ),
-          const SizedBox(height: 8),
-          _buildModeOption(
-            context,
-            value: 'selected',
-            groupValue: state.foodHalalMode,
-            title: 'Belirli Yemekler Caiz',
-            subtitle: 'Kategorilere göre seçim yapın',
-            icon: Icons.checklist,
             onChanged: (v) => notifier.setFoodHalalMode(v!),
           ),
 
@@ -71,7 +60,7 @@ class AddVenueFoodStep extends ConsumerWidget {
             const Divider(),
             const SizedBox(height: 8),
             const Text(
-              'Caiz olmayan malzemeler',
+              'Tavsiye edilmeyen ürünler',
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
@@ -84,7 +73,7 @@ class AddVenueFoodStep extends ConsumerWidget {
                 child: _ExcludedProductField(
                   key: ValueKey('excluded_${entry.key}'),
                   initialValue: entry.value,
-                  hintText: entry.key == 0 ? 'örn. kaşar' : 'Malzeme adı',
+                  hintText: entry.key == 0 ? 'örn. kaşar' : 'Ürün adı',
                   onChanged: (v) =>
                       notifier.updateExcludedProduct(entry.key, v),
                   onRemove: state.excludedProducts.length > 1
@@ -98,7 +87,7 @@ class AddVenueFoodStep extends ConsumerWidget {
               child: TextButton.icon(
                 onPressed: () => notifier.addExcludedProduct(''),
                 icon: const Icon(Icons.add, size: 18),
-                label: const Text('Malzeme ekle'),
+                label: const Text('Ürün ekle'),
                 style: TextButton.styleFrom(
                   foregroundColor: AppTheme.primary,
                 ),
@@ -107,48 +96,39 @@ class AddVenueFoodStep extends ConsumerWidget {
             const SizedBox(height: 8),
           ],
 
-          // Kategori seçimi: tüm modlarda gösterilir
-          ...[
-            const Divider(),
-            const SizedBox(height: 8),
-            Text(
-              state.foodHalalMode == 'selected'
-                  ? 'Kategorilere göre seçin:'
-                  : 'Bu mekanda sunulan yemekleri seçin:',
-              style: const TextStyle(
-                color: AppTheme.textSecondary,
-                fontSize: 13,
-              ),
+          // Mutfak seçimi: her iki modda da gösterilir
+          const Divider(),
+          const SizedBox(height: 8),
+          const Text(
+            'Sunulan mutfakları seçin:',
+            style: TextStyle(
+              color: AppTheme.textSecondary,
+              fontSize: 13,
             ),
-            const SizedBox(height: 8),
-            categoriesAsync.when(
-              loading: () =>
-                  const Center(child: CircularProgressIndicator()),
-              error: (_, _) =>
-                  const Text('Yemek kategorileri yüklenemedi.'),
-              data: (categories) {
-                return Column(
-                  children: categories.map((category) {
-                    return FoodCategoryTile(
-                      category: category,
-                      selectedItemIds:
-                          state.selectedFoodItemIds[category.id] ?? [],
-                      onToggleItem: (itemId) =>
-                          notifier.toggleFoodItem(category.id, itemId),
-                      onSelectAll: () => notifier.selectAllInCategory(
-                        category.id,
-                        category.items.map((i) => i.id).toList(),
-                      ),
-                      onDeselectAll: () =>
-                          notifier.deselectAllInCategory(category.id),
-                      onAddCustom: (label) =>
-                          notifier.addCustomFoodItem(category.id, label),
-                    );
-                  }).toList(),
-                );
-              },
-            ),
-          ],
+          ),
+          const SizedBox(height: 8),
+          categoriesAsync.when(
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (_, _) => const Text('Mutfaklar yüklenemedi.'),
+            data: (categories) {
+              return Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: categories.map((category) {
+                  final isSelected =
+                      state.selectedCategoryIds.contains(category.id);
+                  return FilterChip(
+                    label: Text(category.name),
+                    selected: isSelected,
+                    onSelected: (_) => notifier.toggleCategory(category.id),
+                    selectedColor: AppTheme.primary.withValues(alpha: 0.2),
+                    checkmarkColor: AppTheme.primary,
+                    avatar: isSelected ? null : const Icon(Icons.add, size: 18),
+                  );
+                }).toList(),
+              );
+            },
+          ),
         ],
       ),
     );

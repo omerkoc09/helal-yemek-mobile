@@ -60,14 +60,12 @@ const editStatusOptions = [
 ]
 
 const halalModeOptions = [
-  { title: 'Tüm yemekler caiz', value: 'all' },
-  { title: 'Sadece seçili çeşitler caiz', value: 'selected' },
+  { title: 'Tüm mutfaklar tavsiye edilir', value: 'all' },
   { title: 'Belirli ürünler hariç caiz', value: 'except' },
 ]
 
 interface CriteriaOption { id: number; name: string }
-interface FoodItemOption { id: number; name: string }
-interface FoodCategory { id: number; name: string; items: FoodItemOption[] }
+interface FoodCategory { id: number; name: string }
 
 // Konum önizleme akışı (mobildeki link-parse mantığının web karşılığı)
 interface LocationPreview {
@@ -85,7 +83,6 @@ const previewLoading = ref(false)
 
 const criteriaOptions = ref<CriteriaOption[]>([])
 const foodCategories = ref<FoodCategory[]>([])
-const activeFoodCategoryId = ref<number | null>(null)
 
 async function loadLookups() {
   if (!criteriaOptions.value.length) {
@@ -100,28 +97,16 @@ async function loadLookups() {
   }
 }
 
-// Seçili kategorinin çeşitleri (dosya-yolu mantığı: kategori → çeşitler)
-const activeFoodItems = computed(() =>
-  foodCategories.value.find(c => c.id === activeFoodCategoryId.value)?.items ?? [],
-)
-
-function isFoodSelected(id: number): boolean {
-  return (form.value.food_item_ids ?? []).includes(id)
+function isCategorySelected(id: number): boolean {
+  return (form.value.category_ids ?? []).includes(id)
 }
 
-function toggleFoodItem(id: number) {
-  const ids: number[] = form.value.food_item_ids ?? []
+function toggleCategory(id: number) {
+  const ids: number[] = form.value.category_ids ?? []
 
-  form.value.food_item_ids = ids.includes(id)
+  form.value.category_ids = ids.includes(id)
     ? ids.filter(x => x !== id)
     : [...ids, id]
-}
-
-// Bir kategoride kaç çeşit seçili (kategori listesinde rozet göstermek için)
-function selectedCountIn(cat: FoodCategory): number {
-  const ids: number[] = form.value.food_item_ids ?? []
-
-  return (cat.items ?? []).filter(i => ids.includes(i.id)).length
 }
 
 function applyStatusFilter() {
@@ -172,7 +157,6 @@ async function onDelete(row: any) {
 async function openCreate() {
   await loadLookups()
   isCreate.value = true
-  activeFoodCategoryId.value = null
   locationPreview.value = null
   form.value = {
     name: '',
@@ -182,7 +166,7 @@ async function openCreate() {
     status: 'pending',
     food_halal_mode: 'all',
     criteria_ids: [],
-    food_item_ids: [],
+    category_ids: [],
     excluded_products_text: '',
     maps_link: '',
   }
@@ -192,10 +176,9 @@ async function openCreate() {
 async function openEdit(row: any) {
   isCreate.value = false
   loadLookups()
-  activeFoodCategoryId.value = null
   locationPreview.value = null
 
-  // Liste sorgusu (FindAll) criteria/food_items/food_halal_mode getirmiyor;
+  // Liste sorgusu (FindAll) criteria/categories/food_halal_mode getirmiyor;
   // tam veriyi tekil detay endpoint'inden çekip işaretli gösteriyoruz.
   const [, detail] = await ApiService.get<any>(`venues/${row.id}`)
   const venue = detail ?? row
@@ -203,7 +186,7 @@ async function openEdit(row: any) {
   form.value = {
     ...venue,
     criteria_ids: (venue.criteria ?? []).map((c: any) => c.id),
-    food_item_ids: (venue.food_items ?? []).map((f: any) => f.id),
+    category_ids: (venue.categories ?? []).map((c: any) => c.id),
     excluded_products_text: (venue.excluded_products ?? []).join(', '),
     maps_link: '',
   }
@@ -304,7 +287,7 @@ async function onSubmit() {
     status: form.value.status,
     food_halal_mode: form.value.food_halal_mode,
     criteria_ids: form.value.criteria_ids ?? [],
-    food_item_ids: form.value.food_item_ids ?? [],
+    category_ids: form.value.category_ids ?? [],
     excluded_products: parseExcludedProducts(),
   }
 
@@ -750,79 +733,24 @@ async function onSubmit() {
           />
         </VCol>
         <VCol cols="12">
-          <label class="text-body-2 text-medium-emphasis d-block mb-1">Yemek Çeşitleri</label>
+          <label class="text-body-2 text-medium-emphasis d-block mb-1">Mutfak Kategorileri</label>
           <VCard
             variant="outlined"
-            class="mb-3"
+            class="mb-3 pa-3"
           >
-            <VRow
-              no-gutters
-              style="block-size: 220px;"
-            >
-              <!-- Sol: kategoriler (dosya yolu mantığı 1. kademe) -->
-              <VCol
-                cols="5"
-                class="border-e"
-                style="overflow-y: auto; block-size: 220px;"
+            <div class="d-flex flex-wrap gap-2">
+              <VChip
+                v-for="cat in foodCategories"
+                :key="cat.id"
+                :color="isCategorySelected(cat.id) ? 'primary' : undefined"
+                :variant="isCategorySelected(cat.id) ? 'flat' : 'outlined'"
+                filter
+                :model-value="isCategorySelected(cat.id)"
+                @click="toggleCategory(cat.id)"
               >
-                <VList
-                  density="compact"
-                  nav
-                >
-                  <VListItem
-                    v-for="cat in foodCategories"
-                    :key="cat.id"
-                    :active="activeFoodCategoryId === cat.id"
-                    :title="cat.name"
-                    @click="activeFoodCategoryId = cat.id"
-                  >
-                    <template #append>
-                      <VChip
-                        v-if="selectedCountIn(cat) > 0"
-                        size="x-small"
-                        color="primary"
-                      >
-                        {{ selectedCountIn(cat) }}
-                      </VChip>
-                      <VIcon
-                        icon="tabler-chevron-right"
-                        size="16"
-                      />
-                    </template>
-                  </VListItem>
-                </VList>
-              </VCol>
-              <!-- Sağ: seçili kategorinin çeşitleri (2. kademe) -->
-              <VCol
-                cols="7"
-                style="overflow-y: auto; block-size: 220px;"
-              >
-                <div
-                  v-if="!activeFoodCategoryId"
-                  class="d-flex align-center justify-center h-100 pa-4 text-disabled text-caption text-center"
-                >
-                  Çeşitleri görmek için bir kategori seçin
-                </div>
-                <VList
-                  v-else
-                  density="compact"
-                >
-                  <VListItem
-                    v-for="food in activeFoodItems"
-                    :key="food.id"
-                    @click="toggleFoodItem(food.id)"
-                  >
-                    <template #prepend>
-                      <VCheckboxBtn
-                        :model-value="isFoodSelected(food.id)"
-                        @click.stop="toggleFoodItem(food.id)"
-                      />
-                    </template>
-                    <VListItemTitle>{{ food.name }}</VListItemTitle>
-                  </VListItem>
-                </VList>
-              </VCol>
-            </VRow>
+                {{ cat.name }}
+              </VChip>
+            </div>
           </VCard>
         </VCol>
       </VRow>

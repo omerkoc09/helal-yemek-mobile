@@ -183,7 +183,7 @@ func (h *VenueHandler) ListCities(c *fiber.Ctx) error {
 // ListFoodCategories godoc
 // GET /api/v1/food-categories
 func (h *VenueHandler) ListFoodCategories(c *fiber.Ctx) error {
-	categories, err := h.venueRepo.GetAllFoodCategoriesWithItems(c.Context())
+	categories, err := h.venueRepo.GetAllFoodCategories(c.Context())
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "yemek kategorileri listelenemedi"})
 	}

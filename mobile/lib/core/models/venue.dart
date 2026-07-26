@@ -21,11 +21,11 @@ abstract class Venue with _$Venue {
     @JsonKey(name: 'approved_by') String? approvedBy,
     @JsonKey(name: 'verified_at') DateTime? verifiedAt,
     @JsonKey(name: 'verification_due_at') DateTime? verificationDueAt,
-    @JsonKey(name: 'food_halal_mode') @Default('selected') String foodHalalMode,
+    @JsonKey(name: 'food_halal_mode') @Default('all') String foodHalalMode,
     @JsonKey(name: 'excluded_products') @Default([]) List<String> excludedProducts,
     @JsonKey(name: 'trust_criteria') @Default([]) List<TrustCriteria> trustCriteria,
     @Default([]) List<VenuePhoto> photos,
-    @JsonKey(name: 'food_items') @Default([]) List<FoodItem> foodItems,
+    @JsonKey(name: 'categories') @Default([]) List<FoodCategory> categories,
     @JsonKey(name: 'average_rating') double? avgRating,
     @JsonKey(name: 'review_count') @Default(0) int reviewCount,
     @JsonKey(name: 'confirmation_count') @Default(0) int confirmationCount,
@@ -81,25 +81,10 @@ abstract class FoodCategory with _$FoodCategory {
     required String key,
     required String name,
     @JsonKey(name: 'image_url') String? imageUrl,
-    @Default([]) List<FoodItem> items,
   }) = _FoodCategory;
 
   factory FoodCategory.fromJson(Map<String, dynamic> json) =>
       _$FoodCategoryFromJson(json);
-}
-
-@freezed
-abstract class FoodItem with _$FoodItem {
-  const factory FoodItem({
-    required int id,
-    @JsonKey(name: 'category_id') required int categoryId,
-    required String key,
-    required String name,
-    @JsonKey(name: 'is_custom') @Default(false) bool isCustom,
-  }) = _FoodItem;
-
-  factory FoodItem.fromJson(Map<String, dynamic> json) =>
-      _$FoodItemFromJson(json);
 }
 
 @freezed

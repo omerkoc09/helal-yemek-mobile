@@ -5,20 +5,11 @@ import type { ITableColumn } from '@/model/table'
 
 definePage({ meta: { role: ['admin'] } })
 
-interface FoodItem {
-  id: number
-  category_id: number
-  key: string
-  name: string
-  is_custom: boolean
-}
-
 interface FoodCategory {
   id: number
   key: string
   name: string
   image_url?: string | null
-  items: FoodItem[]
 }
 
 const tableRef = ref()
@@ -28,7 +19,6 @@ const isCreate = ref(false)
 const columns: ITableColumn[] = [
   { key: 'image_url', name: 'GÖRSEL' },
   { key: 'name', name: 'AD', sortable: true },
-  { key: 'items', name: 'ALT ÇEŞİTLER' },
 ]
 
 function openCreate() {
@@ -37,9 +27,9 @@ function openCreate() {
   tableRef.value?.openCreateModal?.()
 }
 
-async function openEdit(row: FoodCategory) {
+function openEdit(row: FoodCategory) {
   isCreate.value = false
-  form.value = { ...row, items: [...(row.items ?? [])] }
+  form.value = { ...row }
   tableRef.value?.openEditModal?.()
 }
 
@@ -62,7 +52,7 @@ async function onSubmit() {
 }
 
 async function onDelete(row: FoodCategory) {
-  const c = await WarningPopup('Kategori ve tüm alt çeşitleri silinsin mi?', 'Evet', 'Hayır')
+  const c = await WarningPopup('Kategori silinsin mi?', 'Evet', 'Hayır')
   if (!c.isConfirmed)
     return
   const [error] = await ApiService.delete(`admin/food-categories/${row.id}`)
@@ -98,71 +88,6 @@ async function uploadImage() {
 
   form.value.image_url = data?.image_url ?? form.value.image_url
   imageFile.value = null
-  SuccessToast()
-  tableRef.value?.refresh?.()
-}
-
-// ── Alt çeşitler (food_items) ────────────────────────────────────────────────
-
-const newItemName = ref('')
-const itemSaving = ref(false)
-const editingItemId = ref<number | null>(null)
-const editingItemName = ref('')
-
-async function addItem() {
-  const name = (newItemName.value ?? '').trim()
-  if (!name || !form.value.id)
-    return
-
-  itemSaving.value = true
-
-  const [error, data] = await ApiService.post<FoodItem>(
-    `admin/food-categories/${form.value.id}/items`,
-    { name },
-  )
-
-  itemSaving.value = false
-  if (error)
-    return ErrorPopup(error)
-
-  if (data)
-    form.value.items = [...(form.value.items ?? []), data]
-  newItemName.value = ''
-  tableRef.value?.refresh?.()
-}
-
-function startEditItem(item: FoodItem) {
-  editingItemId.value = item.id
-  editingItemName.value = item.name
-}
-
-function cancelEditItem() {
-  editingItemId.value = null
-}
-
-async function saveEditItem(item: FoodItem) {
-  const [error] = await ApiService.put(`admin/food-items/${item.id}`, {
-    name: editingItemName.value,
-  })
-
-  if (error)
-    return ErrorPopup(error)
-
-  item.name = editingItemName.value
-  editingItemId.value = null
-  SuccessToast()
-  tableRef.value?.refresh?.()
-}
-
-async function deleteItem(item: FoodItem) {
-  const c = await WarningPopup('Alt çeşit silinsin mi?', 'Evet', 'Hayır')
-  if (!c.isConfirmed)
-    return
-  const [error] = await ApiService.delete(`admin/food-items/${item.id}`)
-  if (error)
-    return ErrorPopup(error)
-
-  form.value.items = (form.value.items ?? []).filter((i: FoodItem) => i.id !== item.id)
   SuccessToast()
   tableRef.value?.refresh?.()
 }
@@ -211,15 +136,6 @@ async function deleteItem(item: FoodItem) {
           size="20"
         />
       </VAvatar>
-    </template>
-    <template #items="{ row }">
-      <VChip
-        size="small"
-        color="primary"
-        variant="tonal"
-      >
-        {{ (row.items ?? []).length }} çeşit
-      </VChip>
     </template>
     <template #actions="{ row }">
       <VBtn
@@ -291,104 +207,6 @@ async function deleteItem(item: FoodItem) {
             @click="uploadImage"
           >
             Yükle
-          </VBtn>
-        </div>
-
-        <VDivider class="mb-4" />
-
-        <label class="text-body-2 text-medium-emphasis d-block mb-2">Alt Çeşitler</label>
-        <VList
-          density="compact"
-          class="mb-3"
-        >
-          <template
-            v-for="item in form.items"
-            :key="item.id"
-          >
-            <div
-              v-if="editingItemId === item.id"
-              class="d-flex align-center gap-2 w-100 py-1 px-4"
-            >
-              <VTextField
-                v-model="editingItemName"
-                label="Ad"
-                density="compact"
-                hide-details
-              />
-              <VBtn
-                icon
-                size="small"
-                variant="text"
-                color="success"
-                @click="saveEditItem(item)"
-              >
-                <VIcon
-                  icon="tabler-check"
-                  size="20"
-                />
-              </VBtn>
-              <VBtn
-                icon
-                size="small"
-                variant="text"
-                @click="cancelEditItem"
-              >
-                <VIcon
-                  icon="tabler-x"
-                  size="20"
-                />
-              </VBtn>
-            </div>
-            <VListItem v-else>
-              <VListItemTitle>{{ item.name }}</VListItemTitle>
-              <template #append>
-                <VBtn
-                  icon
-                  size="small"
-                  variant="text"
-                  @click="startEditItem(item)"
-                >
-                  <VIcon
-                    icon="tabler-edit"
-                    size="18"
-                  />
-                </VBtn>
-                <VBtn
-                  icon
-                  size="small"
-                  variant="text"
-                  @click="deleteItem(item)"
-                >
-                  <VIcon
-                    icon="tabler-trash"
-                    size="18"
-                    color="error"
-                  />
-                </VBtn>
-              </template>
-            </VListItem>
-          </template>
-          <VListItem v-if="!form.items?.length">
-            <span class="text-caption text-disabled">Henüz alt çeşit eklenmemiş</span>
-          </VListItem>
-        </VList>
-
-        <div class="d-flex gap-2 mb-3">
-          <VTextField
-            v-model="newItemName"
-            label="Yeni alt çeşit (ör. Et Döner)"
-            density="compact"
-            hide-details
-            @keydown.enter.prevent="addItem"
-          />
-          <VBtn
-            :loading="itemSaving"
-            :disabled="!(newItemName ?? '').trim()"
-            color="primary"
-            variant="tonal"
-            @click="addItem"
-          >
-            Ekle
           </VBtn>
         </div>
 
