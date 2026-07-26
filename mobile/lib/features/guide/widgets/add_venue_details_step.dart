@@ -169,8 +169,14 @@ class _AddVenueDetailsStepState extends ConsumerState<AddVenueDetailsStep> {
     required ValueChanged<String?> onChanged,
     bool enabled = true,
   }) {
+    // value listede yoksa null'a düşür: aksi halde DropdownButton
+    // "exactly one item" assertion'ıyla çöker. Bu, ör. Google Maps'ten gelen
+    // "Aydın Merkez" gibi statik ilçe listesinde bulunmayan bir değer
+    // state'e yazıldığında olur — crash yerine dropdown boş görünür.
+    final safeValue = (value != null && items.contains(value)) ? value : null;
+
     return DropdownButtonFormField<String>(
-      value: value,
+      value: safeValue,
       decoration: InputDecoration(
         labelText: label,
         prefixIcon: Icon(icon),
