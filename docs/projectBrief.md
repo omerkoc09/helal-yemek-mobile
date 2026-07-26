@@ -49,15 +49,19 @@ Proje, **Flutter** (mobil) ve **Go** (backend) teknolojileri üzerine inşa edil
 - Mekan statüleri *rejected, *pending, *approved
 - Mekan eklendiğinde pending durumunda admin onayını bekler.
 
-### 4.4 Yemek Kategorileri
-14 önceden tanımlı kategori: Döner, Tost, Börek, Pide & Lahmacun, Pizza, Köfte ve daha fazlası. Her kategoride alt yemek kalemleri mevcuttur. Rehberler özel yemek kalemleri de ekleyebilir.
+### 4.4 Mutfak Kategorileri
+14 önceden tanımlı mutfak/kategori: Döner, Tost, Börek, Pide & Lahmacun, Pizza, Köfte ve daha fazlası. Mekan sunduğu mutfakları (kategorileri) doğrudan seçer; tekil yemek kalemi ayrıntısı tutulmaz. Güven modu iki seçenekli: `all` (sunduğu tüm mutfaklar tavsiye edilir) veya `except` (rehberin elle belirttiği ürünler hariç). Mutfaklar her iki modda da gösterilir.
 
-### 4.5 Helal Kriterleri
-- Kişisel Deneyim
-- Helal Sertifikasına sahip
-- Mekan Sahibini Tanıma
-- ...
-- Mekanlar birden fazla kriter ile ilişkilendirilebilir
+### 4.5 Güven Kriterleri
+Guide'ın işaretlediği, adminin süzdüğü kriterler (son kullanıcıya gösterilmez, yalnızca güven rozetine dolaylı katkı):
+- Helal Sertifikası
+- İşletme Sahibinden Teyit
+- Boykot Ürünü Yok
+- Alkolsüz İşletme
+- Temiz ve Bakımlı
+- Yerinde Görüldü
+- Köklü İşletme
+- Mekanlar birden fazla kriter ile ilişkilendirilebilir; kriterler admin panelinden yönetilir (CRUD).
 
 ### 4.6 Değerlendirme Sistemi
 - 1-5 yıldız puanlama ve yorum
@@ -157,15 +161,15 @@ Veritabanı 12 ana tablodan oluşmaktadır:
 - **venues** — Mekan bilgileri (PostGIS GEOGRAPHY konum verisi)
 - **reviews** — Kullanıcı değerlendirmeleri
 - **favorites** — Favori mekanlar
-- **halal_criteria** — Helal kriterleri (referans tablo)
+- **trust_criteria** — Güven kriterleri (referans tablo; admin CRUD ile yönetilir)
 - **venue_criteria** — Mekan-kriter ilişkisi (M:N)
 - **venue_photos** — Mekan fotoğrafları
-- **food_categories** — Yemek kategorileri
-- **food_items** — Yemek kalemleri
+- **food_categories** — Mutfak/yemek kategorileri
+- **venue_categories** — Mekan-mutfak ilişkisi (M:N; mekan doğrudan kategori seçer)
 - **guide_applications** — Rehber başvuruları
 - **correction_suggestions** — Düzeltme önerileri
 - **audit_logs** — Denetim günlüğü
-- **venue_confirmations** — Çift doğrulama takibi
+- **venue_confirmations** — Dönemsel doğrulama takibi (güven rozeti kaynağı)
 
 Konum tabanlı sorgulamalar için **PostGIS** kullanılmakta, `ST_DWithin()` ve `ST_Distance()` fonksiyonları ile yarıçap bazlı mekan araması yapılmaktadır.
 

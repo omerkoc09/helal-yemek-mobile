@@ -116,32 +116,46 @@ CREATE TABLE venue_confirmations (
 
 ### İlişki Tabloları
 
-#### halal_criteria
+#### trust_criteria
+Güven kriterleri referans tablosu (eski adı `halal_criteria`; migration 041 ile yeniden adlandırıldı). `id`'ye migration 045 ile sequence bağlıdır → admin panelinden CRUD ile yönetilir.
 ```sql
-CREATE TABLE halal_criteria (
-    id       SMALLINT PRIMARY KEY,
-    key      VARCHAR(50) UNIQUE NOT NULL,
-    label_tr VARCHAR(100) NOT NULL,
-    label_en VARCHAR(100) NOT NULL,
-    description_tr TEXT,
-    description_en TEXT
+CREATE TABLE trust_criteria (
+    id          SMALLINT PRIMARY KEY,   -- 045: DEFAULT nextval(trust_criteria_id_seq)
+    key         VARCHAR(50) UNIQUE NOT NULL,
+    name        VARCHAR(100) NOT NULL,  -- 038: label_tr→name, label_en drop
+    description TEXT                     -- 038: description_tr→description
 );
 
--- Sabit veriler (seed)
-INSERT INTO halal_criteria VALUES
-(1, 'halal_certified',     'Helal Sertifikası', 'Halal Certified', 'İşletme helal sertifikalı ürünler kullanıyor.', 'The venue uses halal certified products.'),
-(2, 'known_owner',        'İşletme Sahibinden Teyit', 'Known Venue Owner', 'Yemeklerin caizliği işletme sahibinden teyit edildi.', 'The food is certified by the owner of the venue.'),
-(3, 'no_boycott_products', 'Boykot Ürünü Yok', 'No Boycott Products/Used', 'İşletmede boykot listelerinde yer alan markaların ürünleri satılmamakta ve kullanılmamaktadır.', 'The establishment does not sell or use products from global brands on boycott lists.');
+-- Seed (migration 044 ile 4-7 eklendi):
+-- 1 trust_certified (043: halal_certified→trust_certified) Helal Sertifikası
+-- 2 known_owner            İşletme Sahibinden Teyit
+-- 3 no_boycott_products    Boykot Ürünü Yok
+-- 4 no_alcohol             Alkolsüz İşletme
+-- 5 clean_maintained       Temiz ve Bakımlı
+-- 6 visited_by_guide       Yerinde Görüldü
+-- 7 long_standing          Köklü İşletme
 ```
+Son kullanıcı kriterleri görmez; yalnızca guide seçer, admin süzer, güven rozetine dolaylı katkı sağlar.
 
 #### venue_criteria
 ```sql
 CREATE TABLE venue_criteria (
     venue_id    UUID REFERENCES venues(id) ON DELETE CASCADE,
-    criteria_id SMALLINT REFERENCES halal_criteria(id),
+    criteria_id SMALLINT REFERENCES trust_criteria(id),
     PRIMARY KEY (venue_id, criteria_id)
 );
 ```
+
+#### venue_categories
+Mekan-mutfak ilişkisi (migration 046; eski `food_items`/`venue_food_items` yerine). Mekan sunduğu mutfakları (`food_categories`) doğrudan seçer; tekil yemek kalemi tutulmaz.
+```sql
+CREATE TABLE venue_categories (
+    venue_id    UUID NOT NULL REFERENCES venues(id) ON DELETE CASCADE,
+    category_id INT  NOT NULL REFERENCES food_categories(id) ON DELETE CASCADE,
+    PRIMARY KEY (venue_id, category_id)
+);
+```
+`venues.food_halal_mode` ∈ {`all`, `except`} (046: `selected` kaldırıldı, CHECK + default `all`); `except` modunda `excluded_products TEXT[]` (rehberin elle girdiği liste) kullanılır.
 
 ### Sosyal Özellik Tabloları
 

@@ -129,8 +129,9 @@ caiz-mi-backend/
 ### Utility Endpoints
 | Method | Path | Açıklama | Auth | Role |
 |---|---|---|---|---|
-| GET | `/api/v1/criteria` | Helal kriter listesi | - | Public |
-| GET | `/api/v1/food-categories` | Yemek kategorileri | - | Public |
+| GET | `/api/v1/criteria` | Güven kriteri listesi | - | Public |
+| GET | `/api/v1/food-categories` | Mutfak/yemek kategorileri | - | Public |
+| GET/POST/PUT/DELETE | `/api/v1/admin/trust-criteria` | Güven kriteri yönetimi (CRUD) | ✅ | Admin |
 | GET | `/health` | Health check | - | Public |
 
 ## Flutter Uygulama Yapısı

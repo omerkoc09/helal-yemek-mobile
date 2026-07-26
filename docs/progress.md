@@ -1013,3 +1013,20 @@ kullanıcıda.
 | Faz 4 | Store yayını | ⬜ Başlanmadı |
 
 *Her bir madde için detaylı implementasyon planları ayrı MD dosyalarında hazırlanacaktır.*
+
+---
+
+## Güvenilirlik Konumlandırması & Mutfak Sadeleştirmesi (2026-07-26)
+
+Bir dizi ürün kararı `main`'e uygulandı (hepsi lokal, henüz push edilmedi):
+
+| İş | Özet | Durum |
+|----|------|-------|
+| Sahipsiz doğrulama modeli | Mekan tazeleme `added_by`'dan alınıp "ekleyen VEYA doğrulayan"a açıldı; confirmations silinmez, rozet türetilir; yetim mekan sorunu çözüldü | ✅ |
+| `is_double_verified` kaldırıldı | Ölü kolon (hiçbir yerde okunmuyordu); migration 040 | ✅ |
+| Gecelik recompute | Scheduler Faz 0: `confirmation_count` bayatlaması düzeltildi (verified_at'e dokunmadan) | ✅ |
+| Helal → Güvenilirlik | `halal_criteria`→`trust_criteria` tam rename (DB+backend+mobil+JSON); son kullanıcı kriterleri görmez, sadece güven rozeti + "N rehber güvenilir buldu" cümlesi; "helal"→"güven" dili | ✅ |
+| Güven kriterleri genişletildi | 3→7 kriter (alkolsüz, temiz-bakımlı, yerinde görüldü, köklü işletme); admin panelde CRUD sayfası (migration 044-045) | ✅ |
+| Tekil yemekler kaldırıldı | `food_items`+`venue_food_items` DROP → `venue_categories` (mekan doğrudan mutfak seçer); `food_halal_mode` 3→2 mod (`selected`→`all`); admin item CRUD kaldırıldı; dil "caiz"→"tavsiye edilen"; migration 046 | ✅ |
+
+**Doğrulama:** Her iş için backend integration (testcontainers, migration zinciri dahil) + mobil `flutter test` (158) + admin-panel build yeşil; JSON kontratları katmanlar arası elle senkron doğrulandı. Spec'ler `docs/superpowers/specs/2026-07-25..26-*` altında (gitignore, diskte).
