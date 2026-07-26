@@ -6,19 +6,19 @@ import '../providers/venue_report_provider.dart';
 
 const _reasons = [
   (value: 'closed', label: 'Mekan artık hizmet vermiyor'),
-  (value: 'halal_criteria', label: 'Helallik kriterlerini karşılamıyor'),
+  (value: 'trust_criteria', label: 'Güven kriterlerini karşılamıyor'),
   (value: 'wrong_address', label: 'Mekanın adresi yanlış'),
   (value: 'wrong_food', label: 'Servis edilen yemekler yanlış'),
   (value: 'other', label: 'Diğer'),
 ];
 
 // Not (açıklama) yazılması zorunlu olan seçenekler.
-const _reasonsRequiringNote = {'halal_criteria', 'wrong_food', 'other'};
+const _reasonsRequiringNote = {'trust_criteria', 'wrong_food', 'other'};
 
 // Seçeneğe göre not kutusunun hint metni.
 String _noteHintFor(String? reason) {
   switch (reason) {
-    case 'halal_criteria':
+    case 'trust_criteria':
       return 'Hangi kriterin karşılanmadığını belirtin...';
     case 'wrong_food':
       return 'Hangi yemeklerin yanlış olduğunu belirtin...';

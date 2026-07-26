@@ -15,7 +15,6 @@ import '../../guide/providers/guide_provider.dart';
 import '../providers/direction_tracking_provider.dart';
 import '../providers/venue_detail_provider.dart';
 import '../widgets/add_review_sheet.dart';
-import '../widgets/trust_criteria_chip.dart';
 import '../widgets/report_venue_sheet.dart';
 import '../widgets/venue_status_badge.dart';
 import '../widgets/review_card.dart';
@@ -205,6 +204,14 @@ class VenueDetailScreen extends ConsumerWidget {
                       ),
                       const SizedBox(height: 8),
                       VenueBadgeChip(badge: venue.badge, compact: false),
+                      const SizedBox(height: 4),
+                      const Text(
+                        'Bu mekan, topluluk tarafından güvenilir bulunmuştur.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppTheme.textSecondary,
+                        ),
+                      ),
                       const SizedBox(height: 8),
 
                       // Puan
@@ -233,20 +240,6 @@ class VenueDetailScreen extends ConsumerWidget {
                             : venue.city,
                       ),
                       const SizedBox(height: 16),
-
-                      // Helal Kriterleri
-                      if (venue.trustCriteria.isNotEmpty) ...[
-                        const Text(
-                          'Helal Kriterleri',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        TrustCriteriaChips(criteria: venue.trustCriteria),
-                        const SizedBox(height: 16),
-                      ],
 
                       // Caiz Yemekler
                       if (venue.foodHalalMode == 'all' ||
@@ -648,7 +641,7 @@ class _VerifyVenueButtonState extends ConsumerState<_VerifyVenueButton> {
       builder: (_) => AlertDialog(
         title: const Text('Mekan Doğrulama'),
         content: const Text(
-          'Bu mekanın hâlâ helal kriterlerini karşıladığını onaylıyor musunuz?'),
+          'Bu mekanın hâlâ güven kriterlerini karşıladığını onaylıyor musunuz?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -703,7 +696,7 @@ class _VerifyVenueButtonState extends ConsumerState<_VerifyVenueButton> {
               ? const SizedBox(width: 16, height: 16,
                   child: CircularProgressIndicator(strokeWidth: 2))
               : const Icon(Icons.verified_outlined),
-          label: const Text('Helal Kriterlerini Doğrula'),
+          label: const Text('Güven Kriterlerini Doğrula'),
           style: ElevatedButton.styleFrom(
             backgroundColor: AppTheme.primary,
             foregroundColor: Colors.white,
@@ -784,7 +777,7 @@ class _ConfirmVenueButtonState extends ConsumerState<_ConfirmVenueButton> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Doğrulamadan önce mekanın bilgilerinin (konum, ad, helal kriterleri) '
+            'Doğrulamadan önce mekanın bilgilerinin (konum, ad, güven kriterleri) '
             'doğru olduğundan emin olun. Bir hata varsa düzeltme öner veya rapor et.',
             style: TextStyle(color: Colors.black54, fontSize: 13),
           ),

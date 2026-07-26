@@ -131,7 +131,7 @@ class AddVenueState {
       latitude != null &&
       longitude != null &&
       cityAllowed;
-  // Step 2 (helal kriterleri + not) — kriter seçimi zorunlu, not opsiyonel
+  // Step 2 (güven kriterleri + not) — kriter seçimi zorunlu, not opsiyonel
   bool get canProceedStep2 => selectedCriteriaIds.isNotEmpty;
   // Step 3 (yemek kategorileri) — tüm modlarda yemek seçimi zorunlu
   bool get canProceedStep3 {

@@ -77,13 +77,13 @@ class _AddVenueScreenState extends ConsumerState<AddVenueScreen> {
     return switch (state.currentStep) {
       0 => const AddVenueLocationStep(), // link girişi
       1 => const AddVenueDetailsStep(),  // ad + il/ilçe + konum doğrulama
-      2 => _buildCriteriaAndNotesStep(state), // helal kriterleri + not
+      2 => _buildCriteriaAndNotesStep(state), // güven kriterleri + not
       3 => const AddVenueFoodStep(),
       _ => const SizedBox.shrink(),
     };
   }
 
-  // ─── Adım 2: Helal Kriterleri + Not ───
+  // ─── Adım 2: Güven Kriterleri + Not ───
 
   Widget _buildCriteriaAndNotesStep(AddVenueState state) {
     final criteriaAsync = ref.watch(trustCriteriaProvider);
@@ -93,14 +93,14 @@ class _AddVenueScreenState extends ConsumerState<AddVenueScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Helal Kriterleri
+          // Güven Kriterleri
           const Text(
-            'Helal Kriterleri',
+            'Güven Kriterleri',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           const Text(
-            'Bu mekan için geçerli olan helal kriterlerini seçin.',
+            'Bu mekan için geçerli olan güven kriterlerini seçin.',
             style: TextStyle(color: AppTheme.textSecondary),
           ),
           const SizedBox(height: 16),

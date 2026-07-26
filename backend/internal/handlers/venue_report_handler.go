@@ -18,16 +18,16 @@ type reportStore interface {
 }
 
 var validReasons = map[string]bool{
-	"closed":        true,
-	"halal_criteria": true,
-	"wrong_address": true,
-	"wrong_food":    true,
-	"other":         true,
+	"closed":         true,
+	"trust_criteria": true,
+	"wrong_address":  true,
+	"wrong_food":     true,
+	"other":          true,
 }
 
 // Açıklama (not) yazılması zorunlu olan sebepler.
 var reasonsRequiringNote = map[string]bool{
-	"halal_criteria": true,
+	"trust_criteria": true,
 	"wrong_food":     true,
 	"other":          true,
 }

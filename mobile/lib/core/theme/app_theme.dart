@@ -18,7 +18,7 @@ class AppTheme {
   static const Color appBarBackground = primary; // Match referral code burgundy
 
   // Semantic
-  static const Color pinApproved = Color(0xFF15803D); // Verified halal green
+  static const Color pinApproved = Color(0xFF15803D); // Verified trust green
   static const Color pinPending = Color(0xFFEAB308); // Amber
   static const Color error = Color(0xFFB91C1C);
 

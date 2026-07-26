@@ -16,7 +16,7 @@ class _GuideApplyScreenState extends ConsumerState<GuideApplyScreen> {
 
   // Rehberlik şartları placeholder metni (profil ekranından taşındı).
   static const _termsText =
-      'Rehber olarak eklediğiniz mekanların helal kriterlerine uygunluğundan '
+      'Rehber olarak eklediğiniz mekanların güven kriterlerine uygunluğundan '
       'siz sorumlusunuz. Yanlış veya yanıltıcı bilgi girişi hesabınızın '
       'rehberlikten çıkarılmasına yol açabilir. Beyan ettiğiniz şehirde '
       'rehberlik yapacağınızı kabul edersiniz.';

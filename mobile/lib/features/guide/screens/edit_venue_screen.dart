@@ -136,8 +136,8 @@ class _EditVenueScreenState extends ConsumerState<EditVenueScreen> {
                 ),
                 const SizedBox(height: 24),
 
-                // Helal Kriterleri
-                _buildSectionTitle('Helal Kriterleri'),
+                // Güven Kriterleri
+                _buildSectionTitle('Güven Kriterleri'),
                 const SizedBox(height: 8),
                 _buildCriteriaSection(state),
                 const SizedBox(height: 24),
