@@ -29,9 +29,9 @@ Map<String, dynamic> _venueJson() => {
       'notes': 'eski not',
       'food_halal_mode': 'except',
       'excluded_products': ['Jelatin'],
-      'criteria': [
+      'trust_criteria': [
         {'id': 1, 'key': 'no_alcohol', 'name': 'Alkol yok'},
-        {'id': 2, 'key': 'halal_meat', 'name': 'Helal et'},
+        {'id': 2, 'key': 'trust_meat', 'name': 'Güvenilir et'},
       ],
       'food_items': [
         {'id': 10, 'category_id': 1, 'key': 'doner', 'name': 'Döner'},
