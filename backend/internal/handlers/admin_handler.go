@@ -50,6 +50,10 @@ type adminVenueStore interface {
 	CreateCustomFoodItem(ctx context.Context, categoryID int, key, name string) (*models.FoodItem, error)
 	UpdateFoodItem(ctx context.Context, id int, name string) error
 	DeleteFoodItem(ctx context.Context, id int) error
+	GetAllCriteria(ctx context.Context) ([]models.TrustCriteria, error)
+	CreateTrustCriteria(ctx context.Context, key, name string, description *string) (*models.TrustCriteria, error)
+	UpdateTrustCriteria(ctx context.Context, id int, name string, description *string) error
+	DeleteTrustCriteria(ctx context.Context, id int) error
 }
 
 // adminGuideStore — rehber başvurusu inceleme akışı.
