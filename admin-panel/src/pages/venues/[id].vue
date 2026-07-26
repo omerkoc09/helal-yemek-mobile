@@ -631,8 +631,6 @@ onMounted(fetchVenue)
                           :key="cat.id"
                           :color="isCategorySelected(cat.id) ? 'primary' : undefined"
                           :variant="isCategorySelected(cat.id) ? 'flat' : 'outlined'"
-                          filter
-                          :model-value="isCategorySelected(cat.id)"
                           @click="toggleCategory(cat.id)"
                         >
                           {{ cat.name }}
