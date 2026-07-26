@@ -205,9 +205,9 @@ class VenueDetailScreen extends ConsumerWidget {
                       const SizedBox(height: 8),
                       VenueBadgeChip(badge: venue.badge, compact: false),
                       const SizedBox(height: 4),
-                      const Text(
-                        'Bu mekan, topluluk tarafından güvenilir bulunmuştur.',
-                        style: TextStyle(
+                      Text(
+                        _trustSentence(venue.confirmationCount),
+                        style: const TextStyle(
                           fontSize: 12,
                           color: AppTheme.textSecondary,
                         ),
@@ -487,6 +487,15 @@ class VenueDetailScreen extends ConsumerWidget {
         );
       },
     );
+  }
+
+  /// Rozetin altında gösterilen güven cümlesi. Doğrulayan sayısına göre değişir;
+  /// tazelik burada tekrarlanmaz (mevcut "Son doğrulama" rozeti onu gösterir).
+  String _trustSentence(int confirmationCount) {
+    if (confirmationCount <= 0) {
+      return 'Bu mekan topluluğa açık, henüz doğrulanmadı.';
+    }
+    return '$confirmationCount yerel rehber güvenilir buldu.';
   }
 }
 
