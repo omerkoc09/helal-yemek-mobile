@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/api/api_endpoints.dart';
 import '../../../core/auth/auth_provider.dart';
+import '../../../core/data/turkey_locations.dart';
 import '../../../core/models/venue.dart';
 import '../../../core/utils/google_maps_parser.dart';
 
@@ -250,14 +251,27 @@ class AddVenueNotifier extends Notifier<AddVenueState> {
       final cityAllowed = data['city_allowed'] as bool? ?? true;
       final guideCity = data['guide_city'] as String?;
 
+      final resolvedCity = fetchedCity.isNotEmpty ? fetchedCity : state.city;
+      final candidateDistrict =
+          fetchedDistrict.isNotEmpty ? fetchedDistrict : state.district;
+      // İlçe dropdown'u kapalı listedir. Google bazen statik listede olmayan
+      // bir ilçe döndürür (ör. "Aydın Merkez" ↔ liste "Efeler"). Böyle bir değeri
+      // state'te tutarsak dropdown boş görünür ama kullanıcı seçmeden ilerleyebilir
+      // ve backend'e geçersiz ilçe gider. Bu yüzden yalnızca resolvedCity'nin
+      // ilçe listesinde bulunan bir değeri yaz; eşleşmezse boş bırak (kullanıcı seçer).
+      final resolvedDistrict =
+          TurkeyLocations.getDistrictsOf(resolvedCity).contains(candidateDistrict)
+              ? candidateDistrict
+              : '';
+
       state = state.copyWith(
         // Eğer state'te zaten bir isim varsa (URL'den geldiyse) koru,
         // yoksa backend'den gelen ismi kullan
         name: state.name.isNotEmpty
             ? state.name
             : (fetchedName.isNotEmpty ? fetchedName : state.name),
-        city: fetchedCity.isNotEmpty ? fetchedCity : state.city,
-        district: fetchedDistrict.isNotEmpty ? fetchedDistrict : state.district,
+        city: resolvedCity,
+        district: resolvedDistrict,
         googlePhotoUrls: fetchedPhotoUrls,
         selectedPhotoUrl: fetchedPhotoUrls.isNotEmpty ? fetchedPhotoUrls.first : null,
         isLoadingPlaceDetails: false,
