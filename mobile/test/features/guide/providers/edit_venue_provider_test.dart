@@ -33,9 +33,9 @@ Map<String, dynamic> _venueJson() => {
         {'id': 1, 'key': 'no_alcohol', 'name': 'Alkol yok'},
         {'id': 2, 'key': 'trust_meat', 'name': 'Güvenilir et'},
       ],
-      'food_items': [
-        {'id': 10, 'category_id': 1, 'key': 'doner', 'name': 'Döner'},
-        {'id': 11, 'category_id': 1, 'key': 'kebap', 'name': 'Kebap'},
+      'categories': [
+        {'id': 10, 'key': 'kebap', 'name': 'Kebap'},
+        {'id': 11, 'key': 'tatli', 'name': 'Tatlı'},
       ],
     };
 
@@ -57,7 +57,7 @@ void main() {
   EditVenueState state() => container.read(editVenueProvider);
 
   group('loadVenue', () {
-    test('mevcut mekanı yükler ve kriter/yemek ID\'lerini map\'ler', () async {
+    test('mevcut mekanı yükler ve kriter/mutfak ID\'lerini map\'ler', () async {
       when(() => mockApi.get(ApiEndpoints.venueDetail('v1')))
           .thenAnswer((_) async => _ok(_venueJson()));
 
@@ -68,9 +68,9 @@ void main() {
       expect(s.name, 'Eski Kafe');
       expect(s.city, 'İstanbul');
       expect(s.notes, 'eski not');
-      // Kriter ve yemek ID'leri düz liste olarak map'lenmeli.
+      // Kriter ve mutfak ID'leri düz liste olarak map'lenmeli.
       expect(s.selectedCriteriaIds, [1, 2]);
-      expect(s.selectedFoodItemIds, [10, 11]);
+      expect(s.selectedCategoryIds, [10, 11]);
       expect(s.foodHalalMode, 'except');
       expect(s.excludedProducts, ['Jelatin']);
     });
@@ -87,7 +87,7 @@ void main() {
       await notifier().loadVenue('v1');
 
       expect(state().foodHalalMode, 'except');
-      expect(state().selectedFoodItemIds, [10, 11]);
+      expect(state().selectedCategoryIds, [10, 11]);
     });
 
     test('hata durumunda error set edilir', () async {
@@ -150,12 +150,12 @@ void main() {
       expect(state().selectedCriteriaIds, isNot(contains(7)));
     });
 
-    test('toggleFoodItem ekler/çıkarır', () {
-      notifier().toggleFoodItem(10);
-      notifier().toggleFoodItem(11);
-      expect(state().selectedFoodItemIds, [10, 11]);
-      notifier().toggleFoodItem(10);
-      expect(state().selectedFoodItemIds, [11]);
+    test('toggleCategory ekler/çıkarır', () {
+      notifier().toggleCategory(10);
+      notifier().toggleCategory(11);
+      expect(state().selectedCategoryIds, [10, 11]);
+      notifier().toggleCategory(10);
+      expect(state().selectedCategoryIds, [11]);
     });
 
     test('setFoodHalalMode except dışına çıkınca excluded temizlenir', () {

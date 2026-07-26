@@ -63,7 +63,6 @@ class ApiEndpoints {
   static const String foodCategories = '/food-categories';
   static String venuesByCategory(int categoryId) =>
       '/venues/by-category/$categoryId';
-  static String foodCategoryItems(String id) => '/food-categories/$id/items';
 
   // Notifications
   static const String notifications = '/notifications';

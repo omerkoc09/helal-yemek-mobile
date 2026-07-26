@@ -76,34 +76,28 @@ void main() {
     });
   });
 
-  group('Wizard kapısı — canProceedStep3 (yemek + halalMode dallanması)', () {
-    test('yemek seçilmemişse hiçbir modda geçilemez', () {
+  group('Wizard kapısı — canProceedStep3 (mutfak + halalMode dallanması)', () {
+    test('mutfak seçilmemişse hiçbir modda geçilemez', () {
       notifier().setFoodHalalMode('all');
       expect(state().canProceedStep3, isFalse);
     });
 
-    test('all modu: yemek seçiliyse yeterli', () {
+    test('all modu: mutfak seçiliyse yeterli', () {
       notifier().setFoodHalalMode('all');
-      notifier().toggleFoodItem(1, 10);
+      notifier().toggleCategory(1);
       expect(state().canProceedStep3, isTrue);
     });
 
-    test('selected modu: yemek seçiliyse yeterli', () {
-      notifier().setFoodHalalMode('selected');
-      notifier().toggleFoodItem(1, 10);
-      expect(state().canProceedStep3, isTrue);
-    });
-
-    test('except modu: yemek VAR ama sakıncalı ürün boşsa geçilemez', () {
+    test('except modu: mutfak VAR ama sakıncalı ürün boşsa geçilemez', () {
       notifier().setFoodHalalMode('except'); // excluded'a [''] koyar
-      notifier().toggleFoodItem(1, 10);
+      notifier().toggleCategory(1);
       // [''] içinde trim edilince boş → yeterli değil
       expect(state().canProceedStep3, isFalse);
     });
 
-    test('except modu: yemek + en az bir dolu sakıncalı ürün varsa geçilebilir', () {
+    test('except modu: mutfak + en az bir dolu sakıncalı ürün varsa geçilebilir', () {
       notifier().setFoodHalalMode('except');
-      notifier().toggleFoodItem(1, 10);
+      notifier().toggleCategory(1);
       notifier().updateExcludedProduct(0, 'Jelatin');
       expect(state().canProceedStep3, isTrue);
     });
@@ -142,42 +136,13 @@ void main() {
     });
   });
 
-  group('Yemek seçimi', () {
-    test('toggleFoodItem kategori bazında ekler/çıkarır', () {
-      notifier().toggleFoodItem(1, 10);
-      notifier().toggleFoodItem(1, 11);
-      expect(state().selectedFoodItemIds[1], [10, 11]);
-      notifier().toggleFoodItem(1, 10);
-      expect(state().selectedFoodItemIds[1], [11]);
-    });
-
-    test('selectAllInCategory tüm çeşitleri seçer', () {
-      notifier().selectAllInCategory(2, [20, 21, 22]);
-      expect(state().selectedFoodItemIds[2], [20, 21, 22]);
-    });
-
-    test('deselectAllInCategory kategoriyi boşaltır', () {
-      notifier().selectAllInCategory(2, [20, 21]);
-      notifier().deselectAllInCategory(2);
-      expect(state().selectedFoodItemIds[2], isEmpty);
-    });
-
-    test('isCategoryFullySelected doğru hesaplar', () {
-      notifier().selectAllInCategory(3, [30, 31]);
-      expect(notifier().isCategoryFullySelected(3, 2), isTrue);
-      expect(notifier().isCategoryFullySelected(3, 3), isFalse);
-    });
-
-    test('isCategoryFullySelected totalItemCount=0 için false', () {
-      expect(notifier().isCategoryFullySelected(99, 0), isFalse);
-    });
-
-    test('allSelectedFoodItemIds tüm kategorileri düz listede toplar', () {
-      notifier().toggleFoodItem(1, 10);
-      notifier().toggleFoodItem(2, 20);
-      notifier().toggleFoodItem(2, 21);
-      expect(notifier().allSelectedFoodItemIds, containsAll([10, 20, 21]));
-      expect(notifier().allSelectedFoodItemIds.length, 3);
+  group('Mutfak seçimi', () {
+    test('toggleCategory ekler/çıkarır', () {
+      notifier().toggleCategory(1);
+      notifier().toggleCategory(2);
+      expect(state().selectedCategoryIds, [1, 2]);
+      notifier().toggleCategory(1);
+      expect(state().selectedCategoryIds, [2]);
     });
   });
 
@@ -248,14 +213,14 @@ void main() {
     test('tüm state\'i başlangıca döndürür', () {
       notifier().setName('Kafe');
       notifier().toggleCriteria(1);
-      notifier().toggleFoodItem(1, 10);
+      notifier().toggleCategory(1);
       notifier().goToStep(3);
 
       notifier().reset();
 
       expect(state().name, '');
       expect(state().selectedCriteriaIds, isEmpty);
-      expect(state().selectedFoodItemIds, isEmpty);
+      expect(state().selectedCategoryIds, isEmpty);
       expect(state().currentStep, 0);
     });
   });

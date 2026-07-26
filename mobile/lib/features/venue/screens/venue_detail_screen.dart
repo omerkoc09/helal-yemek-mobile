@@ -11,7 +11,6 @@ import '../../../shared/widgets/error_retry_widget.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/star_rating_widget.dart';
 import '../../favorites/providers/favorites_provider.dart';
-import '../../guide/providers/guide_provider.dart';
 import '../providers/direction_tracking_provider.dart';
 import '../providers/venue_detail_provider.dart';
 import '../widgets/add_review_sheet.dart';
@@ -33,7 +32,6 @@ class VenueDetailScreen extends ConsumerWidget {
     final reviewsAsync = ref.watch(venueReviewsProvider(venueId));
     final favState = ref.watch(favoritesProvider);
     final authState = ref.watch(authProvider);
-    final categoriesAsync = ref.watch(foodCategoriesProvider);
 
     return venueAsync.when(
       loading: () => const Scaffold(body: LoadingIndicator()),
@@ -241,19 +239,20 @@ class VenueDetailScreen extends ConsumerWidget {
                       ),
                       const SizedBox(height: 16),
 
-                      // Caiz Yemekler
-                      if (venue.foodHalalMode == 'all' ||
-                          venue.foodHalalMode == 'except' ||
-                          venue.foodItems.isNotEmpty) ...[
+                      // Mutfaklar
+                      if (venue.categories.isNotEmpty ||
+                          venue.foodHalalMode == 'except') ...[
                         const Text(
-                          'Caiz Yemekler',
+                          'Mutfaklar',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
                         const SizedBox(height: 8),
-                        if (venue.foodHalalMode == 'all') ...[
+
+                        // Mod bilgisi — mutfak listesinden bağımsız bir bağlam.
+                        if (venue.foodHalalMode == 'all')
                           Container(
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 12, vertical: 6),
@@ -273,7 +272,7 @@ class VenueDetailScreen extends ConsumerWidget {
                                     size: 16, color: AppTheme.primary),
                                 SizedBox(width: 6),
                                 Text(
-                                  'Tüm Yemekler Caiz',
+                                  'Sunduğu tüm mutfaklar tavsiye edilir',
                                   style: TextStyle(
                                     color: AppTheme.primary,
                                     fontWeight: FontWeight.w600,
@@ -282,16 +281,8 @@ class VenueDetailScreen extends ConsumerWidget {
                                 ),
                               ],
                             ),
-                          ),
-                          if (venue.foodItems.isNotEmpty) ...[
-                            const SizedBox(height: 8),
-                            _FoodCategoryDropdowns(
-                              foodItems: venue.foodItems,
-                              categoriesAsync: categoriesAsync,
-                            ),
-                          ],
-                        ] else if (venue.foodHalalMode == 'except') ...[
-                          // "Caiz olmayan malzemeler" başlığı
+                          )
+                        else if (venue.foodHalalMode == 'except') ...[
                           Container(
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 12, vertical: 6),
@@ -310,7 +301,7 @@ class VenueDetailScreen extends ConsumerWidget {
                                     size: 16, color: Colors.orange),
                                 SizedBox(width: 6),
                                 Text(
-                                  'Şunlar Hariç Her Şey Caiz',
+                                  'Şu ürünler hariç tavsiye edilir',
                                   style: TextStyle(
                                     color: Colors.orange,
                                     fontWeight: FontWeight.w600,
@@ -346,11 +337,13 @@ class VenueDetailScreen extends ConsumerWidget {
                                   .toList(),
                             ),
                           ],
-                        ] else if (venue.foodItems.isNotEmpty)
-                          _FoodCategoryDropdowns(
-                            foodItems: venue.foodItems,
-                            categoriesAsync: categoriesAsync,
-                          ),
+                        ],
+
+                        // Mutfaklar her iki modda da gösterilir.
+                        if (venue.categories.isNotEmpty) ...[
+                          const SizedBox(height: 8),
+                          _VenueCuisines(categories: venue.categories),
+                        ],
                         const SizedBox(height: 16),
                       ],
 
@@ -499,67 +492,27 @@ class VenueDetailScreen extends ConsumerWidget {
   }
 }
 
-class _FoodCategoryDropdowns extends StatelessWidget {
-  final List<FoodItem> foodItems;
-  final AsyncValue<List<FoodCategory>> categoriesAsync;
+class _VenueCuisines extends StatelessWidget {
+  final List<FoodCategory> categories;
 
-  const _FoodCategoryDropdowns({
-    required this.foodItems,
-    required this.categoriesAsync,
-  });
+  const _VenueCuisines({required this.categories});
 
   @override
   Widget build(BuildContext context) {
-    // Kategori id -> label eşlemesi
-    final categoryLabels = categoriesAsync.maybeWhen(
-      data: (cats) => {for (final c in cats) c.id: c.name},
-      orElse: () => <int, String>{},
-    );
-
-    // Yemekleri kategoriye göre grupla
-    final grouped = <int, List<FoodItem>>{};
-    for (final item in foodItems) {
-      grouped.putIfAbsent(item.categoryId, () => []).add(item);
-    }
-
-    return Column(
-      children: grouped.entries.map((entry) {
-        final catLabel = categoryLabels[entry.key] ?? 'Kategori ${entry.key}';
-        return Theme(
-          data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-          child: ExpansionTile(
-            tilePadding: EdgeInsets.zero,
-            childrenPadding: const EdgeInsets.only(bottom: 8),
-            title: Text(
-              catLabel,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: AppTheme.textSecondary,
-              ),
-            ),
-            iconColor: AppTheme.textSecondary,
-            collapsedIconColor: AppTheme.textSecondary,
-            children: [
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: entry.value.map((item) {
-                  return Chip(
-                    label: Text(
-                      item.name,
-                      style: const TextStyle(fontSize: 12),
-                    ),
-                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    visualDensity: VisualDensity.compact,
-                    backgroundColor: AppTheme.primary.withValues(alpha: 0.08),
-                    side: BorderSide(
-                      color: AppTheme.primary.withValues(alpha: 0.2),
-                    ),
-                  );
-                }).toList(),
-              ),
-            ],
+    return Wrap(
+      spacing: 6,
+      runSpacing: 6,
+      children: categories.map((category) {
+        return Chip(
+          label: Text(
+            category.name,
+            style: const TextStyle(fontSize: 12),
+          ),
+          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          visualDensity: VisualDensity.compact,
+          backgroundColor: AppTheme.primary.withValues(alpha: 0.08),
+          side: BorderSide(
+            color: AppTheme.primary.withValues(alpha: 0.2),
           ),
         );
       }).toList(),

@@ -142,8 +142,8 @@ class _EditVenueScreenState extends ConsumerState<EditVenueScreen> {
                 _buildCriteriaSection(state),
                 const SizedBox(height: 24),
 
-                // Yemek Çeşitleri
-                _buildSectionTitle('Yemek Çeşitleri'),
+                // Mutfaklar
+                _buildSectionTitle('Mutfaklar'),
                 const SizedBox(height: 8),
                 _buildFoodSection(state),
                 const SizedBox(height: 24),
@@ -241,7 +241,7 @@ class _EditVenueScreenState extends ConsumerState<EditVenueScreen> {
     );
   }
 
-  // ─── Yemekler ───
+  // ─── Mutfaklar ───
 
   Widget _buildFoodSection(EditVenueState state) {
     final categoriesAsync = ref.watch(foodCategoriesProvider);
@@ -250,12 +250,13 @@ class _EditVenueScreenState extends ConsumerState<EditVenueScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // 3 modlu radio seçimi
+        // 2 modlu radio seçimi
         RadioListTile<String>(
           value: 'all',
           groupValue: state.foodHalalMode,
           onChanged: (v) => notifier.setFoodHalalMode(v!),
-          title: const Text('Tüm Yemekler Caiz', style: TextStyle(fontSize: 14)),
+          title: const Text('Tüm Mutfaklar Tavsiye Edilir',
+              style: TextStyle(fontSize: 14)),
           controlAffinity: ListTileControlAffinity.leading,
           contentPadding: EdgeInsets.zero,
           dense: true,
@@ -265,28 +266,19 @@ class _EditVenueScreenState extends ConsumerState<EditVenueScreen> {
           value: 'except',
           groupValue: state.foodHalalMode,
           onChanged: (v) => notifier.setFoodHalalMode(v!),
-          title: const Text('Şunlar Hariç Caiz', style: TextStyle(fontSize: 14)),
-          controlAffinity: ListTileControlAffinity.leading,
-          contentPadding: EdgeInsets.zero,
-          dense: true,
-          activeColor: AppTheme.primary,
-        ),
-        RadioListTile<String>(
-          value: 'selected',
-          groupValue: state.foodHalalMode,
-          onChanged: (v) => notifier.setFoodHalalMode(v!),
-          title: const Text('Belirli Yemekler Caiz', style: TextStyle(fontSize: 14)),
+          title: const Text('Şunlar Hariç Tavsiye Edilir',
+              style: TextStyle(fontSize: 14)),
           controlAffinity: ListTileControlAffinity.leading,
           contentPadding: EdgeInsets.zero,
           dense: true,
           activeColor: AppTheme.primary,
         ),
 
-        // Except modu: sakıncalı malzeme girişi
+        // Except modu: tavsiye edilmeyen ürün girişi
         if (state.foodHalalMode == 'except') ...[
           const SizedBox(height: 8),
           const Text(
-            'Caiz olmayan malzemeler',
+            'Tavsiye edilmeyen ürünler',
             style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 8),
@@ -301,7 +293,7 @@ class _EditVenueScreenState extends ConsumerState<EditVenueScreen> {
                       onChanged: (v) =>
                           notifier.updateExcludedProduct(entry.key, v),
                       decoration: InputDecoration(
-                        hintText: entry.key == 0 ? 'örn. kaşar' : 'Malzeme adı',
+                        hintText: entry.key == 0 ? 'örn. kaşar' : 'Ürün adı',
                         isDense: true,
                         contentPadding: const EdgeInsets.symmetric(
                             horizontal: 12, vertical: 10),
@@ -327,80 +319,41 @@ class _EditVenueScreenState extends ConsumerState<EditVenueScreen> {
           TextButton.icon(
             onPressed: () => notifier.addExcludedProduct(''),
             icon: const Icon(Icons.add, size: 18),
-            label: const Text('Malzeme ekle'),
+            label: const Text('Ürün ekle'),
             style: TextButton.styleFrom(foregroundColor: AppTheme.primary),
           ),
         ],
 
-        // Kategori seçimi: tüm modlarda gösterilir
-          categoriesAsync.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (_, _) => const Text('Yemek kategorileri yüklenemedi.'),
-            data: (categories) {
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: categories.map((category) {
-                  final selectedInCategory = category.items
-                      .where((i) => state.selectedFoodItemIds.contains(i.id))
-                      .length;
-                  final subtitle = selectedInCategory > 0
-                      ? '$selectedInCategory seçili'
-                      : 'Hiçbiri seçilmedi';
-                  return Theme(
-                    data: Theme.of(context)
-                        .copyWith(dividerColor: Colors.transparent),
-                    child: ExpansionTile(
-                      tilePadding: EdgeInsets.zero,
-                      childrenPadding: const EdgeInsets.only(bottom: 8),
-                      title: Text(
-                        category.name,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      subtitle: Text(
-                        subtitle,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: selectedInCategory > 0
-                              ? AppTheme.primary
-                              : AppTheme.textSecondary,
-                        ),
-                      ),
-                      iconColor: AppTheme.textSecondary,
-                      collapsedIconColor: AppTheme.textSecondary,
-                      children: [
-                        Wrap(
-                          spacing: 6,
-                          runSpacing: 6,
-                          children: category.items.map((item) {
-                            final isSelected =
-                                state.selectedFoodItemIds.contains(item.id);
-                            return FilterChip(
-                              label: Text(
-                                item.name,
-                                style: const TextStyle(fontSize: 12),
-                              ),
-                              selected: isSelected,
-                              onSelected: (_) =>
-                                  notifier.toggleFoodItem(item.id),
-                              selectedColor:
-                                  AppTheme.primary.withValues(alpha: 0.2),
-                              checkmarkColor: AppTheme.primary,
-                              materialTapTargetSize:
-                                  MaterialTapTargetSize.shrinkWrap,
-                              visualDensity: VisualDensity.compact,
-                            );
-                          }).toList(),
-                        ),
-                      ],
-                    ),
-                  );
-                }).toList(),
-              );
-            },
-          ),
+        const SizedBox(height: 8),
+        const Text(
+          'Sunulan mutfakları seçin:',
+          style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+        ),
+        const SizedBox(height: 8),
+
+        // Mutfak seçimi: her iki modda da gösterilir
+        categoriesAsync.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (_, _) => const Text('Mutfaklar yüklenemedi.'),
+          data: (categories) {
+            return Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: categories.map((category) {
+                final isSelected =
+                    state.selectedCategoryIds.contains(category.id);
+                return FilterChip(
+                  label: Text(category.name),
+                  selected: isSelected,
+                  onSelected: (_) => notifier.toggleCategory(category.id),
+                  selectedColor: AppTheme.primary.withValues(alpha: 0.2),
+                  checkmarkColor: AppTheme.primary,
+                  avatar: isSelected ? null : const Icon(Icons.add, size: 18),
+                );
+              }).toList(),
+            );
+          },
+        ),
       ],
     );
   }

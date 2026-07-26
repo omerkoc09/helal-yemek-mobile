@@ -26,7 +26,7 @@ _Venue _$VenueFromJson(Map<String, dynamic> json) => _Venue(
   verificationDueAt: json['verification_due_at'] == null
       ? null
       : DateTime.parse(json['verification_due_at'] as String),
-  foodHalalMode: json['food_halal_mode'] as String? ?? 'selected',
+  foodHalalMode: json['food_halal_mode'] as String? ?? 'all',
   excludedProducts:
       (json['excluded_products'] as List<dynamic>?)
           ?.map((e) => e as String)
@@ -42,9 +42,9 @@ _Venue _$VenueFromJson(Map<String, dynamic> json) => _Venue(
           ?.map((e) => VenuePhoto.fromJson(e as Map<String, dynamic>))
           .toList() ??
       const [],
-  foodItems:
-      (json['food_items'] as List<dynamic>?)
-          ?.map((e) => FoodItem.fromJson(e as Map<String, dynamic>))
+  categories:
+      (json['categories'] as List<dynamic>?)
+          ?.map((e) => FoodCategory.fromJson(e as Map<String, dynamic>))
           .toList() ??
       const [],
   avgRating: (json['average_rating'] as num?)?.toDouble(),
@@ -84,7 +84,7 @@ Map<String, dynamic> _$VenueToJson(_Venue instance) => <String, dynamic>{
   'excluded_products': instance.excludedProducts,
   'trust_criteria': instance.trustCriteria,
   'photos': instance.photos,
-  'food_items': instance.foodItems,
+  'categories': instance.categories,
   'average_rating': instance.avgRating,
   'review_count': instance.reviewCount,
   'confirmation_count': instance.confirmationCount,
@@ -139,11 +139,6 @@ _FoodCategory _$FoodCategoryFromJson(Map<String, dynamic> json) =>
       key: json['key'] as String,
       name: json['name'] as String,
       imageUrl: json['image_url'] as String?,
-      items:
-          (json['items'] as List<dynamic>?)
-              ?.map((e) => FoodItem.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          const [],
     );
 
 Map<String, dynamic> _$FoodCategoryToJson(_FoodCategory instance) =>
@@ -152,24 +147,7 @@ Map<String, dynamic> _$FoodCategoryToJson(_FoodCategory instance) =>
       'key': instance.key,
       'name': instance.name,
       'image_url': instance.imageUrl,
-      'items': instance.items,
     };
-
-_FoodItem _$FoodItemFromJson(Map<String, dynamic> json) => _FoodItem(
-  id: (json['id'] as num).toInt(),
-  categoryId: (json['category_id'] as num).toInt(),
-  key: json['key'] as String,
-  name: json['name'] as String,
-  isCustom: json['is_custom'] as bool? ?? false,
-);
-
-Map<String, dynamic> _$FoodItemToJson(_FoodItem instance) => <String, dynamic>{
-  'id': instance.id,
-  'category_id': instance.categoryId,
-  'key': instance.key,
-  'name': instance.name,
-  'is_custom': instance.isCustom,
-};
 
 _Badge _$BadgeFromJson(Map<String, dynamic> json) => _Badge(
   level: json['level'] as String,

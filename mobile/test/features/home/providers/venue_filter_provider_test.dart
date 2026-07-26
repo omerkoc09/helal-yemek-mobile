@@ -21,11 +21,10 @@ Venue _v({
     avgRating: rating,
     reviewCount: reviewCount,
     distance: distance,
-    foodItems: [
+    categories: [
       for (final cid in cuisineIds)
-        FoodItem(
+        FoodCategory(
           id: cid,
-          categoryId: cid,
           key: 'k$cid',
           name: 'c$cid',
         ),
