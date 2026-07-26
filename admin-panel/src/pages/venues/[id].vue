@@ -21,8 +21,7 @@ const editStatusOptions = [
 ]
 
 const halalModeOptions = [
-  { title: 'Tüm yemekler caiz', value: 'all' },
-  { title: 'Sadece seçili çeşitler caiz', value: 'selected' },
+  { title: 'Tüm mutfaklar tavsiye edilir', value: 'all' },
   { title: 'Belirli ürünler hariç caiz', value: 'except' },
 ]
 
@@ -34,8 +33,7 @@ const venueStatusColor: Record<string, string> = {
 }
 
 interface CriteriaOption { id: number; name: string }
-interface FoodItemOption { id: number; name: string }
-interface FoodCategory { id: number; name: string; items: FoodItemOption[] }
+interface FoodCategory { id: number; name: string }
 
 interface LocationPreview {
   latitude: number
@@ -52,7 +50,6 @@ const previewLoading = ref(false)
 
 const criteriaOptions = ref<CriteriaOption[]>([])
 const foodCategories = ref<FoodCategory[]>([])
-const activeFoodCategoryId = ref<number | null>(null)
 
 async function loadLookups() {
   if (!criteriaOptions.value.length) {
@@ -67,26 +64,16 @@ async function loadLookups() {
   }
 }
 
-const activeFoodItems = computed(() =>
-  foodCategories.value.find(c => c.id === activeFoodCategoryId.value)?.items ?? [],
-)
-
-function isFoodSelected(foodId: number): boolean {
-  return (form.value.food_item_ids ?? []).includes(foodId)
+function isCategorySelected(id: number): boolean {
+  return (form.value.category_ids ?? []).includes(id)
 }
 
-function toggleFoodItem(foodId: number) {
-  const ids: number[] = form.value.food_item_ids ?? []
+function toggleCategory(id: number) {
+  const ids: number[] = form.value.category_ids ?? []
 
-  form.value.food_item_ids = ids.includes(foodId)
-    ? ids.filter(x => x !== foodId)
-    : [...ids, foodId]
-}
-
-function selectedCountIn(cat: FoodCategory): number {
-  const ids: number[] = form.value.food_item_ids ?? []
-
-  return (cat.items ?? []).filter(i => ids.includes(i.id)).length
+  form.value.category_ids = ids.includes(id)
+    ? ids.filter(x => x !== id)
+    : [...ids, id]
 }
 
 function mapsUrl(v: any): string | null {
@@ -108,7 +95,7 @@ async function fetchVenue() {
   form.value = {
     ...data,
     criteria_ids: (data.criteria ?? []).map((c: any) => c.id),
-    food_item_ids: (data.food_items ?? []).map((f: any) => f.id),
+    category_ids: (data.categories ?? []).map((c: any) => c.id),
     excluded_products_text: (data.excluded_products ?? []).join(', '),
     maps_link: '',
   }
@@ -214,7 +201,7 @@ async function saveVenue() {
     status: form.value.status,
     food_halal_mode: form.value.food_halal_mode,
     criteria_ids: form.value.criteria_ids ?? [],
-    food_item_ids: form.value.food_item_ids ?? [],
+    category_ids: form.value.category_ids ?? [],
     excluded_products: parseExcludedProducts(),
   }
 
@@ -633,77 +620,24 @@ onMounted(fetchVenue)
                     />
                   </VCol>
                   <VCol cols="12">
-                    <label class="text-body-2 text-medium-emphasis d-block mb-1">Yemek Çeşitleri</label>
+                    <label class="text-body-2 text-medium-emphasis d-block mb-1">Mutfak Kategorileri</label>
                     <VCard
                       variant="outlined"
-                      class="mb-3"
+                      class="mb-3 pa-3"
                     >
-                      <VRow
-                        no-gutters
-                        style="block-size: 220px;"
-                      >
-                        <VCol
-                          cols="5"
-                          class="border-e"
-                          style="overflow-y: auto; block-size: 220px;"
+                      <div class="d-flex flex-wrap gap-2">
+                        <VChip
+                          v-for="cat in foodCategories"
+                          :key="cat.id"
+                          :color="isCategorySelected(cat.id) ? 'primary' : undefined"
+                          :variant="isCategorySelected(cat.id) ? 'flat' : 'outlined'"
+                          filter
+                          :model-value="isCategorySelected(cat.id)"
+                          @click="toggleCategory(cat.id)"
                         >
-                          <VList
-                            density="compact"
-                            nav
-                          >
-                            <VListItem
-                              v-for="cat in foodCategories"
-                              :key="cat.id"
-                              :active="activeFoodCategoryId === cat.id"
-                              :title="cat.name"
-                              @click="activeFoodCategoryId = cat.id"
-                            >
-                              <template #append>
-                                <VChip
-                                  v-if="selectedCountIn(cat) > 0"
-                                  size="x-small"
-                                  color="primary"
-                                >
-                                  {{ selectedCountIn(cat) }}
-                                </VChip>
-                                <VIcon
-                                  icon="tabler-chevron-right"
-                                  size="16"
-                                />
-                              </template>
-                            </VListItem>
-                          </VList>
-                        </VCol>
-                        <VCol
-                          cols="7"
-                          style="overflow-y: auto; block-size: 220px;"
-                        >
-                          <div
-                            v-if="!activeFoodCategoryId"
-                            class="d-flex align-center justify-center h-100 pa-4 text-disabled text-caption text-center"
-                          >
-                            Çeşitleri görmek için bir kategori seçin
-                          </div>
-                          <VList
-                            v-else
-                            density="compact"
-                          >
-                            <VListItem
-                              v-for="food in activeFoodItems"
-                              :key="food.id"
-                              @click="toggleFoodItem(food.id)"
-                            >
-                              <template #prepend>
-                                <VCheckboxBtn
-                                  :model-value="isFoodSelected(food.id)"
-                                  @click.stop="toggleFoodItem(food.id)"
-                                />
-                              </template>
-                              <VListItemTitle>{{ food.name }}</VListItemTitle>
-                            </VListItem>
-                          </VList>
-                        </VCol>
-                      </VRow>
+                          {{ cat.name }}
+                        </VChip>
+                      </div>
                     </VCard>
                   </VCol>
                 </VRow>
