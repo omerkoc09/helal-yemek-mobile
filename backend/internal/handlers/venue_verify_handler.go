@@ -45,6 +45,28 @@ func (h *VenueHandler) ConfirmVenue(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"status": "confirmed"})
 }
 
+// RemoveConfirmation godoc
+// DELETE /api/v1/venues/:id/confirm  (Guide)
+// Rehber kendi dönemsel doğrulamasını geri çeker. guideID token'dan alınır —
+// path'ten değil — böylece rehber yalnızca kendi kaydını silebilir.
+func (h *VenueHandler) RemoveConfirmation(c *fiber.Ctx) error {
+	venueID := c.Params("id")
+	guideID, err := getUserID(c)
+	if err != nil {
+		return err
+	}
+
+	if err := h.venueRepo.RemoveConfirmation(c.Context(), venueID, guideID, h.verificationPeriodDays); err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+				"error": "bu mekan için doğrulama kaydınız yok",
+			})
+		}
+		return fiber.ErrInternalServerError
+	}
+	return c.JSON(fiber.Map{"status": "unconfirmed"})
+}
+
 // PUT /api/v1/venues/:id/verify
 // Rehber kendi mekanının hâlâ helal olduğunu teyit eder.
 func (h *VenueHandler) Verify(c *fiber.Ctx) error {

@@ -41,12 +41,23 @@ type fakeGuideVenueLister struct {
 	venues []models.Venue
 	err    error
 
-	gotUserID string
+	// confirmed — FindConfirmedBy'ın döneceği liste; venues'tan ayrı tutulur ki
+	// "eklediklerim" ile "doğruladıklarım" karışmasın.
+	confirmed    []models.Venue
+	confirmedErr error
+
+	gotUserID          string
+	gotConfirmedUserID string
 }
 
 func (f *fakeGuideVenueLister) FindByAddedBy(_ context.Context, userID string) ([]models.Venue, error) {
 	f.gotUserID = userID
 	return f.venues, f.err
+}
+
+func (f *fakeGuideVenueLister) FindConfirmedBy(_ context.Context, guideID string) ([]models.Venue, error) {
+	f.gotConfirmedUserID = guideID
+	return f.confirmed, f.confirmedErr
 }
 
 // --- helper ---
@@ -65,6 +76,7 @@ func setupGuideApp(gs guideStore, vl guideVenueLister, userID, role string) *fib
 	})
 	app.Post("/guide/apply", h.Apply)
 	app.Get("/guide/my-venues", h.MyVenues)
+	app.Get("/guide/my-confirmations", h.MyConfirmations)
 	app.Get("/guide/my-application", h.MyApplication)
 	return app
 }

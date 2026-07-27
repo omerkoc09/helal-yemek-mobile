@@ -67,6 +67,9 @@ type Venue struct {
 	// bu kullanıcı mekanı içinde bulunulan dönemde doğrulamış mı? Anonim/diğer
 	// sorgularda nil kalır (omitempty ile JSON'a yazılmaz).
 	ConfirmedByMe    *bool           `json:"confirmed_by_me,omitempty"`
+	// ConfirmedAt — yalnızca "doğruladığım mekanlar" listesinde dolar: bu
+	// rehberin mekanı ne zaman doğruladığı. Diğer sorgularda nil kalır.
+	ConfirmedAt      *time.Time      `json:"confirmed_at,omitempty"`
 	CategoriesStr    *string         `json:"categories_str,omitempty"`
 	CreatedAt        time.Time       `json:"created_at"`
 	UpdatedAt        time.Time       `json:"updated_at"`

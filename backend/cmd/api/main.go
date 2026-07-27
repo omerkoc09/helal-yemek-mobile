@@ -280,6 +280,11 @@ func main() {
 		middleware.RequireRole("guide", "admin"),
 		venueHandler.ConfirmVenue,
 	)
+	api.Delete("/venues/:id/confirm",
+		middleware.Auth(cfg.JWTSecret),
+		middleware.RequireRole("guide", "admin"),
+		venueHandler.RemoveConfirmation,
+	)
 	api.Put("/venues/:id/verify",
 		middleware.Auth(cfg.JWTSecret),
 		middleware.RequireRole("guide", "admin"),
@@ -334,6 +339,10 @@ func main() {
 	guide.Get("/my-venues",
 		middleware.RequireRole("guide", "admin"),
 		guideHandler.MyVenues,
+	)
+	guide.Get("/my-confirmations",
+		middleware.RequireRole("guide", "admin"),
+		guideHandler.MyConfirmations,
 	)
 
 	// Admin endpoint'leri

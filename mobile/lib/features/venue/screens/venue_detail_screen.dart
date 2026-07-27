@@ -11,6 +11,7 @@ import '../../../shared/widgets/error_retry_widget.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/star_rating_widget.dart';
 import '../../favorites/providers/favorites_provider.dart';
+import '../../guide/providers/guide_provider.dart';
 import '../providers/direction_tracking_provider.dart';
 import '../providers/venue_detail_provider.dart';
 import '../widgets/add_review_sheet.dart';
@@ -203,14 +204,6 @@ class VenueDetailScreen extends ConsumerWidget {
                       ),
                       const SizedBox(height: 8),
                       VenueBadgeChip(badge: venue.badge, compact: false),
-                      const SizedBox(height: 4),
-                      Text(
-                        _trustSentence(venue.confirmationCount),
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: AppTheme.textSecondary,
-                        ),
-                      ),
                       const SizedBox(height: 8),
 
                       // Puan
@@ -234,9 +227,7 @@ class VenueDetailScreen extends ConsumerWidget {
                       // Adres
                       _InfoRow(
                         icon: Icons.location_on_outlined,
-                        text: venue.district != null && venue.district!.isNotEmpty
-                            ? '${venue.district}, ${venue.city}'
-                            : venue.city,
+                        text: venue.locationLabel,
                       ),
                       const SizedBox(height: 16),
 
@@ -444,14 +435,6 @@ class VenueDetailScreen extends ConsumerWidget {
     );
   }
 
-  /// Rozetin altında gösterilen güven cümlesi. Doğrulayan sayısına göre değişir;
-  /// tazelik burada tekrarlanmaz (mevcut "Son doğrulama" rozeti onu gösterir).
-  String _trustSentence(int confirmationCount) {
-    if (confirmationCount <= 0) {
-      return 'Bu mekan topluluğa açık, henüz doğrulanmadı.';
-    }
-    return '$confirmationCount yerel rehber güvenilir buldu.';
-  }
 }
 
 class _VenueCuisines extends StatelessWidget {
@@ -671,8 +654,13 @@ class _ConfirmVenueButton extends ConsumerStatefulWidget {
 
 class _ConfirmVenueButtonState extends ConsumerState<_ConfirmVenueButton> {
   bool _isLoading = false;
-  // Başarılı doğrulama sonrası, detay yeniden yüklenmeden önce butonu anında gizle.
-  bool _justConfirmed = false;
+
+  /// Sunucu yanıtı geldikten sonra, detay yeniden yüklenip `confirmedByMe`
+  /// tazelenene kadar butonu doğru yönde göstermek için tutulan yerel durum.
+  /// null = henüz bu ekranda bir işlem yapılmadı, widget.confirmedByMe geçerli.
+  bool? _localConfirmed;
+
+  bool get _confirmed => _localConfirmed ?? widget.confirmedByMe;
 
   Future<void> _confirmVenue() async {
     setState(() => _isLoading = true);
@@ -680,7 +668,7 @@ class _ConfirmVenueButtonState extends ConsumerState<_ConfirmVenueButton> {
       final api = ref.read(apiClientProvider);
       await api.post(ApiEndpoints.venueConfirm(widget.venueId));
       if (!mounted) return;
-      setState(() => _justConfirmed = true);
+      setState(() => _localConfirmed = true);
       ref.invalidate(venueDetailProvider(widget.venueId));
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -701,6 +689,58 @@ class _ConfirmVenueButtonState extends ConsumerState<_ConfirmVenueButton> {
     }
   }
 
+  Future<void> _revokeConfirmation() async {
+    final approved = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Doğrulamayı geri çek'),
+        content: const Text(
+          'Bu mekan için doğrulamanızı geri çekmek istediğinize emin misiniz? '
+          'Mekanın güven rozeti düşebilir.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Vazgeç'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: AppTheme.error),
+            child: const Text('Geri Çek'),
+          ),
+        ],
+      ),
+    );
+    if (approved != true || !mounted) return;
+
+    setState(() => _isLoading = true);
+    // Provider üzerinden gider: DELETE'e ek olarak "doğruladıklarım" ve
+    // "eklediklerim" listelerini de tazeler. MyVenuesScreen yalnızca
+    // initState'te yüklendiği için, detaydan geri dönüldüğünde liste aksi
+    // halde bayat kalırdı.
+    final ok = await ref
+        .read(myConfirmationsProvider.notifier)
+        .revokeConfirmation(widget.venueId);
+    if (!mounted) return;
+    setState(() {
+      _isLoading = false;
+      if (ok) _localConfirmed = false;
+    });
+    if (ok) {
+      ref.invalidate(venueDetailProvider(widget.venueId));
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          ok
+              ? 'Doğrulamanız geri çekildi.'
+              : 'Doğrulama geri çekilemedi. Lütfen tekrar deneyin.',
+        ),
+        backgroundColor: ok ? null : AppTheme.error,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
@@ -708,10 +748,58 @@ class _ConfirmVenueButtonState extends ConsumerState<_ConfirmVenueButton> {
     if (currentUserId == null ||
         authState.isTraveler ||
         currentUserId == widget.addedBy ||
-        widget.status != 'approved' ||
-        widget.confirmedByMe ||
-        _justConfirmed) {
+        widget.status != 'approved') {
       return const SizedBox.shrink();
+    }
+
+    // Doğrulanmışsa aynı yerde geri çekme aksiyonu gösterilir.
+    if (_confirmed) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.verified, size: 18, color: Colors.teal),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    'Bu mekanı doğruladınız.',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.teal.shade700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: _isLoading ? null : _revokeConfirmation,
+                icon: _isLoading
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.undo, size: 18),
+                label: const Text('Doğrulamayı Geri Çek'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppTheme.error,
+                  side: BorderSide(
+                    color: AppTheme.error.withValues(alpha: 0.5),
+                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
     }
 
     return Padding(

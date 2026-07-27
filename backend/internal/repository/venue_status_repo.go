@@ -266,6 +266,52 @@ func (r *VenueRepo) ConfirmVenue(ctx context.Context, venueID, guideID, guideCit
 	return tx.Commit(ctx)
 }
 
+// RemoveConfirmation — rehberin dönemsel doğrulamasını geri çeker.
+// ConfirmVenue'nün aynası: kayıt silinir ve confirmation_count aynı transaction
+// içinde taze pencereye göre yeniden hesaplanır (rozet anında düşer).
+//
+// verified_at / verification_due_at'e KASITLI OLARAK DOKUNULMAZ: geri çekme bir
+// güven sinyalidir, mekanı öldürme eylemi değil. Mekan canlı kalır, yalnızca
+// rozeti zayıflar. Rehber bu mekan için tazeleme (VerifyByGuide) yetkisini de
+// kaybeder — kayıt silindiği için oradaki EXISTS(...) dalı artık eşleşmez;
+// bu ayrıca kodlanmaz, silmenin doğal sonucudur.
+func (r *VenueRepo) RemoveConfirmation(ctx context.Context, venueID, guideID string, periodDays int) error {
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx) //nolint
+
+	result, err := tx.Exec(ctx,
+		`DELETE FROM venue_confirmations WHERE venue_id = $1 AND guide_id = $2`,
+		venueID, guideID,
+	)
+	if err != nil {
+		return fmt.Errorf("doğrulama kaydı silinemedi: %w", err)
+	}
+	if result.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+
+	var fresh int
+	if err := tx.QueryRow(ctx,
+		`SELECT COUNT(DISTINCT guide_id) FROM venue_confirmations
+		 WHERE venue_id = $1 AND created_at > NOW() - ($2 * INTERVAL '1 day')`,
+		venueID, periodDays,
+	).Scan(&fresh); err != nil {
+		return fmt.Errorf("taze sayı hesaplanamadı: %w", err)
+	}
+
+	if _, err := tx.Exec(ctx,
+		`UPDATE venues SET confirmation_count = $2, updated_at = NOW() WHERE id = $1`,
+		venueID, fresh,
+	); err != nil {
+		return fmt.Errorf("doğrulama sayısı güncellenemedi: %w", err)
+	}
+
+	return tx.Commit(ctx)
+}
+
 // FindDueForWarning — verilen gün sayısı içinde süresi dolacak ve henüz bugün bildirilmemiş mekanlar.
 // Her mekanın Recipients'ı ekleyen ∪ son periyottaki doğrulayanlarla doldurulur.
 func (r *VenueRepo) FindDueForWarning(ctx context.Context, withinDays, periodDays int) ([]*models.VenueForScheduler, error) {

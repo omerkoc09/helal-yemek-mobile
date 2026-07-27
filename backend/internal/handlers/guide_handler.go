@@ -17,9 +17,10 @@ type guideStore interface {
 	FindLatestByUserID(ctx context.Context, userID string) (*models.GuideApplication, error)
 }
 
-// guideVenueLister — GuideHandler'ın MyVenues için ihtiyaç duyduğu tek metot.
+// guideVenueLister — GuideHandler'ın mekan listeleri için ihtiyaç duyduğu metotlar.
 type guideVenueLister interface {
 	FindByAddedBy(ctx context.Context, userID string) ([]models.Venue, error)
+	FindConfirmedBy(ctx context.Context, guideID string) ([]models.Venue, error)
 }
 
 type GuideHandler struct {
@@ -83,6 +84,21 @@ func (h *GuideHandler) MyVenues(c *fiber.Ctx) error {
 		return err
 	}
 	venues, err := h.venueRepo.FindByAddedBy(c.Context(), userID)
+	if err != nil {
+		return fiber.ErrInternalServerError
+	}
+	return c.JSON(venues)
+}
+
+// GET /guide/my-confirmations — Rehberin doğruladığı mekanlar (doğrulama tarihiyle).
+// "Eklediklerim" ile ayrık bir listedir: ekleyen kişiye confirm akışı açılmadığı
+// için bir mekan normalde iki listede birden görünmez.
+func (h *GuideHandler) MyConfirmations(c *fiber.Ctx) error {
+	userID, err := getUserID(c)
+	if err != nil {
+		return err
+	}
+	venues, err := h.venueRepo.FindConfirmedBy(c.Context(), userID)
 	if err != nil {
 		return fiber.ErrInternalServerError
 	}

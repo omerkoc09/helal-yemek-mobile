@@ -475,6 +475,60 @@ final myVenuesProvider = NotifierProvider<MyVenuesNotifier, MyVenuesState>(
   MyVenuesNotifier.new,
 );
 
+// ─── My Confirmations ───
+//
+// Rehberin doğruladığı (confirm ettiği) mekanlar. Durum şekli "eklediklerim"
+// ile aynı olduğu için MyVenuesState yeniden kullanılır.
+
+class MyConfirmationsNotifier extends Notifier<MyVenuesState> {
+  @override
+  MyVenuesState build() => const MyVenuesState();
+
+  Future<void> fetchMyConfirmations() async {
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      final apiClient = ref.read(apiClientProvider);
+      final response = await apiClient.get(ApiEndpoints.guideMyConfirmations);
+
+      final data = response.data;
+      final List<dynamic> venueList = data is Map<String, dynamic>
+          ? (data['data'] as List? ?? [])
+          : (data as List? ?? []);
+
+      final venues = venueList
+          .map((json) => Venue.fromJson(json as Map<String, dynamic>))
+          .toList();
+
+      state = state.copyWith(venues: venues, isLoading: false);
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Doğruladığınız mekanlar yüklenemedi.',
+      );
+    }
+  }
+
+  /// Doğrulamayı geri çeker. Başarılıysa her iki liste de yenilenir: geri çekme
+  /// mekanın rozet sayısını düşürdüğü için "eklediklerim" kartları da etkilenir.
+  /// Hata durumunda çağıran tarafın mesaj gösterebilmesi için false döner.
+  Future<bool> revokeConfirmation(String venueId) async {
+    try {
+      final apiClient = ref.read(apiClientProvider);
+      await apiClient.delete(ApiEndpoints.venueConfirm(venueId));
+      await fetchMyConfirmations();
+      await ref.read(myVenuesProvider.notifier).fetchMyVenues();
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+}
+
+final myConfirmationsProvider =
+    NotifierProvider<MyConfirmationsNotifier, MyVenuesState>(
+  MyConfirmationsNotifier.new,
+);
+
 // ─── Edit Venue State ───
 
 class EditVenueState {

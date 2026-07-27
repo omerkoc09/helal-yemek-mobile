@@ -61,6 +61,7 @@ type venueStore interface {
 
 	// Onaylama / dönemsel doğrulama
 	ConfirmVenue(ctx context.Context, venueID, guideID, guideCity string, periodDays int) error
+	RemoveConfirmation(ctx context.Context, venueID, guideID string, periodDays int) error
 	HasConfirmed(ctx context.Context, venueID, guideID string) (bool, error)
 	VerifyByGuide(ctx context.Context, venueID, guideID string, periodDays int) error
 }

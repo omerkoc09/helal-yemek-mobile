@@ -31,6 +31,8 @@ abstract class Venue with _$Venue {
     @JsonKey(name: 'confirmation_count') @Default(0) int confirmationCount,
     Badge? badge,
     @JsonKey(name: 'confirmed_by_me') bool? confirmedByMe,
+    // Yalnızca "doğruladığım mekanlar" listesinde dolar.
+    @JsonKey(name: 'confirmed_at') DateTime? confirmedAt,
     double? distance,
     @JsonKey(name: 'categories_str') String? categoriesStr,
     @JsonKey(name: 'created_at') DateTime? createdAt,
@@ -44,6 +46,10 @@ abstract class Venue with _$Venue {
   bool get isApproved => status == 'approved';
   bool get isPending => status == 'pending';
   bool get isRejected => status == 'rejected';
+
+  /// Konum etiketi: ilçe varsa "İl / İlçe" (ör. "İstanbul / Fatih"), yoksa il.
+  String get locationLabel =>
+      district != null && district!.isNotEmpty ? '$city / $district' : city;
 }
 
 @freezed

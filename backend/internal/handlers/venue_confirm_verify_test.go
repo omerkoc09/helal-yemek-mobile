@@ -18,10 +18,11 @@ import (
 // burada yalnızca test edilen uçların kullandığı metotlar davranış taşır,
 // kalanlar arayüzü karşılamak için boş bırakıldı.
 type fakeVenueStore struct {
-	venue      *models.Venue
-	findErr    error
-	confirmErr error
-	verifyErr  error
+	venue            *models.Venue
+	findErr          error
+	confirmErr       error
+	verifyErr        error
+	removeConfirmErr error
 
 	gotVenueID   string
 	gotGuideID   string
@@ -47,6 +48,11 @@ func (f *fakeVenueStore) ConfirmVenue(_ context.Context, venueID, guideID, guide
 func (f *fakeVenueStore) VerifyByGuide(_ context.Context, venueID, guideID string, periodDays int) error {
 	f.gotVenueID, f.gotGuideID, f.gotPeriod = venueID, guideID, periodDays
 	return f.verifyErr
+}
+
+func (f *fakeVenueStore) RemoveConfirmation(_ context.Context, venueID, guideID string, periodDays int) error {
+	f.gotVenueID, f.gotGuideID, f.gotPeriod = venueID, guideID, periodDays
+	return f.removeConfirmErr
 }
 
 func (f *fakeVenueStore) FindByGooglePlaceID(_ context.Context, _ string) (*models.Venue, error) {

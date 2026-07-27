@@ -20,84 +20,186 @@ class _MyVenuesScreenState extends ConsumerState<MyVenuesScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(myVenuesProvider.notifier).fetchMyVenues();
+      _refresh();
     });
+  }
+
+  Future<void> _refresh() async {
+    await Future.wait([
+      ref.read(myVenuesProvider.notifier).fetchMyVenues(),
+      ref.read(myConfirmationsProvider.notifier).fetchMyConfirmations(),
+    ]);
   }
 
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(myVenuesProvider);
+    final added = ref.watch(myVenuesProvider);
+    final confirmed = ref.watch(myConfirmationsProvider);
 
     return Scaffold(
-      body: _buildBody(state),
+      body: _buildBody(added, confirmed),
     );
   }
 
-  Widget _buildBody(MyVenuesState state) {
-    if (state.isLoading && state.venues.isEmpty) {
+  Widget _buildBody(MyVenuesState added, MyVenuesState confirmed) {
+    final isEmpty = added.venues.isEmpty && confirmed.venues.isEmpty;
+
+    // İlk yükleme: her iki liste de boşken tek bir gösterge yeterli.
+    if ((added.isLoading || confirmed.isLoading) && isEmpty) {
       return const LoadingIndicator();
     }
 
-    if (state.error != null && state.venues.isEmpty) {
+    // Hata yalnızca gösterilecek hiçbir şey yokken tam ekran olur; aksi halde
+    // eldeki listeyi göstermeye devam ederiz.
+    if (added.error != null && confirmed.error != null && isEmpty) {
       return ErrorRetryWidget(
-        message: state.error!,
-        onRetry: () => ref.read(myVenuesProvider.notifier).fetchMyVenues(),
+        message: added.error!,
+        onRetry: _refresh,
       );
     }
 
-    if (state.venues.isEmpty) {
-      return _buildEmptyState();
+    if (isEmpty) {
+      return RefreshIndicator(
+        onRefresh: _refresh,
+        child: _buildOverallEmptyState(),
+      );
     }
 
     return RefreshIndicator(
-      onRefresh: () => ref.read(myVenuesProvider.notifier).fetchMyVenues(),
-      child: ListView.builder(
-        padding: const EdgeInsets.only(
-          top: 8,
-          bottom: 8 + AppTheme.bottomNavClearance,
-        ),
-        itemCount: state.venues.length,
-        itemBuilder: (context, index) {
-          return _MyVenueCard(venue: state.venues[index]);
-        },
+      onRefresh: _refresh,
+      child: CustomScrollView(
+        slivers: [
+          _SectionHeader(
+            title: 'Eklediğim Mekanlar',
+            count: added.venues.length,
+            topPadding: 16,
+          ),
+          if (added.venues.isEmpty)
+            const _SectionEmpty(message: 'Henüz mekan eklemediniz.')
+          else
+            SliverList.builder(
+              itemCount: added.venues.length,
+              itemBuilder: (context, index) => _MyVenueCard(
+                venue: added.venues[index],
+                trailing: _EditButton(venue: added.venues[index]),
+              ),
+            ),
+          _SectionHeader(
+            title: 'Doğruladığım Mekanlar',
+            count: confirmed.venues.length,
+            topPadding: 24,
+          ),
+          if (confirmed.venues.isEmpty)
+            const _SectionEmpty(
+              message: 'Henüz bir mekan doğrulamadınız.',
+            )
+          else
+            SliverList.builder(
+              itemCount: confirmed.venues.length,
+              itemBuilder: (context, index) {
+                final venue = confirmed.venues[index];
+                return _MyVenueCard(
+                  venue: venue,
+                  showStatusBadge: false,
+                  subtitle: venue.confirmedAt != null
+                      ? '${_formatDate(venue.confirmedAt!)} tarihinde doğruladınız'
+                      : null,
+                );
+              },
+            ),
+          const SliverToBoxAdapter(
+            child: SizedBox(height: 8 + AppTheme.bottomNavClearance),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildEmptyState() {
-    return Center(
+  Widget _buildOverallEmptyState() {
+    return ListView(
+      padding: const EdgeInsets.all(32),
+      children: [
+        const SizedBox(height: 64),
+        Icon(
+          Icons.store_outlined,
+          size: 80,
+          color: AppTheme.textSecondary.withValues(alpha: 0.4),
+        ),
+        const SizedBox(height: 16),
+        const Text(
+          'Henüz mekan eklemediniz',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 8),
+        const Text(
+          'Güvenilir mekanları keşfeden diğer gezginlere yardımcı olmak için mekan ekleyin.',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: AppTheme.textSecondary,
+            height: 1.5,
+          ),
+        ),
+        const SizedBox(height: 24),
+        Center(
+          child: ElevatedButton.icon(
+            onPressed: () => context.push('/add-venue'),
+            icon: const Icon(Icons.add),
+            label: const Text('Mekan Ekle'),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+String _formatDate(DateTime date) {
+  return '${date.day.toString().padLeft(2, '0')}.${date.month.toString().padLeft(2, '0')}.${date.year}';
+}
+
+class _SectionHeader extends StatelessWidget {
+  final String title;
+  final int count;
+  final double topPadding;
+
+  const _SectionHeader({
+    required this.title,
+    required this.count,
+    required this.topPadding,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SliverToBoxAdapter(
       child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+        padding: EdgeInsets.fromLTRB(16, topPadding, 16, 8),
+        child: Row(
           children: [
-            Icon(
-              Icons.store_outlined,
-              size: 80,
-              color: AppTheme.textSecondary.withValues(alpha: 0.4),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Henüz mekan eklemediniz',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
               ),
             ),
-            const SizedBox(height: 8),
-            const Text(
-              'Güvenilir mekanları keşfeden diğer gezginlere yardımcı olmak için mekan ekleyin.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: AppTheme.textSecondary,
-                height: 1.5,
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: AppTheme.textSecondary.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(10),
               ),
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton.icon(
-              onPressed: () => context.push('/add-venue'),
-              icon: const Icon(Icons.add),
-              label: const Text('Mekan Ekle'),
+              child: Text(
+                '$count',
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.textSecondary,
+                ),
+              ),
             ),
           ],
         ),
@@ -106,10 +208,44 @@ class _MyVenuesScreenState extends ConsumerState<MyVenuesScreen> {
   }
 }
 
+class _SectionEmpty extends StatelessWidget {
+  final String message;
+
+  const _SectionEmpty({required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    return SliverToBoxAdapter(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+        child: Text(
+          message,
+          style: const TextStyle(
+            fontSize: 13,
+            color: AppTheme.textSecondary,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Her iki bölümde de kullanılan ortak mekan kartı. Bölüme özgü aksiyon
+/// [trailing] ile verilir (doğrulanan mekanlarda yoktur — geri çekme yalnızca
+/// mekan detay ekranındadır); doğrulanan kartta statü rozeti yerine [subtitle]
+/// (doğrulama tarihi) gösterilir.
 class _MyVenueCard extends StatelessWidget {
   final Venue venue;
+  final Widget? trailing;
+  final bool showStatusBadge;
+  final String? subtitle;
 
-  const _MyVenueCard({required this.venue});
+  const _MyVenueCard({
+    required this.venue,
+    this.trailing,
+    this.showStatusBadge = true,
+    this.subtitle,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -136,7 +272,7 @@ class _MyVenueCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  _StatusBadge(status: venue.status),
+                  if (showStatusBadge) _StatusBadge(status: venue.status),
                 ],
               ),
               const SizedBox(height: 8),
@@ -150,7 +286,9 @@ class _MyVenueCard extends StatelessWidget {
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(
-                      venue.district != null && venue.district!.isNotEmpty ? '${venue.district}, ${venue.city}' : venue.city,
+                      venue.district != null && venue.district!.isNotEmpty
+                          ? '${venue.district}, ${venue.city}'
+                          : venue.city,
                       style: const TextStyle(
                         fontSize: 13,
                         color: AppTheme.textSecondary,
@@ -192,25 +330,30 @@ class _MyVenueCard extends StatelessWidget {
               const SizedBox(height: 12),
               Row(
                 children: [
-                  if (venue.createdAt != null)
-                    Text(
-                      _formatDate(venue.createdAt!),
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: AppTheme.textSecondary,
+                  if (subtitle != null)
+                    Expanded(
+                      child: Text(
+                        subtitle!,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppTheme.textSecondary,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                    ),
-                  const Spacer(),
-                  TextButton.icon(
-                    onPressed: () =>
-                        context.push('/venue/${venue.id}/edit'),
-                    icon: const Icon(Icons.edit_outlined, size: 16),
-                    label: const Text('Düzenle'),
-                    style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      textStyle: const TextStyle(fontSize: 13),
-                    ),
-                  ),
+                    )
+                  else ...[
+                    if (venue.createdAt != null)
+                      Text(
+                        _formatDate(venue.createdAt!),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppTheme.textSecondary,
+                        ),
+                      ),
+                    const Spacer(),
+                  ],
+                  ?trailing,
                 ],
               ),
             ],
@@ -219,11 +362,27 @@ class _MyVenueCard extends StatelessWidget {
       ),
     );
   }
+}
 
-  String _formatDate(DateTime date) {
-    return '${date.day.toString().padLeft(2, '0')}.${date.month.toString().padLeft(2, '0')}.${date.year}';
+class _EditButton extends StatelessWidget {
+  final Venue venue;
+
+  const _EditButton({required this.venue});
+
+  @override
+  Widget build(BuildContext context) {
+    return TextButton.icon(
+      onPressed: () => context.push('/venue/${venue.id}/edit'),
+      icon: const Icon(Icons.edit_outlined, size: 16),
+      label: const Text('Düzenle'),
+      style: TextButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        textStyle: const TextStyle(fontSize: 13),
+      ),
+    );
   }
 }
+
 
 class _StatusBadge extends StatelessWidget {
   final String status;
