@@ -3,11 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
-import 'package:caiz_mi/core/api/api_client.dart';
-import 'package:caiz_mi/core/api/api_endpoints.dart';
-import 'package:caiz_mi/core/auth/auth_provider.dart';
-import 'package:caiz_mi/core/auth/token_storage.dart';
-import 'package:caiz_mi/core/models/user.dart';
+import 'package:itimat/core/api/api_client.dart';
+import 'package:itimat/core/api/api_endpoints.dart';
+import 'package:itimat/core/auth/auth_provider.dart';
+import 'package:itimat/core/auth/token_storage.dart';
+import 'package:itimat/core/models/user.dart';
 
 class MockApiClient extends Mock implements ApiClient {}
 

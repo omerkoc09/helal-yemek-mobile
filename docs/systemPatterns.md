@@ -1,4 +1,4 @@
-# Caiz mi? — Sistem Mimarisi ve Tasarım Desenleri
+# İtimat — Sistem Mimarisi ve Tasarım Desenleri
 
 ## Sistem Mimarisi Genel Bakış
 

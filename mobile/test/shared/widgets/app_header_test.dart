@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:caiz_mi/core/auth/auth_provider.dart';
-import 'package:caiz_mi/features/notifications/providers/notification_provider.dart';
-import 'package:caiz_mi/shared/widgets/app_header.dart';
+import 'package:itimat/core/auth/auth_provider.dart';
+import 'package:itimat/features/notifications/providers/notification_provider.dart';
+import 'package:itimat/shared/widgets/app_header.dart';
 
 class _FakeAuthNotifier extends AuthNotifier {
   final bool _isAuth;

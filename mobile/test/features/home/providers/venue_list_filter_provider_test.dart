@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:caiz_mi/core/models/venue.dart';
-import 'package:caiz_mi/features/home/providers/venue_filter_provider.dart';
-import 'package:caiz_mi/features/home/providers/venue_list_filter_provider.dart';
+import 'package:itimat/core/models/venue.dart';
+import 'package:itimat/features/home/providers/venue_filter_provider.dart';
+import 'package:itimat/features/home/providers/venue_list_filter_provider.dart';
 
 Venue _v({
   required String id,

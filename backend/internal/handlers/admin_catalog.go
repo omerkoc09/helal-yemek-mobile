@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/omerkoc/caiz-mi/internal/repository"
+	"github.com/omerkoc/itimat-mobile/internal/repository"
 )
 
 // GET /admin/food-categories

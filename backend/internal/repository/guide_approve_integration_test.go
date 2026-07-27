@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/omerkoc/caiz-mi/internal/repository"
+	"github.com/omerkoc/itimat-mobile/internal/repository"
 )
 
 func nowNano() int64 { return time.Now().UnixNano() }

@@ -7,7 +7,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/omerkoc/caiz-mi/internal/repository"
+	"github.com/omerkoc/itimat-mobile/internal/repository"
 )
 
 // TestCreateTrustCriteriaAppearsInList — admin panelinden eklenen bir kriterin

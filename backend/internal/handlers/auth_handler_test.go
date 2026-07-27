@@ -12,8 +12,8 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 
-	"github.com/omerkoc/caiz-mi/internal/models"
-	jwtpkg "github.com/omerkoc/caiz-mi/pkg/jwt"
+	"github.com/omerkoc/itimat-mobile/internal/models"
+	jwtpkg "github.com/omerkoc/itimat-mobile/pkg/jwt"
 )
 
 // --- fakeAuthService ---

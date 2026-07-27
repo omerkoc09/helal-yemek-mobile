@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/omerkoc/caiz-mi/internal/models"
+	"github.com/omerkoc/itimat-mobile/internal/models"
 )
 
 type VenueReportRepo struct {

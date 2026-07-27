@@ -4,7 +4,7 @@ import (
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
-	jwtpkg "github.com/omerkoc/caiz-mi/pkg/jwt"
+	jwtpkg "github.com/omerkoc/itimat-mobile/pkg/jwt"
 )
 
 // Auth — Bearer token'ı doğrular, geçerliyse user bilgilerini context'e yazar.

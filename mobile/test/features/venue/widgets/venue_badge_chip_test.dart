@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart' hide Badge;
 import 'package:flutter_test/flutter_test.dart';
-import 'package:caiz_mi/core/models/venue.dart';
-import 'package:caiz_mi/features/venue/widgets/venue_badge_chip.dart';
+import 'package:itimat/core/models/venue.dart';
+import 'package:itimat/features/venue/widgets/venue_badge_chip.dart';
 
 void main() {
   testWidgets('compact: ekleyen dahil toplam sayıyı gösterir (count+1)', (tester) async {

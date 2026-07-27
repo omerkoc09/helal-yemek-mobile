@@ -3,9 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
-import 'package:caiz_mi/core/models/notification_model.dart';
-import 'package:caiz_mi/features/notifications/providers/notification_provider.dart';
-import 'package:caiz_mi/features/notifications/screens/notifications_screen.dart';
+import 'package:itimat/core/models/notification_model.dart';
+import 'package:itimat/features/notifications/providers/notification_provider.dart';
+import 'package:itimat/features/notifications/screens/notifications_screen.dart';
 
 // initState'deki fetchNotifications çağrısını durdurmak için no-op notifier.
 class _FakeNotificationNotifier extends NotificationNotifier {

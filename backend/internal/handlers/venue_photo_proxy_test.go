@@ -6,7 +6,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 
-	"github.com/omerkoc/caiz-mi/internal/services"
+	"github.com/omerkoc/itimat-mobile/internal/services"
 )
 
 func setupPhotoProxyApp(places *services.PlacesService) *fiber.App {

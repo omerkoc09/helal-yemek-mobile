@@ -1,4 +1,4 @@
-# Caiz mi? — Teknoloji Bağlamı
+# İtimat — Teknoloji Bağlamı
 
 ## Teknoloji Yığını
 
@@ -50,7 +50,7 @@ flutter run
 
 ### Proje Dizin Yapısı
 ```
-caiz-mi-backend/
+itimat-mobile-backend/
 ├── cmd/
 │   └── api/main.go                 # Application entry point
 ├── internal/

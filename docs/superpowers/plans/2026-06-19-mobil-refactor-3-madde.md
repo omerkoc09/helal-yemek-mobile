@@ -238,7 +238,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/omerkoc/caiz-mi/internal/repository"
+	"github.com/omerkoc/itimat-mobile/internal/repository"
 )
 
 // insertNamedUser — verilen ad/soyad ile traveler ekler, id döner.
@@ -331,7 +331,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/omerkoc/caiz-mi/internal/models"
+	"github.com/omerkoc/itimat-mobile/internal/models"
 )
 ```
 
@@ -486,7 +486,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/omerkoc/caiz-mi/internal/repository"
+	"github.com/omerkoc/itimat-mobile/internal/repository"
 )
 
 func TestCancelOpenByUserID_CancelsPendingAndApproved(t *testing.T) {

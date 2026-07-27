@@ -78,7 +78,7 @@ func Load() *Config {
 		SMTPPort:     getEnv("SMTP_PORT", "587"),
 		SMTPUser:     os.Getenv("SMTP_USER"),
 		SMTPPassword: os.Getenv("SMTP_PASSWORD"),
-		SMTPFrom:     getEnv("SMTP_FROM", "Caiz mi? <noreply@caizmi.com>"),
+		SMTPFrom:     getEnv("SMTP_FROM", "İtimat <noreply@caizmi.com>"),
 
 		VerificationPeriodDays:  getEnvInt("VERIFICATION_PERIOD_DAYS", 180),
 		VerificationWarningDays: getEnvInt("VERIFICATION_WARNING_DAYS", 14),

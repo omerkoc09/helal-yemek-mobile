@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:caiz_mi/features/venue/widgets/verify_button_visibility.dart';
+import 'package:itimat/features/venue/widgets/verify_button_visibility.dart';
 
 void main() {
   group('shouldShowVerifyButton', () {

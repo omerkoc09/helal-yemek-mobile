@@ -6,7 +6,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/omerkoc/caiz-mi/internal/repository"
+	"github.com/omerkoc/itimat-mobile/internal/repository"
 )
 
 func TestGetGuideCity(t *testing.T) {

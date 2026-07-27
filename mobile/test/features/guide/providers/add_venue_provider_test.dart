@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:caiz_mi/features/guide/providers/guide_provider.dart';
+import 'package:itimat/features/guide/providers/guide_provider.dart';
 
 // AddVenueNotifier'ın saf state/wizard mantığı — konum ya da API gerektirmeyen
 // tüm yollar burada test edilir. Mekan ekleme sihirbazının ilerleme kapıları ve

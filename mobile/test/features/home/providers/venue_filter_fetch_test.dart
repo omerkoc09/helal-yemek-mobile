@@ -4,10 +4,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:mocktail/mocktail.dart';
 
-import 'package:caiz_mi/core/api/api_client.dart';
-import 'package:caiz_mi/core/auth/auth_provider.dart';
-import 'package:caiz_mi/core/utils/location_service.dart';
-import 'package:caiz_mi/features/home/providers/venue_filter_provider.dart';
+import 'package:itimat/core/api/api_client.dart';
+import 'package:itimat/core/auth/auth_provider.dart';
+import 'package:itimat/core/utils/location_service.dart';
+import 'package:itimat/features/home/providers/venue_filter_provider.dart';
 
 class MockApiClient extends Mock implements ApiClient {}
 

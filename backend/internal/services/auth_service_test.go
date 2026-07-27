@@ -10,9 +10,9 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/api/idtoken"
 
-	"github.com/omerkoc/caiz-mi/internal/models"
-	"github.com/omerkoc/caiz-mi/internal/repository"
-	jwtpkg "github.com/omerkoc/caiz-mi/pkg/jwt"
+	"github.com/omerkoc/itimat-mobile/internal/models"
+	"github.com/omerkoc/itimat-mobile/internal/repository"
+	jwtpkg "github.com/omerkoc/itimat-mobile/pkg/jwt"
 )
 
 const testSecret = "test-secret-en-az-32-karakter-uzunlugunda"

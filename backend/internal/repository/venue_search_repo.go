@@ -7,7 +7,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	"github.com/omerkoc/caiz-mi/internal/models"
+	"github.com/omerkoc/itimat-mobile/internal/models"
 )
 
 // FindNearby — PostGIS ST_DWithin ile yakındaki onaylı mekanları döndürür.

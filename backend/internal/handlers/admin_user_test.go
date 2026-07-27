@@ -10,8 +10,8 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"golang.org/x/crypto/bcrypt"
 
-	"github.com/omerkoc/caiz-mi/internal/models"
-	"github.com/omerkoc/caiz-mi/internal/repository"
+	"github.com/omerkoc/itimat-mobile/internal/models"
+	"github.com/omerkoc/itimat-mobile/internal/repository"
 )
 
 // --- kullanıcı yönetimi için genişletilmiş fake'ler ---

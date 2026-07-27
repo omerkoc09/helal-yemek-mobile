@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/omerkoc/caiz-mi/internal/models"
+	"github.com/omerkoc/itimat-mobile/internal/models"
 )
 
 // Approve — mekanı onaylar ve ilk doğrulama süresini başlatır.

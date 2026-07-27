@@ -1,6 +1,6 @@
 package services
 
-import "github.com/omerkoc/caiz-mi/internal/models"
+import "github.com/omerkoc/itimat-mobile/internal/models"
 
 // CheckCityAllowed — rehberin şehri (guideCity) ile mekanın şehrini (venueCity)
 // karşılaştırır. resolved, mekanın 81 il içinde çözülen kanonik ilidir (allowed=false

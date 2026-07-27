@@ -130,7 +130,7 @@ func followRedirects(raw string, maxRedirects int) (string, error) {
 			return current, nil
 		}
 		// Bot benzeri istekleri engelleyen sunucular için tarayıcı UA'sı.
-		req.Header.Set("User-Agent", "Mozilla/5.0 (compatible; CaizBot/1.0)")
+		req.Header.Set("User-Agent", "Mozilla/5.0 (compatible; ItimatBot/1.0)")
 
 		resp, err := mapsLinkClient.Do(req)
 		if err != nil {

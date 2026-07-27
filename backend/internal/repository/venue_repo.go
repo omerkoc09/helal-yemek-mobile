@@ -10,7 +10,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/omerkoc/caiz-mi/internal/models"
+	"github.com/omerkoc/itimat-mobile/internal/models"
 )
 
 // URLResolver — depolanan dosya anahtarını istemcinin erişebileceği tam URL'e

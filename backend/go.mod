@@ -1,4 +1,4 @@
-module github.com/omerkoc/caiz-mi
+module github.com/omerkoc/itimat-mobile
 
 go 1.25.0
 

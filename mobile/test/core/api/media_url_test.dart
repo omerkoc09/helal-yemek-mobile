@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:caiz_mi/core/api/api_endpoints.dart';
-import 'package:caiz_mi/core/api/media_url.dart';
+import 'package:itimat/core/api/api_endpoints.dart';
+import 'package:itimat/core/api/media_url.dart';
 
 void main() {
   group('resolveMediaUrl', () {

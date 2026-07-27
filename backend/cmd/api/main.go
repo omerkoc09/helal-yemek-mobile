@@ -14,13 +14,13 @@ import (
 	fiberlogger "github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 
-	"github.com/omerkoc/caiz-mi/internal/config"
-	"github.com/omerkoc/caiz-mi/internal/database"
-	"github.com/omerkoc/caiz-mi/internal/handlers"
-	"github.com/omerkoc/caiz-mi/internal/logging"
-	"github.com/omerkoc/caiz-mi/internal/middleware"
-	"github.com/omerkoc/caiz-mi/internal/repository"
-	"github.com/omerkoc/caiz-mi/internal/services"
+	"github.com/omerkoc/itimat-mobile/internal/config"
+	"github.com/omerkoc/itimat-mobile/internal/database"
+	"github.com/omerkoc/itimat-mobile/internal/handlers"
+	"github.com/omerkoc/itimat-mobile/internal/logging"
+	"github.com/omerkoc/itimat-mobile/internal/middleware"
+	"github.com/omerkoc/itimat-mobile/internal/repository"
+	"github.com/omerkoc/itimat-mobile/internal/services"
 )
 
 // shutdownTimeout — kapanış sinyalinden sonra açık isteklere tanınan süre.
@@ -127,7 +127,7 @@ func main() {
 
 	// Fiber uygulaması
 	app := fiber.New(fiber.Config{
-		AppName:   "Caiz mi? API v1",
+		AppName:   "İtimat API v1",
 		BodyLimit: 10 * 1024 * 1024, // 10 MB (fotoğraf yükleme için)
 	})
 
@@ -169,7 +169,7 @@ func main() {
 	app.Get("/health", func(c *fiber.Ctx) error {
 		return c.JSON(fiber.Map{
 			"status":  "ok",
-			"service": "caiz-mi-api",
+			"service": "itimat-api",
 		})
 	})
 
@@ -185,13 +185,13 @@ func main() {
 			log.Printf("readiness başarısız: %v", err)
 			return c.Status(fiber.StatusServiceUnavailable).JSON(fiber.Map{
 				"status":   "unavailable",
-				"service":  "caiz-mi-api",
+				"service":  "itimat-api",
 				"database": "unreachable",
 			})
 		}
 		return c.JSON(fiber.Map{
 			"status":   "ready",
-			"service":  "caiz-mi-api",
+			"service":  "itimat-api",
 			"database": "ok",
 		})
 	})

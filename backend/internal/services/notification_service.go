@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/omerkoc/caiz-mi/internal/models"
-	"github.com/omerkoc/caiz-mi/internal/repository"
+	"github.com/omerkoc/itimat-mobile/internal/models"
+	"github.com/omerkoc/itimat-mobile/internal/repository"
 )
 
 type NotificationService struct {
@@ -60,7 +60,7 @@ func warningEmailHTML(guideName, venueName string) string {
 <p>Mekanın hâlâ helal kriterlerini karşıladığını uygulamadan teyit etmenizi rica ederiz.</p>
 <p>Doğrulamayı yapmazsanız mekan 14 gün sonra askıya alınacaktır.</p>
 <p>Uygulamayı açın → Mekan Detayı → Doğrula</p>
-<br><p>— Caiz mi? ekibi</p>
+<br><p>— İtimat ekibi</p>
 </body></html>`, guideName, venueName)
 }
 
@@ -70,6 +70,6 @@ func suspensionEmailHTML(guideName, venueName string) string {
 <p><strong>"%s"</strong> mekanı doğrulama yapılmadığı için <strong>askıya alınmıştır</strong>.</p>
 <p>Mekan artık diğer kullanıcılara gösterilmemektedir.</p>
 <p>Uygulamayı açıp doğrulamayı tamamlarsanız mekan otomatik olarak yeniden aktif olur.</p>
-<br><p>— Caiz mi? ekibi</p>
+<br><p>— İtimat ekibi</p>
 </body></html>`, guideName, venueName)
 }

@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:caiz_mi/core/utils/google_maps_parser.dart';
+import 'package:itimat/core/utils/google_maps_parser.dart';
 
 // google_maps_parser saf parsing mantığını test eder. Kısa link çözümleme
 // (redirect) ağ gerektirdiği için burada test edilmez; tüm girdiler zaten tam

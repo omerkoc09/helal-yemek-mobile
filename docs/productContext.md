@@ -1,4 +1,4 @@
-# Caiz mi? — Ürün Bağlamı
+# İtimat — Ürün Bağlamı
 
 ## Konumlandırma
 

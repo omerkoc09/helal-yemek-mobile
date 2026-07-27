@@ -4,8 +4,8 @@ import (
 	"errors"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/omerkoc/caiz-mi/internal/models"
-	"github.com/omerkoc/caiz-mi/internal/repository"
+	"github.com/omerkoc/itimat-mobile/internal/models"
+	"github.com/omerkoc/itimat-mobile/internal/repository"
 )
 
 // canViewUnapproved — onaylı olmayan bir mekanın detayını görme yetkisi.

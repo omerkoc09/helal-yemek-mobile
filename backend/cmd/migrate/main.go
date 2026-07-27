@@ -3,8 +3,8 @@ package main
 import (
 	"log"
 
-	"github.com/omerkoc/caiz-mi/internal/config"
-	"github.com/omerkoc/caiz-mi/internal/database"
+	"github.com/omerkoc/itimat-mobile/internal/config"
+	"github.com/omerkoc/itimat-mobile/internal/database"
 )
 
 func main() {

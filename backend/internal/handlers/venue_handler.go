@@ -3,9 +3,9 @@ package handlers
 import (
 	"context"
 
-	"github.com/omerkoc/caiz-mi/internal/models"
-	"github.com/omerkoc/caiz-mi/internal/repository"
-	"github.com/omerkoc/caiz-mi/internal/services"
+	"github.com/omerkoc/itimat-mobile/internal/models"
+	"github.com/omerkoc/itimat-mobile/internal/repository"
+	"github.com/omerkoc/itimat-mobile/internal/services"
 )
 
 // guideCityGetter — VenueHandler'ın guide_city sorgusunda ihtiyaç duyduğu minimal arayüz.

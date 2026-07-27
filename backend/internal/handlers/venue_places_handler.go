@@ -4,7 +4,7 @@ import (
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/omerkoc/caiz-mi/internal/services"
+	"github.com/omerkoc/itimat-mobile/internal/services"
 )
 
 func (h *VenueHandler) PlacePreview(c *fiber.Ctx) error {

@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/omerkoc/caiz-mi/internal/repository"
+	"github.com/omerkoc/itimat-mobile/internal/repository"
 )
 
 // insertNamedUser — verilen ad/soyad ile traveler ekler, id döner.

@@ -11,17 +11,17 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('tr', null);
   await GoogleSignIn.instance.initialize();
-  runApp(const ProviderScope(child: CaizMiApp()));
+  runApp(const ProviderScope(child: ItimatApp()));
 }
 
-class CaizMiApp extends ConsumerStatefulWidget {
-  const CaizMiApp({super.key});
+class ItimatApp extends ConsumerStatefulWidget {
+  const ItimatApp({super.key});
 
   @override
-  ConsumerState<CaizMiApp> createState() => _CaizMiAppState();
+  ConsumerState<ItimatApp> createState() => _ItimatAppState();
 }
 
-class _CaizMiAppState extends ConsumerState<CaizMiApp> {
+class _ItimatAppState extends ConsumerState<ItimatApp> {
   @override
   void initState() {
     super.initState();
@@ -42,7 +42,7 @@ class _CaizMiAppState extends ConsumerState<CaizMiApp> {
     });
 
     return MaterialApp.router(
-      title: 'Caiz mi?',
+      title: 'İtimat',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       routerConfig: router,

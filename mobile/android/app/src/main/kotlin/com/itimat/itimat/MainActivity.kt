@@ -1,4 +1,4 @@
-package com.caizmi.caiz_mi
+package com.itimat.itimat
 
 import io.flutter.embedding.android.FlutterActivity
 

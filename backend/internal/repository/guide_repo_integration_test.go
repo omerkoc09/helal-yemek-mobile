@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/omerkoc/caiz-mi/internal/repository"
+	"github.com/omerkoc/itimat-mobile/internal/repository"
 )
 
 // insertTraveler — role='traveler' ile bir test kullanıcısı ekler ve ID döndürür.

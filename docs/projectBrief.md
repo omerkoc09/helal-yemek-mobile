@@ -1,9 +1,9 @@
-# Caiz mi? - Proje Raporu
+# İtimat - Proje Raporu
 
 
 ## 1. Yönetici Özeti
 
-**Caiz mi?**, Müslüman seyyahların seyahat ettikleri şehirlerde helal gıda sunan mekanları kolayca bulmalarını sağlayan bir mobil uygulamadır. Uygulama; rehberler (gönüllüler), seyyahlar ve yöneticilerden oluşan üç katmanlı bir kullanıcı yapısına sahiptir. Rehberler mekanları ekler ve doğrular, seyyahlar mekanları keşfeder ve değerlendirir, yöneticiler ise içerik moderasyonunu gerçekleştirir.
+**İtimat**, Müslüman seyyahların seyahat ettikleri şehirlerde helal gıda sunan mekanları kolayca bulmalarını sağlayan bir mobil uygulamadır. Uygulama; rehberler (gönüllüler), seyyahlar ve yöneticilerden oluşan üç katmanlı bir kullanıcı yapısına sahiptir. Rehberler mekanları ekler ve doğrular, seyyahlar mekanları keşfeder ve değerlendirir, yöneticiler ise içerik moderasyonunu gerçekleştirir.
 
 Proje, **Flutter** (mobil) ve **Go** (backend) teknolojileri üzerine inşa edilmiştir. Konum tabanlı arama için **PostGIS** destekli PostgreSQL veritabanı kullanılmaktadır.
 
@@ -13,7 +13,7 @@ Proje, **Flutter** (mobil) ve **Go** (backend) teknolojileri üzerine inşa edil
 
 - **Bilgi eksikliği:** Yeni bir şehirde hangi restoranların helal yemek sunduğu bilinmemektedir.
 - **Dağınık bilgi:** Helal mekan bilgileri sosyal medya grupları, ve ağızdan ağıza iletişim gibi dağınık kaynaklarda bulunmaktadır.
-**Caiz mi?**, bu sorunları topluluk destekli doğrulama mekanizması ve konum tabanlı akıllı arama ile çözmeyi hedeflemektedir.
+**İtimat**, bu sorunları topluluk destekli doğrulama mekanizması ve konum tabanlı akıllı arama ile çözmeyi hedeflemektedir.
 
 ---
 

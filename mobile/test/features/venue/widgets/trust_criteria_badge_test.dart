@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart' hide Badge;
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:caiz_mi/core/models/venue.dart';
-import 'package:caiz_mi/features/venue/widgets/trust_criteria_badge.dart';
+import 'package:itimat/core/models/venue.dart';
+import 'package:itimat/features/venue/widgets/trust_criteria_badge.dart';
 
 void main() {
   const seedKeys = [
