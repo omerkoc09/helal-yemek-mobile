@@ -1,83 +1,49 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../guide/providers/guide_provider.dart';
 import '../../venue/widgets/venue_card.dart';
 import '../providers/food_discovery_provider.dart';
 
+/// Bir mutfak kategorisindeki mekanları listeler. Ekrana her zaman kategori
+/// seçilmiş olarak girilir (ana sayfadaki grid ve slider önce
+/// [FoodDiscoveryNotifier.selectCategory] çağırır), bu yüzden ekranın kendi
+/// kategori ızgarası yoktur: geri gidince ana sayfaya dönülür.
 class FoodDiscoveryScreen extends ConsumerWidget {
   const FoodDiscoveryScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(foodDiscoveryProvider);
-    final notifier = ref.read(foodDiscoveryProvider.notifier);
 
+    // Sistem geri hareketi (Android tuşu / iOS kaydırma) da ana sayfaya
+    // gitmeli: ekrana context.go ile gelindiği için pop edilecek bir sayfa yok.
     return PopScope(
-      canPop: state.selectedCategoryId == null,
+      canPop: false,
       onPopInvokedWithResult: (didPop, _) {
-        if (!didPop && state.selectedCategoryId != null) {
-          notifier.clearSelection();
-        }
+        if (!didPop) _backToHome(context, ref);
       },
       child: Scaffold(
-        body: state.selectedCategoryId == null
-            ? _buildCategoryGrid(ref)
-            : _buildVenueList(state, notifier),
+        body: Column(
+          children: [
+            _CategoryHeader(
+              label: state.selectedCategoryLabel ?? '',
+              onBack: () => _backToHome(context, ref),
+            ),
+            Expanded(child: _buildVenueListBody(state)),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildCategoryGrid(WidgetRef ref) {
-    final categoriesAsync = ref.watch(foodCategoriesProvider);
-    final notifier = ref.read(foodDiscoveryProvider.notifier);
-
-    return categoriesAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (_, _) => const Center(
-        child: Text(
-          'Kategoriler yüklenemedi.',
-          style: TextStyle(color: AppTheme.textSecondary),
-        ),
-      ),
-      data: (categories) {
-        return GridView.builder(
-          padding: const EdgeInsets.fromLTRB(
-            16, 16, 16, 16 + AppTheme.bottomNavClearance,
-          ),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-            childAspectRatio: 1.6,
-          ),
-          itemCount: categories.length,
-          itemBuilder: (context, index) {
-            final category = categories[index];
-            return _CategoryCard(
-              label: category.name,
-              categoryKey: category.key,
-              imageUrl: category.imageUrl,
-              onTap: () =>
-                  notifier.selectCategory(category.id, category.name),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Widget _buildVenueList(FoodDiscoveryState state, FoodDiscoveryNotifier notifier) {
-    return Column(
-      children: [
-        _CategoryHeader(
-          label: state.selectedCategoryLabel ?? '',
-          onBack: notifier.clearSelection,
-        ),
-        Expanded(child: _buildVenueListBody(state)),
-      ],
-    );
+  /// Seçimi temizleyip ana sayfaya döner. Temizlik önemli: aksi halde ekrana
+  /// tekrar girildiğinde bir önceki kategorinin sonuçları anlık görünürdü.
+  void _backToHome(BuildContext context, WidgetRef ref) {
+    ref.read(foodDiscoveryProvider.notifier).clearSelection();
+    context.go(AppRoutes.home);
   }
 
   Widget _buildVenueListBody(FoodDiscoveryState state) {
@@ -156,88 +122,6 @@ class _CategoryHeader extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _CategoryCard extends StatelessWidget {
-  final String label;
-  final String categoryKey;
-  final String? imageUrl;
-  final VoidCallback onTap;
-
-  const _CategoryCard({
-    required this.label,
-    required this.categoryKey,
-    this.imageUrl,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(16),
-      child: GestureDetector(
-        onTap: onTap,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            _categoryImage(),
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.bottomCenter,
-                    end: Alignment.topCenter,
-                    colors: [
-                      Colors.black.withValues(alpha: 0.65),
-                      Colors.transparent,
-                    ],
-                  ),
-                ),
-                child: Text(
-                  label,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _categoryImage() {
-    Widget assetFallback() => Image.asset(
-      'assets/images/categories/$categoryKey.png',
-      fit: BoxFit.cover,
-      errorBuilder: (_, _, _) => Container(
-        color: AppTheme.primary.withValues(alpha: 0.1),
-        child: const Icon(
-          Icons.restaurant_menu,
-          color: AppTheme.primary,
-          size: 32,
-        ),
-      ),
-    );
-
-    if (imageUrl == null || imageUrl!.isEmpty) return assetFallback();
-
-    return Image.network(
-      imageUrl!,
-      fit: BoxFit.cover,
-      errorBuilder: (_, _, _) => assetFallback(),
     );
   }
 }
