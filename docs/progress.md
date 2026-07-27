@@ -1018,7 +1018,7 @@ kullanıcıda.
 
 ## Güvenilirlik Konumlandırması & Mutfak Sadeleştirmesi (2026-07-26)
 
-Bir dizi ürün kararı `main`'e uygulandı (hepsi lokal, henüz push edilmedi):
+Bir dizi ürün kararı `main`'e uygulandı:
 
 | İş | Özet | Durum |
 |----|------|-------|
@@ -1043,3 +1043,85 @@ Mekan detay ekranında iki UI iyileştirmesi `main`'e uygulandı (lokal, henüz 
 | Güven kriteri rozetleri | Daha önce son kullanıcıdan gizlenen kriterler artık amblem rozet olarak gösteriliyor: dairesel çerçeve + kritere özel Material ikon + kısa etiket; tek satır, sığmazsa yatay kaydırma; tıklayınca açıklama dialogu. 7 seed kritere özel ikon/renk, admin-ekli bilinmeyen key'lere deterministik renkli fallback. Yeni `trust_criteria_badge.dart`; ölü `trust_criteria_chip.dart` silindi | ✅ |
 
 **Doğrulama:** `flutter analyze` temiz; 3 yeni widget testi (`trust_criteria_badge_test.dart`) geçiyor; golden render ile tek-satır düzeni + renkler görsel teyit edildi. API/model değişikliği yok (`trust_criteria` zaten dönüyordu). Spec: `docs/superpowers/specs/2026-07-27-venue-detail-cuisine-trust-design.md`.
+
+---
+
+## Pending Görünürlüğü Düzeltmesi + Düzenleme-Sonrası-Onay Özelliğinin Kaldırılması (2026-07-27)
+
+### 1. Bulgu: `pending` statüsü hiçbir şeyi gizlemiyordu
+
+"Rehber mekanı güncelleyince mekan tekrar admin onayına düşsün, onaylanana kadar uygulamada görünmesin" kuralı çalışmıyordu. Kök neden `ResetToPending` **değildi**; asıl sorun `pending` statüsünün okuma yolunda hiçbir şeyi gizlememesiydi:
+
+| Okuma yolu | Eski davranış | Durum |
+|---|---|---|
+| `FindNearby` (harita/yakındakiler) | `status IN ('approved','pending')` — pending görünüyordu | ❌ → ✅ `= 'approved'` |
+| `SearchByText` (arama) | `status IN ('approved','pending')` — pending görünüyordu | ❌ → ✅ `= 'approved'` |
+| `Detail` (`GET /venues/:id`) | Statü kontrolü **yoktu**; her statü 200 dönüyordu | ❌ → ✅ onaylı değilse 404 |
+| `FindByCity` / `FindPopular` / `FindNearbyApproved` / `FindByFoodCategory` | Zaten `= 'approved'` | ✅ değişmedi |
+
+| İş | Özet | Durum |
+|----|------|-------|
+| Liste sorguları | `FindNearby` + `SearchByText` yalnızca `approved` döner; anlamsızlaşan `ORDER BY CASE WHEN status='approved'` dalları sadeleştirildi | ✅ |
+| Detay ucu koruması | Onaylı olmayan mekan (pending/rejected/suspended) 404. İstisna `canViewUnapproved`: **admin** her statüyü, **ekleyen rehber** kendi mekanını görebilir — `my-venues` → detay akışı korunur (`FindByAddedBy` statüden bağımsız) | ✅ |
+
+**Etki:** Yeni eklenen mekanlar artık admin onayına kadar uygulamada görünmez (önceki davranış: pending'ler listede en sonda gösteriliyordu). Bu, "onaylanmadan görünmesin" kuralının bilinçli sonucudur.
+
+### 2. Karar: "Düzenleme sonrası tekrar onaya gönder" özelliği kaldırıldı
+
+Yukarıdaki bulguyu takiben özelliğin kendisi **tamamen kaldırıldı** (ürün kararı). Sebebi: yeni mekanlar zaten `pending` doğuyor (`003_create_venues.up.sql` DEFAULT), `ResetToPending` ise yalnızca `status = 'approved'` satırını güncelliyordu ve hatası `_ =` ile yutuluyordu. Yani hiç onaylanmamış bir mekan düzenlendiğinde sessizce hiçbir şey olmuyordu. Yarım çalışan mekanizmayı onarmak yerine kaldırmak tercih edildi; **artık `PUT /venues/:id` mekanın statüsünü hiç değiştirmez.**
+
+| İş | Özet | Durum |
+|----|------|-------|
+| `ResetToPending` kaldırıldı | Repo metodu (`venue_status_repo.go`), `venueStore` arayüz satırı, handler çağrısı ve test fake'i silindi — ölü kod bırakılmadı | ✅ |
+| Mobil uyarı bandı kaldırıldı | Düzenleme ekranındaki "tekrar admin onayına gönderilecektir" bilgi kutusu silindi; başarı mesajı "Mekan güncellendi." olarak sadeleşti | ✅ |
+| Şehir alanı salt-okunur | Düzenlemede şehir `enabled: false` (gri); artık PUT gövdesinde `city` gönderilmiyor; sahipsiz kalan `EditVenueNotifier.setCity` silindi | ✅ |
+| Notlar ikonu hizası | `maxLines: 3` alanda dikeyde ortalanan `prefixIcon` üste sabitlendi (`prefixIconConstraints` + `Padding`), ikon `note_outlined`→`notes_outlined` | ✅ |
+
+**Doğrulama:** `venue_detail_status_test.go` (3 test / 5 alt-vaka): pending+rejected+suspended anonim ve yabancı rehber için 404; approved herkese 200; pending ekleyen rehbere ve admine 200. Testlerin gerçekten hatayı yakaladığı, düzeltme `git stash`'lenerek doğrulandı (fix'siz: "404 beklendi, 200 alındı"). `go build ./...` + `go vet ./...` + `go vet -tags=integration ./internal/repository/` temiz, tüm backend testleri yeşil; `flutter analyze` düzenlenen dosyalarda yeni uyarı üretmiyor (6→5 pre-existing lint), `flutter test` 161 test geçiyor.
+
+---
+
+## Doğruladığım Mekanlar + Doğrulamayı Geri Çekme (2026-07-27)
+
+Mekanlarım sayfası ikiye bölündü ve rehberler doğrulamalarını geri çekebiliyor. Spec: `docs/superpowers/specs/2026-07-27-dogruladigim-mekanlar-geri-cekme-design.md` (gitignore, diskte).
+
+**Kavramsal not — Confirm ≠ Verify.** Kodda iki ayrı işlem "doğrulama" adıyla anılıyor; bu iş **Confirm** ile ilgilidir:
+
+| İşlem | Endpoint | Ne yapar |
+|---|---|---|
+| **Confirm** (destekleme) | `POST/DELETE /venues/:id/confirm` | `venue_confirmations` kaydı → **rozeti** besler |
+| **Verify** (dönem tazeleme) | `PUT /venues/:id/verify` | `verification_due_at` ileri → mekanı **canlı** tutar |
+
+Ekleyen kişinin otomatik `venue_confirmations` kaydı **yoktur** (`Create` tabloya yazmaz); Verify için de gerekmez (`added_by` yetiyor). Mobil UI ekleyene Confirm butonunu göstermiyor (`venue_detail_screen.dart:692`), bu yüzden iki liste pratikte ayrıktır.
+
+| İş | Özet | Durum |
+|----|------|-------|
+| `GET /guide/my-confirmations` | `FindConfirmedBy` — rehberin doğruladığı mekanlar, `vc.created_at` → `confirmed_at` ile; en yeni önce. Taze/eski ayrımı yok | ✅ |
+| `DELETE /venues/:id/confirm` | `RemoveConfirmation` — `ConfirmVenue`'nün aynası: tek tx'te kayıt silinir + `confirmation_count` taze pencereye göre yeniden hesaplanır | ✅ |
+| Yetki modeli | `guideID` **token'dan** alınır (path'ten değil) → rehber yalnızca kendi kaydını silebilir; kaydı yoksa 404 | ✅ |
+| Mekanlarım ekranı | `CustomScrollView` + iki sliver bölüm ("Eklediğim Mekanlar" / "Doğruladığım Mekanlar"), başlıkta sayı; ortak `_MyVenueCard` opsiyonel `trailing` ile; doğrulanan kartta statü rozeti yerine doğrulama tarihi, aksiyon **yok** (salt liste) | ✅ |
+| Geri çekme aksiyonu | **Yalnızca mekan detay ekranında.** `_ConfirmVenueButton` iki durumlu hale geldi: doğrulanmamışsa "Doğruluyorum", doğrulanmışsa "Bu mekanı doğruladınız" + "Doğrulamayı Geri Çek". Yerel `_localConfirmed` (tri-state) sunucu yanıtı ile detay tazelenmesi arasındaki boşlukta butonu doğru yönde tutar | ✅ |
+| Geri çekme akışı | Onay dialogu → `myConfirmationsProvider.revokeConfirmation` → DELETE + **her iki liste** yenilenir (rozet düştüğü için "eklediklerim" de etkilenir) + `venueDetailProvider` invalidate → snackbar. Detay ekranı API'yi doğrudan çağırmaz: `MyVenuesScreen` yalnızca `initState`'te yüklendiği için, provider üzerinden gitmek detaydan geri dönüldüğünde listenin bayat kalmasını önler | ✅ |
+| Migration | **Gerekmedi** — `venue_confirmations` PK'si zaten `(venue_id, guide_id)` | ✅ |
+
+**Kasıtlı davranış:** Geri çekme `verified_at` / `verification_due_at`'e **dokunmaz** — bu bir güven sinyalidir, mekanı öldürme eylemi değil. Mekan canlı kalır, yalnızca rozeti zayıflar. Rehber o mekan için tazeleme (`VerifyByGuide`) yetkisini de kaybeder; ayrıca kodlanmadı, kayıt silinince `EXISTS(...)` dalı eşleşmediği için doğal sonuç. Geri çekilen doğrulama tekrar yapılabilir (kalıcı ceza değil).
+
+**Kabul edilen risk:** Mekanı ayakta tutan tek doğrulayan geri çekerse tazeleme yalnızca ekleyene kalır; ekleyen pasifse mekan dönem sonunda suspend olabilir. Bilinçli karar.
+
+**Doğrulama:** 5 yeni integration testi (testcontainers, gerçek PostGIS): sayaç düşüyor, kayıt siliniyor, **`verification_due_at`/`verified_at` değişmiyor** (en kritik regresyon koruması — `verification_due_at = NOW()` enjekte edilerek testin gerçekten yakaladığı doğrulandı), yabancı silemiyor (404), tekrar confirm edilebiliyor, liste doğru sırada ve geri çekince düşüyor. 4 yeni handler testi (token'dan guideID, 404, 401, liste ucu). 5 yeni mobil provider testi. Tüm suite'ler yeşil: backend `go test ./...` + `go test -tags=integration ./internal/repository/`, mobil `flutter test` 166 test (161→166), `flutter analyze` yeni uyarı yok (26 pre-existing).
+
+---
+
+## Fix: Mutfak Kategorisinden Geri Dönüş Ana Sayfaya (2026-07-27)
+
+**Sorun:** Ana sayfadan bir mutfağa girip geri basınca ana sayfa yerine tam ekran bir kategori ızgarası açılıyordu.
+
+**Bulgu:** `FoodDiscoveryScreen` iki modluydu — `selectedCategoryId == null` ise kategori ızgarası, doluysa mekan listesi. Geri tuşu `clearSelection()` çağırıp ekranı ızgara moduna düşürüyordu. Ancak ekrana **her zaman kategori seçilmiş olarak** giriliyor (`CategoryGrid` ve `CategorySlider` önce `selectCategory` çağırıp sonra `context.go`), yani ızgara modu yalnızca geri basınca görülebilen, giriş noktası olmayan bir ekrandı.
+
+| İş | Özet | Durum |
+|----|------|-------|
+| Izgara modu kaldırıldı | `FoodDiscoveryScreen` tek modlu: yalnızca mekan listesi. Kullanılmayan `_CategoryCard` (82 satır) ve `foodCategoriesProvider` importu silindi | ✅ |
+| Geri → ana sayfa | Hem başlıktaki geri oku hem sistem geri hareketi (`PopScope`) `clearSelection()` + `context.go(AppRoutes.home)` yapıyor. Seçim temizliği önemli: aksi halde ekrana tekrar girildiğinde önceki kategorinin sonuçları anlık görünürdü | ✅ |
+| `category_grid.dart` silindi | `CategoryGrid` widget'ı hiçbir yerden kullanılmıyordu (ana sayfada yalnızca `CategorySlider` var). Slider ayrı dosya ve kendi private sınıflarını kullandığı için etkilenmedi | ✅ |
+
+**Doğrulama:** `flutter analyze` 26 issue — değişiklik öncesiyle aynı taban, dokunulan/silinen dosyalarda uyarı yok (silme sonrası sayının artmaması hiçbir şeyin `CategoryGrid`'e bağlı olmadığını doğruluyor). `flutter test` 166 test geçiyor.
