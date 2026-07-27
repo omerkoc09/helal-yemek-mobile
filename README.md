@@ -1,9 +1,9 @@
-# Helal Yemek Platformu
+# İtimat - Güvenilir Restoran Bulma Rehberi
 
 
 ## 1. Yönetici Özeti
 
-**Helal Yemek**, Müslüman seyyahların seyahat ettikleri şehirlerde güvenilir, temiz helal gıda sunan mekanları kolayca bulmalarını sağlayan bir mobil uygulamadır. Uygulama; rehberler (gönüllüler), seyyahlar ve yöneticilerden oluşan üç katmanlı bir kullanıcı yapısına sahiptir. Rehberler mekanları ekler ve doğrular, seyyahlar mekanları keşfeder ve değerlendirir, yöneticiler ise içerik moderasyonunu gerçekleştirir.
+**İtimat**, kullanıcıların seyahat ettikleri şehirlerde güvenilir, temiz helal gıda sunan mekanları kolayca bulmalarını sağlayan bir mobil uygulamadır. Uygulama; rehberler (gönüllüler), ve seyyahlardan oluşan bir kullanıcı yapısına sahiptir. Rehberler mekanları ekler ve doğrular, seyyahlar mekanları keşfeder ve değerlendirir.
 
 Proje, **Flutter** (mobil) ve **Go** (backend) teknolojileri üzerine inşa edilmiştir. Konum tabanlı arama için **PostGIS** destekli PostgreSQL veritabanı kullanılmaktadır.
 
@@ -11,9 +11,9 @@ Proje, **Flutter** (mobil) ve **Go** (backend) teknolojileri üzerine inşa edil
 
 ## 2. Problem Tanımı ve Motivasyon
 
-- **Bilgi eksikliği:** Yeni bir şehirde hangi restoranların helal yemek sunduğu bilinmemektedir.
-- **Dağınık bilgi:** Helal mekan bilgileri sosyal medya grupları, ve ağızdan ağıza iletişim gibi dağınık kaynaklarda bulunmaktadır.
-**Caiz mi?**, bu sorunları topluluk destekli doğrulama mekanizması ve konum tabanlı akıllı arama ile çözmeyi hedeflemektedir.
+- **Bilgi eksikliği:** Yeni bir şehirde hangi restoranların güvenilir olduğu bilinmemektedir.
+- **Dağınık bilgi:**  Mekan bilgileri sosyal medya grupları, ve ağızdan ağıza iletişim gibi dağınık kaynaklarda bulunmaktadır.
+**İtimat**, bu sorunları topluluk destekli doğrulama mekanizması ve konum tabanlı akıllı arama ile çözmeyi hedeflemektedir.
 
 ---
 
@@ -21,8 +21,8 @@ Proje, **Flutter** (mobil) ve **Go** (backend) teknolojileri üzerine inşa edil
 
 | Segment | Açıklama |
 |---------|----------|
-| **Seyyahlar** | Seyahat eden ve helal mekan Müslüman kullanıcılar |
-| **Rehberler** | Yaşadıkları şehirdeki helal mekanları bilen ve gönüllü olarak ekleyen kullanıcılar |
+| **Seyyahlar** | Seyahat eden ve güvenilir mekan arayan kullanıcılar |
+| **Rehberler** | Yaşadıkları şehirdeki mekanları bilen ve gönüllü olarak ekleyen kullanıcılar |
 
 ---
 
@@ -68,7 +68,6 @@ Proje, **Flutter** (mobil) ve **Go** (backend) teknolojileri üzerine inşa edil
 - Kişisel favori listesi
 
 ### 4.8 Düzeltme
-- Rehberler mevcut mekanların konum bilgilerini değiştirse mekan pending durumuna düşer
 - Yönetici onay/ret iş akışı
 
 ### 4.9 Rehber Başvuru Sistemi
@@ -149,23 +148,6 @@ Proje, **Flutter** (mobil) ve **Go** (backend) teknolojileri üzerine inşa edil
 | **PostGIS** | Coğrafi veri desteği |
 | **S3 uyumlu depolama** | Fotoğraf saklama |
 
-### 6.3 Veritabanı Tasarımı
-
-Veritabanı 12 ana tablodan oluşmaktadır:
-
-- **users** — Kullanıcı bilgileri ve roller
-- **venues** — Mekan bilgileri (PostGIS GEOGRAPHY konum verisi)
-- **reviews** — Kullanıcı değerlendirmeleri
-- **favorites** — Favori mekanlar
-- **halal_criteria** — Helal kriterleri (referans tablo)
-- **venue_criteria** — Mekan-kriter ilişkisi (M:N)
-- **venue_photos** — Mekan fotoğrafları
-- **food_categories** — Yemek kategorileri
-- **food_items** — Yemek kalemleri
-- **guide_applications** — Rehber başvuruları
-- **correction_suggestions** — Düzeltme önerileri
-- **audit_logs** — Denetim günlüğü
-- **venue_confirmations** — Çift doğrulama takibi
 
 Konum tabanlı sorgulamalar için **PostGIS** kullanılmakta, `ST_DWithin()` ve `ST_Distance()` fonksiyonları ile yarıçap bazlı mekan araması yapılmaktadır.
 
@@ -188,4 +170,3 @@ Konum tabanlı sorgulamalar için **PostGIS** kullanılmakta, `ST_DWithin()` ve 
 
 ---
 
-*Bu rapor, projenin mevcut durumunu ve teknik detaylarını özetlemek amacıyla hazırlanmıştır.*
