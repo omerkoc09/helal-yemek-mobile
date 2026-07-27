@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/omerkoc/caiz-mi/internal/models"
 	"github.com/omerkoc/caiz-mi/internal/repository"
 )
 
@@ -152,6 +153,61 @@ func TestFindByGooglePlaceID(t *testing.T) {
 // TestConfirmVenue_AdderCanConfirm — ownerless doğrulama: mekanı ekleyen kişi
 // artık kendi mekanını doğrulayabilmeli ve confirmation_count türetilmiş
 // (FreshConfirmationCount ile senkron) olmalı.
+// TestFindNearbyIncludesRating — harita listesi (FindNearby) puan/yorum sayısını
+// döndürmeli: yorum yoksa 0.0 / 0, yorum varsa ortalama.
+func TestFindNearbyIncludesRating(t *testing.T) {
+	truncate(t)
+	ctx := context.Background()
+	repo := repository.NewVenueRepo(testPool)
+
+	adder := insertGuideInCity(t, "İstanbul")
+	venueID := insertVenueInCity(t, adder, "İstanbul", nil)
+
+	// İlçe ata: harita sheet'i "İl / İlçe" göstermek için district'i de bekler.
+	if _, err := testPool.Exec(ctx,
+		`UPDATE venues SET district = 'Fatih' WHERE id = $1`, venueID,
+	); err != nil {
+		t.Fatalf("district güncellenemedi: %v", err)
+	}
+
+	// İki yorum: 4 ve 5 → ortalama 4.5, sayı 2.
+	for _, rating := range []int{4, 5} {
+		reviewer := insertGuideInCity(t, "İstanbul")
+		if _, err := testPool.Exec(ctx,
+			`INSERT INTO reviews (venue_id, user_id, rating) VALUES ($1, $2, $3)`,
+			venueID, reviewer, rating,
+		); err != nil {
+			t.Fatalf("yorum eklenemedi: %v", err)
+		}
+	}
+
+	// Mekan (29.0, 41.0); aynı noktadan geniş yarıçapla ara.
+	venues, err := repo.FindNearby(ctx, 41.0, 29.0, 5000)
+	if err != nil {
+		t.Fatalf("FindNearby hata: %v", err)
+	}
+
+	var found *models.Venue
+	for i := range venues {
+		if venues[i].ID == venueID {
+			found = &venues[i]
+			break
+		}
+	}
+	if found == nil {
+		t.Fatalf("mekan yakın listede yok")
+	}
+	if found.AverageRating == nil || *found.AverageRating != 4.5 {
+		t.Errorf("AverageRating = %v, want 4.5", found.AverageRating)
+	}
+	if found.ReviewCount != 2 {
+		t.Errorf("ReviewCount = %d, want 2", found.ReviewCount)
+	}
+	if found.District == nil || *found.District != "Fatih" {
+		t.Errorf("District = %v, want Fatih", found.District)
+	}
+}
+
 func TestConfirmVenue_AdderCanConfirm(t *testing.T) {
 	truncate(t)
 	ctx := context.Background()

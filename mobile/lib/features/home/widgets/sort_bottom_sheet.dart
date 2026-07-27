@@ -35,6 +35,8 @@ class _SortBottomSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SafeArea(
+      // Alt boşluk bottomNavClearance ile veriliyor; SafeArea alt inset'i eklemesin.
+      bottom: false,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -60,20 +62,21 @@ class _SortBottomSheet extends StatelessWidget {
             ),
           ),
           const Divider(height: 1),
-          _option(context, VenueSortOption.alphabetical, 'Alfabetik (A→Z)'),
-          _option(context, VenueSortOption.rating, 'Puana göre (yüksekten düşüğe)'),
+          _option(context, VenueSortOption.alphabetical, 'Alfabetik'),
+          _option(context, VenueSortOption.rating, 'Puana göre'),
           _option(
             context,
             VenueSortOption.distance,
-            'Yakınlığa göre (yakından uzağa)',
+            'Yakınlığa göre',
             disabled: !locationAvailable,
           ),
           _option(
             context,
             VenueSortOption.reviewCount,
-            'Değerlendirme sayısına göre (çoktan aza)',
+            'Değerlendirme sayısına göre',
           ),
-          const SizedBox(height: 8),
+          // Yüzen alt navigasyonun son maddeyi örtmemesi için boşluk bırak.
+          const SizedBox(height: AppTheme.bottomNavClearance + 24),
         ],
       ),
     );

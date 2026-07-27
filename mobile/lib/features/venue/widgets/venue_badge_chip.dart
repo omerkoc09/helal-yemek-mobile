@@ -27,13 +27,16 @@ class VenueBadgeChip extends StatelessWidget {
     final total = b.count + 1;
 
     if (compact) {
+      // Belirgin, sarı harici zemin: doğrulama rozetini öne çıkarır.
+      const bg = Color(0xFF2E7D32); // koyu yeşil (güven/onay tonu)
       return Chip(
         visualDensity: VisualDensity.compact,
         materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        backgroundColor: _medalColor.withValues(alpha: 0.15),
-        avatar: const Icon(Icons.workspace_premium, size: 16, color: _medalColor),
+        backgroundColor: bg,
+        side: BorderSide.none,
+        avatar: const Icon(Icons.workspace_premium, size: 16, color: Colors.white),
         label: Text('$total',
-            style: const TextStyle(color: _medalColor, fontWeight: FontWeight.bold)),
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
       );
     }
 

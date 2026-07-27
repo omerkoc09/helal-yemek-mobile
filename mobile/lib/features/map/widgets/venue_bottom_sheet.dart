@@ -8,7 +8,6 @@ import '../../../core/utils/map_launcher.dart';
 import '../../../shared/widgets/star_rating_widget.dart';
 import '../../venue/providers/direction_tracking_provider.dart';
 import '../../venue/widgets/venue_badge_chip.dart';
-import '../../venue/widgets/venue_status_badge.dart';
 
 void showVenueBottomSheet(BuildContext context, Venue venue) {
   showModalBottomSheet(
@@ -80,7 +79,7 @@ class _VenueBottomSheetContent extends ConsumerWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      venue.district != null && venue.district!.isNotEmpty ? venue.district! : venue.city,
+                      venue.locationLabel,
                       style: const TextStyle(
                         fontSize: 13,
                         color: AppTheme.textSecondary,
@@ -90,20 +89,7 @@ class _VenueBottomSheetContent extends ConsumerWidget {
                     ),
                     const SizedBox(height: 6),
                     if (venue.avgRating != null)
-                      Row(
-                        children: [
-                          StarRatingWidget(
-                              rating: venue.avgRating!, size: 16),
-                          const SizedBox(width: 4),
-                          Text(
-                            '${venue.avgRating!.toStringAsFixed(1)} (${venue.reviewCount})',
-                            style: const TextStyle(
-                              fontSize: 13,
-                              color: AppTheme.textSecondary,
-                            ),
-                          ),
-                        ],
-                      ),
+                      StarRatingWidget(rating: venue.avgRating!, size: 16),
                   ],
                 ),
               ),
@@ -111,14 +97,8 @@ class _VenueBottomSheetContent extends ConsumerWidget {
           ),
           const SizedBox(height: 10),
 
-          // Statü badge + rozet
-          Row(
-            children: [
-              VenueStatusBadge(status: venue.status),
-              const SizedBox(width: 8),
-              VenueBadgeChip(badge: venue.badge, compact: true),
-            ],
-          ),
+          // Doğrulama rozeti (güven kriterleri yalnızca detay sayfasında)
+          VenueBadgeChip(badge: venue.badge, compact: true),
           const SizedBox(height: 12),
 
           // Butonlar
