@@ -15,7 +15,7 @@ import (
 func (r *VenueRepo) FindNearby(ctx context.Context, lat, lng, radiusMeters float64) ([]models.Venue, error) {
 	query := `
 		SELECT
-			v.id, v.name, v.city,
+			v.id, v.name, v.city, v.district,
 			ST_Y(v.location::geometry) AS latitude,
 			ST_X(v.location::geometry) AS longitude,
 			v.google_place_id,
@@ -23,12 +23,16 @@ func (r *VenueRepo) FindNearby(ctx context.Context, lat, lng, radiusMeters float
 			v.added_by, v.verified_at,
 			v.created_at, v.updated_at,
 			ST_Distance(v.location, ST_MakePoint($2, $1)::geography) AS distance,
-			v.confirmation_count
+			v.confirmation_count,
+			COALESCE(AVG(rv.rating), 0)::float8 AS avg_rating,
+			COUNT(rv.id)::int AS review_count
 		FROM venues v
-		WHERE v.status IN ('approved', 'pending')
+		LEFT JOIN reviews rv ON rv.venue_id = v.id
+		WHERE v.status = 'approved'
 		  AND v.deleted_at IS NULL
 		  AND ST_DWithin(v.location, ST_MakePoint($2, $1)::geography, $3)
-		ORDER BY CASE WHEN v.status = 'approved' THEN 0 ELSE 1 END, distance
+		GROUP BY v.id
+		ORDER BY distance
 		LIMIT 100`
 
 	rows, err := r.db.Query(ctx, query, lat, lng, radiusMeters)
@@ -46,7 +50,9 @@ func escapeILIKE(s string) string {
 	return r.Replace(s)
 }
 
-// SearchByText — mekan adı, şehir veya adres içinde serbest metin araması yapar.
+// SearchByText — mekan adı veya şehir içinde serbest metin araması yapar.
+// Yalnızca onaylı mekanlar döner: yeni eklenen mekanlar `pending` doğduğu için
+// admin onaylayana kadar aramada görünmez.
 func (r *VenueRepo) SearchByText(ctx context.Context, query string) ([]models.Venue, error) {
 	query = escapeILIKE(query)
 	q := `
@@ -59,13 +65,13 @@ func (r *VenueRepo) SearchByText(ctx context.Context, query string) ([]models.Ve
 			v.added_by, v.verified_at,
 			v.created_at, v.updated_at
 		FROM venues v
-		WHERE v.status IN ('approved', 'pending')
+		WHERE v.status = 'approved'
 		  AND v.deleted_at IS NULL
 		  AND (
 		    v.name ILIKE '%' || $1 || '%'
 		    OR v.city ILIKE '%' || $1 || '%'
 		  )
-		ORDER BY CASE WHEN v.status = 'approved' THEN 0 ELSE 1 END, v.name
+		ORDER BY v.name
 		LIMIT 50`
 
 	rows, err := r.db.Query(ctx, q, query)
@@ -150,6 +156,69 @@ func (r *VenueRepo) FindByAddedBy(ctx context.Context, userID string) ([]models.
 	}
 	defer rows.Close()
 	return r.scanVenueRowsWithPhotos(ctx, rows, false)
+}
+
+// FindConfirmedBy — rehberin doğruladığı (confirm ettiği) tüm mekanları, kendi
+// doğrulama tarihiyle birlikte döndürür. Taze/eski ayrımı yapılmaz: kayıt
+// silinmediği sürece (rehber doğrulamasını geri çekmediği sürece) listede kalır.
+// ConfirmedAt sütunu ortak scanVenueRows sırasına girmediği için tarama burada.
+func (r *VenueRepo) FindConfirmedBy(ctx context.Context, guideID string) ([]models.Venue, error) {
+	rows, err := r.db.Query(ctx,
+		`SELECT v.id, v.name, v.city,
+		        ST_Y(v.location::geometry) AS latitude,
+		        ST_X(v.location::geometry) AS longitude,
+		        v.google_place_id,
+		        v.notes, v.status,
+		        v.added_by, v.verified_at,
+		        v.created_at, v.updated_at,
+		        v.confirmation_count,
+		        vc.created_at AS confirmed_at
+		 FROM venues v
+		 JOIN venue_confirmations vc ON vc.venue_id = v.id
+		 WHERE vc.guide_id = $1
+		   AND v.deleted_at IS NULL
+		 ORDER BY vc.created_at DESC`,
+		guideID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("doğrulanan mekanlar sorgusu başarısız: %w", err)
+	}
+	defer rows.Close()
+
+	var venues []models.Venue
+	for rows.Next() {
+		v := models.Venue{}
+		if err := rows.Scan(
+			&v.ID, &v.Name, &v.City,
+			&v.Latitude, &v.Longitude,
+			&v.GooglePlaceID,
+			&v.Notes, &v.Status,
+			&v.AddedBy, &v.VerifiedAt,
+			&v.CreatedAt, &v.UpdatedAt,
+			&v.ConfirmationCount,
+			&v.ConfirmedAt,
+		); err != nil {
+			return nil, err
+		}
+		v.TrustCriteria = []models.TrustCriteria{}
+		v.Photos = []models.VenuePhoto{}
+		venues = append(venues, v)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	if venues == nil {
+		return []models.Venue{}, nil
+	}
+
+	for i := range venues {
+		photos, err := r.GetPhotosByVenueID(ctx, venues[i].ID)
+		if err != nil {
+			return nil, err
+		}
+		venues[i].Photos = photos
+	}
+	return venues, nil
 }
 
 // FindAll — admin için tüm mekanları döndürür (tüm durumlar dahil).
@@ -408,15 +477,15 @@ func (r *VenueRepo) FindPopular(ctx context.Context, lat, lng, radiusMeters floa
 }
 
 // scanVenueRowsNearbyWithPhotos — FindNearby sorgusundan dönen satırları tarar.
-// Sütun sırası: id, name, city, lat, lng, google_place_id,
+// Sütun sırası: id, name, city, district, lat, lng, google_place_id,
 //               notes, status, added_by, verified_at, created_at, updated_at,
-//               distance, confirmation_count
+//               distance, confirmation_count, avg_rating, review_count
 func (r *VenueRepo) scanVenueRowsNearbyWithPhotos(ctx context.Context, rows pgx.Rows) ([]models.Venue, error) {
 	var venues []models.Venue
 	for rows.Next() {
 		v := models.Venue{}
 		err := rows.Scan(
-			&v.ID, &v.Name, &v.City,
+			&v.ID, &v.Name, &v.City, &v.District,
 			&v.Latitude, &v.Longitude,
 			&v.GooglePlaceID,
 			&v.Notes, &v.Status,
@@ -424,6 +493,8 @@ func (r *VenueRepo) scanVenueRowsNearbyWithPhotos(ctx context.Context, rows pgx.
 			&v.CreatedAt, &v.UpdatedAt,
 			&v.Distance,
 			&v.ConfirmationCount,
+			&v.AverageRating,
+			&v.ReviewCount,
 		)
 		if err != nil {
 			return nil, err

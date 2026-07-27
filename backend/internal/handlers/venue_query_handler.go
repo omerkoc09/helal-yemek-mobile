@@ -4,8 +4,20 @@ import (
 	"errors"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/omerkoc/caiz-mi/internal/models"
 	"github.com/omerkoc/caiz-mi/internal/repository"
 )
+
+// canViewUnapproved — onaylı olmayan bir mekanın detayını görme yetkisi.
+// Admin her mekanı görür; rehber yalnızca kendi eklediği mekanı görür.
+// Anonim viewer'da getUserID hata döner ve yetki verilmez.
+func (h *VenueHandler) canViewUnapproved(c *fiber.Ctx, addedBy string) bool {
+	if getUserRole(c) == string(models.RoleAdmin) {
+		return true
+	}
+	userID, err := getUserID(c)
+	return err == nil && userID == addedBy
+}
 
 // List godoc
 // GET /api/v1/venues?q=keyword
@@ -127,6 +139,14 @@ func (h *VenueHandler) Detail(c *fiber.Ctx) error {
 			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "mekan bulunamadı"})
 		}
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "mekan detayı alınamadı"})
+	}
+
+	// Onaylı olmayan mekan (pending / rejected / suspended) herkese kapalıdır:
+	// yeni eklenen mekan admin onaylayana kadar uygulamada görünmemelidir.
+	// İstisna: mekanı ekleyen rehber kendi bekleyen mekanını my-venues
+	// üzerinden açabilmeli, admin ise her durumu görebilmeli.
+	if venue.Status != models.VenueStatusApproved && !h.canViewUnapproved(c, venue.AddedBy) {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "mekan bulunamadı"})
 	}
 
 	// Giriş yapmış viewer için: bu kullanıcı mekanı bu dönemde doğruladı mı?
