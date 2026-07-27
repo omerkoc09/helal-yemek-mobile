@@ -575,7 +575,6 @@ class EditVenueNotifier extends Notifier<EditVenueState> {
   }
 
   void setName(String name) => state = state.copyWith(name: name);
-  void setCity(String city) => state = state.copyWith(city: city);
   void setNotes(String? notes) => state = state.copyWith(notes: notes);
 
   void toggleCriteria(int criteriaId) {
@@ -635,8 +634,8 @@ class EditVenueNotifier extends Notifier<EditVenueState> {
       await apiClient.put(
         ApiEndpoints.venueDetail(state.venueId),
         data: {
+          // Şehir gönderilmez: düzenleme ekranında değiştirilemez (read-only).
           'name': state.name.trim(),
-          'city': state.city.trim(),
           'notes': state.notes?.trim(),
           'criteria_ids': state.selectedCriteriaIds,
           'category_ids': state.selectedCategoryIds,

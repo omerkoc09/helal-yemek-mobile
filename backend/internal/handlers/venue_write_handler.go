@@ -316,11 +316,6 @@ func (h *VenueHandler) Update(c *fiber.Ctx) error {
 		}
 	}
 
-	// Guide düzenlemesi sonrası onaylı mekanı tekrar onaya gönder
-	if role != "admin" && venue.Status == models.VenueStatusApproved {
-		_ = h.venueRepo.ResetToPending(c.Context(), venueID)
-	}
-
 	updated, err := h.venueRepo.FindByID(c.Context(), venueID)
 	if err != nil {
 		return fiber.ErrInternalServerError

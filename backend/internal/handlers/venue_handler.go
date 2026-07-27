@@ -42,7 +42,6 @@ type venueStore interface {
 	Create(ctx context.Context, v *models.Venue) error
 	UpdateVenue(ctx context.Context, id string, name, city, district *string, lat, lng *float64, notes *string, googlePlaceID *string) error
 	Approve(ctx context.Context, id, adminID string, periodDays int) error
-	ResetToPending(ctx context.Context, id string) error
 
 	// Fotoğraf
 	AddPhoto(ctx context.Context, photo *models.VenuePhoto) error

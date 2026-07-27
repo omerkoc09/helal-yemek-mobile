@@ -191,24 +191,6 @@ func (r *VenueRepo) ReactivateVenue(ctx context.Context, id string, periodDays i
 	return nil
 }
 
-// ResetToPending — onaylı mekanın statüsünü pending'e düşürür (guide düzenlemesi sonrası).
-func (r *VenueRepo) ResetToPending(ctx context.Context, id string) error {
-	result, err := r.db.Exec(ctx,
-		`UPDATE venues
-		 SET status = 'pending',
-		     updated_at = NOW()
-		 WHERE id = $1 AND status = 'approved' AND deleted_at IS NULL`,
-		id,
-	)
-	if err != nil {
-		return fmt.Errorf("mekan statü sıfırlama başarısız: %w", err)
-	}
-	if result.RowsAffected() == 0 {
-		return ErrNotFound
-	}
-	return nil
-}
-
 // ConfirmVenue — bir Guide onaylı mekana dönemsel doğrulama verir. Mekanı
 // ekleyen Guide de dahil (ownerless doğrulama modeli): confirmation_count
 // artık türetilmiş bir değerdir (FreshConfirmationCount ile senkron).

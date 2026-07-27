@@ -78,7 +78,6 @@ func (f *fakeVenueStore) SearchByText(context.Context, string) ([]models.Venue, 
 	return nil, nil
 }
 func (f *fakeVenueStore) Create(context.Context, *models.Venue) error                 { return nil }
-func (f *fakeVenueStore) ResetToPending(context.Context, string) error                { return nil }
 func (f *fakeVenueStore) AddPhoto(context.Context, *models.VenuePhoto) error          { return nil }
 func (f *fakeVenueStore) DeletePhoto(context.Context, string, string) error           { return nil }
 func (f *fakeVenueStore) SetCriteria(context.Context, string, []int) error            { return nil }

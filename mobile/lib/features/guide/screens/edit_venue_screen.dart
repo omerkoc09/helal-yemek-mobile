@@ -60,7 +60,7 @@ class _EditVenueScreenState extends ConsumerState<EditVenueScreen> {
       if (next.isSuccess) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Mekan güncellendi! Admin onayına gönderildi.'),
+            content: Text('Mekan güncellendi.'),
             backgroundColor: AppTheme.primary,
           ),
         );
@@ -125,14 +125,15 @@ class _EditVenueScreenState extends ConsumerState<EditVenueScreen> {
                 // Şehir
                 _buildSectionTitle('Şehir'),
                 const SizedBox(height: 8),
+                // Şehir değiştirilemez: rehber yetkisi kendi şehriyle sınırlı
+                // ve mekanın konumu düzenlemede değişmiyor.
                 TextField(
                   controller: _cityController,
+                  enabled: false,
                   decoration: const InputDecoration(
                     hintText: 'Şehir',
                     prefixIcon: Icon(Icons.location_city),
                   ),
-                  onChanged: (v) =>
-                      ref.read(editVenueProvider.notifier).setCity(v),
                 ),
                 const SizedBox(height: 24),
 
@@ -153,44 +154,20 @@ class _EditVenueScreenState extends ConsumerState<EditVenueScreen> {
                 const SizedBox(height: 8),
                 TextField(
                   controller: _notesController,
+                  // Çok satırlı alanda prefixIcon dikeyde ortalanıp hint ile
+                  // hizasız kaldığı için ikon üste sabitlenir.
                   decoration: const InputDecoration(
                     hintText: 'Mekan hakkında notlar...',
-                    prefixIcon: Icon(Icons.note_outlined),
+                    prefixIcon: Padding(
+                      padding: EdgeInsets.only(left: 12, right: 8),
+                      child: Icon(Icons.notes_outlined),
+                    ),
+                    prefixIconConstraints: BoxConstraints(minWidth: 0),
                     alignLabelWithHint: true,
                   ),
                   maxLines: 3,
                   onChanged: (v) =>
                       ref.read(editVenueProvider.notifier).setNotes(v),
-                ),
-                const SizedBox(height: 16),
-
-                // Uyarı
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: AppTheme.pinPending.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: AppTheme.pinPending.withValues(alpha: 0.3),
-                    ),
-                  ),
-                  child: const Row(
-                    children: [
-                      Icon(Icons.info_outline,
-                          size: 18, color: AppTheme.pinPending),
-                      SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'Düzenleme yapıldığında mekan tekrar admin onayına gönderilecektir.',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: AppTheme.pinPending,
-                            height: 1.4,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
                 ),
                 const SizedBox(height: 24),
               ],
