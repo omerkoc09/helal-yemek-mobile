@@ -180,7 +180,7 @@ class AddVenueNotifier extends Notifier<AddVenueState> {
     if (!GoogleMapsParser.isValidMapsLink(link)) {
       state = state.copyWith(
         isParsingLink: false,
-        error: 'Geçerli bir Google Maps linki girin.',
+        error: 'Geçerli bir Google Maps linki veya "enlem, boylam" girin.',
       );
       return false;
     }

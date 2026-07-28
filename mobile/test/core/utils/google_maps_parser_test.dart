@@ -149,6 +149,51 @@ void main() {
     });
   });
 
+  group('parseLink — düz koordinat girdisi', () {
+    // Kullanıcı haritada kendi işaretlediği bir noktayı paylaştığında elde ettiği
+    // metin bir mekan linki değil, ham "enlem, boylam" çiftidir. Bu girdi de
+    // kabul edilmeli — aksi halde konum eklenemiyor.
+    test('virgül + boşluklu koordinat çifti parse edilir', () async {
+      final coords = await GoogleMapsParser.parseLink('41.0082, 28.9784');
+      expect(coords, isNotNull);
+      expect(coords!.latitude, 41.0082);
+      expect(coords.longitude, 28.9784);
+      expect(coords.placeId, isNull);
+      expect(coords.placeName, isNull);
+    });
+
+    test('boşluksuz koordinat çifti parse edilir', () async {
+      final coords = await GoogleMapsParser.parseLink('41.0082,28.9784');
+      expect(coords, isNotNull);
+      expect(coords!.latitude, 41.0082);
+      expect(coords.longitude, 28.9784);
+    });
+
+    test('negatif yarımküre koordinatları parse edilir', () async {
+      final coords = await GoogleMapsParser.parseLink('-33.8688, -151.2093');
+      expect(coords, isNotNull);
+      expect(coords!.latitude, -33.8688);
+      expect(coords.longitude, -151.2093);
+    });
+
+    test('aralık dışı koordinat reddedilir', () async {
+      expect(await GoogleMapsParser.parseLink('91.0, 29.0'), isNull);
+      expect(await GoogleMapsParser.parseLink('41.0, 181.0'), isNull);
+    });
+
+    test('koordinat olmayan düz metin reddedilir', () async {
+      expect(await GoogleMapsParser.parseLink('Sultanahmet Camii'), isNull);
+      expect(await GoogleMapsParser.parseLink('41.0082'), isNull);
+    });
+
+    test('isValidMapsLink düz koordinatı kabul eder', () {
+      // Ekleme akışındaki kapı: burası false dönerse parse hiç denenmez.
+      expect(GoogleMapsParser.isValidMapsLink('41.0082, 28.9784'), isTrue);
+      expect(GoogleMapsParser.isValidMapsLink('-33.8688,-151.2093'), isTrue);
+      expect(GoogleMapsParser.isValidMapsLink('Sultanahmet'), isFalse);
+    });
+  });
+
   group('isValidMapsLink', () {
     test('geçerli Google Maps host varyantları kabul edilir', () {
       expect(GoogleMapsParser.isValidMapsLink('https://www.google.com/maps/@41,29'), isTrue);
