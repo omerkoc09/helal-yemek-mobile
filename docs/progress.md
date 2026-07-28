@@ -5,7 +5,12 @@ Mevcut Durum Notu: Proje genel hatlarıyla Faz 5'e (Test & Yayın) geçmiş gibi
 ---
 
 ## Düzgün Çalışmayan Kısımlar
-kullanıcı harita üzerinde kendi işaretlediği bir konumun linkini mekan olarak eklediğinde en azından koordinatları parse edebilmeliyiz.
+
+~~kullanıcı harita üzerinde kendi işaretlediği bir konumun linkini mekan olarak eklediğinde en
+azından koordinatları parse edebilmeliyiz.~~ ✅ **KAPANDI (2026-07-28)** — parser çalıştırılarak
+ölçüldü: işaretlenen konum linkleri (`?q=`, `?ll=`, `/@lat,lng`) **zaten doğru parse ediliyor**,
+kırık bir şey yok. Ham "enlem, boylam" metni desteği denendi ve ürün kararıyla geri alındı
+(mekan kimliği Maps kaydına bağlı kalsın). Yapılacak iş yok.
 
 
 search kısmında places api kullanılmalı mı?
@@ -1204,33 +1209,27 @@ haritasındaki **üç madde bayat çıktı** ve kod okunarak düzeltildi (aşağ
 |----|------|-------|
 | Giriş/kayıt ekranı Türkçeleştirme | Uygulamanın tek İngilizce kalan yüzeyiydi: "Sign In", "Email Address", "Create Account", "Join the trusted community", "OR CONTINUE WITH", "Don't have an account?". Kullanıcının gördüğü **ilk ekran** olduğu için tutarsızlık en görünür yerdeydi | ✅ |
 | Renk paleti tutarlılığı | Aynı iki ekran temayı bypass edip soğuk gri-mavi sabitler kullanıyordu (`0xFFF6F8F7` zemin, `0xFFE2E8F0` kenarlık, `Colors.grey.shade*`, `Colors.red`) — sıcak turuncu "Spice Market" paletiyle çakışıyordu. Tümü `AppTheme.background/border/textPrimary/textSecondary/error`'a bağlandı. **Hardcoded renk 18 → 0** | ✅ |
-| Ölü "Forgot Password?" butonu | `onPressed: () {}` — basınca hiçbir şey olmuyordu. Şifre sıfırlama akışı yokken kırık bir söz olarak yayına çıkmasın diye kaldırıldı | ✅ |
-| Düz koordinat girdisi | "Kullanıcı haritada kendi işaretlediği konumu eklerse koordinat parse edilebilmeli" maddesi | ✅ |
+| "Şifremi Unuttum" butonu | Türkçeleştirildi ve **korundu** — şifre sıfırlama akışı yakında eklenecek (ürün kararı). Akış bağlanana kadar `AppToast.info` ile "yakında eklenecek" bildirimi veriyor; sessiz/ölü buton bırakılmadı. Kodda `TODO` ile işaretli | ✅ |
 
-### Koordinat girdisi — kök neden parse değil, ondan önceki kapıydı
+### ❌ Düz koordinat girdisi — GERİ ALINDI (ürün kararı, 2026-07-28)
 
-Sorunun parser'da olduğu varsayılıyordu. Kod okunarak ve **çalıştırılarak** doğrulandı:
-Google Maps URL'lerinin tamamı (`?q=`, `?ll=`, `/@lat,lng` dahil — yani kullanıcının haritada
-işaretlediği nokta linki) zaten doğru parse ediliyordu. Gerçekte kırık olan tek senaryo
-**ham koordinat metni yapıştırma** (`41.0082, 28.9784`) idi.
+Bu iş yapıldı ve **aynı gün kullanıcı kararıyla tümüyle geri alındı** (revert `b076596`).
+Gerekçe: mekan eklerken ham "enlem, boylam" yapıştırmak ürün açısından istenmeyen bir akış —
+mekan kimliği Google Maps kaydına bağlı kalmalı.
 
-Asıl engel `parseLink` değil, ondan önce çalışan kapıydı: `guide_provider.dart:180`
-`isValidMapsLink` yalnızca bilinen Google host'larını kabul ediyor, koordinat metni bu
-kontrolden geçemediği için `parseLink` **hiç çağrılmıyordu**. Sadece parser'ı düzeltmek
-kullanıcı açısından hiçbir şeyi değiştirmezdi.
+Geri alınanlar: `_rawCoordinatePattern`, `isValidMapsLink` genişletmesi, form metni
+değişiklikleri ("Mekan Konumu" → tekrar "Google Maps Linki") ve 6 test. Parser, kapı ve
+ekleme akışı **eski hâline** döndü.
 
-| Değişiklik | Detay |
-|-----------|-------|
-| `_rawCoordinatePattern` | `^(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)$` — `parseLink` URL çözümlemeye girmeden önce koordinatı doğrudan işler |
-| `isValidMapsLink` genişletildi | Ham koordinat da kabul ediliyor; aksi halde kapı kapalı kalırdı |
-| Aralık doğrulaması devredildi | Mevcut `_tryParse`'a bırakıldı → sınır dışı (91, 181) ve koordinat olmayan metin reddedilmeye devam ediyor, mantık tek yerde |
-| Keşfedilebilirlik | Form başlığı "Google Maps Linki" → **"Mekan Konumu"**; alan etiketi "Maps linki veya koordinat"; hint ve hata mesajı koordinat seçeneğini söylüyor. Aksi halde özellik kodda var, kullanıcı için yok |
+**Kayda değer olan bulgu (geçerliliğini koruyor):** Bu iş sırasında parser çalıştırılarak
+ölçüldü ve Google Maps URL'lerinin tamamının (`?q=`, `?ll=`, `/@lat,lng` dahil — yani
+kullanıcının haritada işaretlediği nokta linki de) **zaten doğru parse edildiği** doğrulandı.
+Yol haritasındaki "kullanıcının işaretlediği konum parse edilemiyor" maddesi bu ölçümle
+geçersiz çıktı; kırık olan tek senaryo ham koordinat metniydi, o da artık bilinçli olarak
+desteklenmiyor. **Bu madde kapatıldı, yapılacak iş yok.**
 
-**Doğrulama:** 6 yeni test (virgüllü/boşluksuz/negatif koordinat, aralık dışı red, koordinat
-olmayan metin red, kapı davranışı). Testlerin gerçekten eksik davranışı yakaladığı **önce RED
-alınarak** doğrulandı (4 test başarısız → düzeltme → GREEN). `flutter test` **175 → 181**,
-`flutter analyze` 26 issue (değişiklik öncesiyle **aynı taban**, dokunulan dosyalarda yeni uyarı
-yok). Backend `go build` + `go vet` temiz.
+**Doğrulama (geri alma sonrası):** `flutter test` **175 PASS** (koordinat testleri kalktı,
+taban 175'e döndü), `flutter analyze` 26 issue (aynı taban), backend `go build` + `go vet` temiz.
 
 ### 🔄 Yol haritasında bayat çıkan üç madde (kod okunarak düzeltildi)
 
@@ -1248,4 +1247,5 @@ yapılmış iş tekrar planlanıyor, gerçek boşluk (koordinat kapısı) ise g�
 **Temizlik:** `.DS_Store` dosyaları takipten çıkarıldı ve `.gitignore`'a eklendi (her klasör
 gezintisinde kirli çalışma ağacı üretiyorlardı).
 
-**Commit'ler:** `834d88e` (auth TR+palet), `9a25d02` (koordinat girdisi), `132f40d` (.DS_Store).
+**Commit'ler:** `834d88e` (auth TR+palet), `9a25d02` (koordinat girdisi) → `b076596` ile
+**revert edildi**, `132f40d` (.DS_Store). Sonrasında "Şifremi Unuttum" butonu geri getirildi.
