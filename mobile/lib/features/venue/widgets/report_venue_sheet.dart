@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../shared/widgets/app_toast.dart';
 import '../providers/venue_report_provider.dart';
 
 const _reasons = [
@@ -66,12 +67,7 @@ class _ReportVenueSheetState extends ConsumerState<_ReportVenueSheet> {
     ref.listen<VenueReportState>(venueReportProvider, (_, next) {
       if (next.isSuccess) {
         Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Bildiriminiz alındı, teşekkür ederiz.'),
-            backgroundColor: AppTheme.primary,
-          ),
-        );
+        AppToast.success(context, 'Bildiriminiz alındı, teşekkür ederiz.');
       }
     });
 

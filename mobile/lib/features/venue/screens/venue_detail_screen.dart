@@ -7,6 +7,7 @@ import '../../../core/auth/auth_provider.dart';
 import '../../../core/models/venue.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/map_launcher.dart';
+import '../../../shared/widgets/app_toast.dart';
 import '../../../shared/widgets/error_retry_widget.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/star_rating_widget.dart';
@@ -588,17 +589,10 @@ class _VerifyVenueButtonState extends ConsumerState<_VerifyVenueButton> {
       await api.put(ApiEndpoints.venueVerify(widget.venueId), data: {});
       if (!mounted) return;
       ref.invalidate(venueDetailProvider(widget.venueId));
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Mekan başarıyla doğrulandı'),
-          backgroundColor: Colors.green,
-        ),
-      );
+      AppToast.success(context, 'Mekan başarıyla doğrulandı');
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Doğrulama başarısız, tekrar deneyin')),
-      );
+      AppToast.error(context, 'Doğrulama başarısız, tekrar deneyin');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -670,20 +664,13 @@ class _ConfirmVenueButtonState extends ConsumerState<_ConfirmVenueButton> {
       if (!mounted) return;
       setState(() => _localConfirmed = true);
       ref.invalidate(venueDetailProvider(widget.venueId));
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Doğrulamanız kaydedildi, teşekkürler!'),
-          backgroundColor: Colors.green,
-        ),
-      );
+      AppToast.success(context, 'Doğrulamanız kaydedildi, teşekkürler!');
     } on DioException catch (e) {
       if (!mounted) return;
       final msg = e.response?.data is Map
           ? (e.response!.data['error']?.toString() ?? 'Doğrulama başarısız')
           : 'Doğrulama başarısız';
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(msg)),
-      );
+      AppToast.error(context, msg);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -729,16 +716,14 @@ class _ConfirmVenueButtonState extends ConsumerState<_ConfirmVenueButton> {
     if (ok) {
       ref.invalidate(venueDetailProvider(widget.venueId));
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          ok
-              ? 'Doğrulamanız geri çekildi.'
-              : 'Doğrulama geri çekilemedi. Lütfen tekrar deneyin.',
-        ),
-        backgroundColor: ok ? null : AppTheme.error,
-      ),
-    );
+    if (ok) {
+      AppToast.success(context, 'Doğrulamanız geri çekildi.');
+    } else {
+      AppToast.error(
+        context,
+        'Doğrulama geri çekilemedi. Lütfen tekrar deneyin.',
+      );
+    }
   }
 
   @override

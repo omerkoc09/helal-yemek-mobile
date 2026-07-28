@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/auth/auth_provider.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../shared/widgets/app_toast.dart';
 import '../providers/profile_provider.dart';
 
 class EditProfileScreen extends ConsumerStatefulWidget {
@@ -58,12 +59,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     ref.listen(editProfileProvider, (prev, next) {
       if (next.isSuccess) {
         ref.read(editProfileProvider.notifier).reset();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Profil güncellendi'),
-            backgroundColor: AppTheme.primary,
-          ),
-        );
+        AppToast.success(context, 'Profil güncellendi');
         context.pop();
       }
     });

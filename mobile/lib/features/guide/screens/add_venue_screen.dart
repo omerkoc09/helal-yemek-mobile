@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../shared/widgets/app_toast.dart';
 import '../providers/guide_provider.dart';
 import '../widgets/add_venue_details_step.dart';
 import '../widgets/add_venue_food_step.dart';
@@ -41,12 +42,7 @@ class _AddVenueScreenState extends ConsumerState<AddVenueScreen> {
 
     ref.listen<AddVenueState>(addVenueProvider, (prev, next) {
       if (next.error != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(next.error!),
-            backgroundColor: AppTheme.error,
-          ),
-        );
+        AppToast.error(context, next.error!);
       }
     });
 

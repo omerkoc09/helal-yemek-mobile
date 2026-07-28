@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/models/review.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../shared/widgets/app_toast.dart';
 import '../../../shared/widgets/star_rating_widget.dart';
 import '../providers/review_provider.dart';
 
@@ -65,11 +66,9 @@ class _AddReviewSheetState extends ConsumerState<_AddReviewSheet> {
     ref.listen<ReviewFormState>(reviewFormProvider, (prev, next) {
       if (next.isSuccess) {
         Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(_isEditing ? 'Yorum güncellendi.' : 'Yorum eklendi.'),
-            backgroundColor: AppTheme.primary,
-          ),
+        AppToast.success(
+          context,
+          _isEditing ? 'Yorum güncellendi.' : 'Yorum eklendi.',
         );
       }
     });

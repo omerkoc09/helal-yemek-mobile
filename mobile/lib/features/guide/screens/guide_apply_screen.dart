@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../shared/widgets/app_toast.dart';
 import '../widgets/city_picker_sheet.dart';
 import '../../profile/providers/profile_provider.dart';
 
@@ -30,8 +31,7 @@ class _GuideApplyScreenState extends ConsumerState<GuideApplyScreen> {
         Navigator.of(context).pop(true);
       }
       if (next.error != null && next.error != prev?.error) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(next.error!)));
+        AppToast.error(context, next.error!);
       }
     });
 

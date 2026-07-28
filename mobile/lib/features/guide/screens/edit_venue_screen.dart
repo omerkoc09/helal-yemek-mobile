@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../shared/widgets/app_toast.dart';
 import '../../../shared/widgets/error_retry_widget.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../providers/guide_provider.dart';
@@ -58,23 +59,13 @@ class _EditVenueScreenState extends ConsumerState<EditVenueScreen> {
         _initControllers(next);
       }
       if (next.isSuccess) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Mekan güncellendi.'),
-            backgroundColor: AppTheme.primary,
-          ),
-        );
+        AppToast.success(context, 'Mekan güncellendi.');
         // Mekan listesini yenile
         ref.read(myVenuesProvider.notifier).fetchMyVenues();
         context.pop();
       }
       if (next.error != null && !next.isLoadingVenue) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(next.error!),
-            backgroundColor: AppTheme.error,
-          ),
-        );
+        AppToast.error(context, next.error!);
       }
     });
 

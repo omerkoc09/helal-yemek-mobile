@@ -1125,3 +1125,24 @@ Ekleyen kişinin otomatik `venue_confirmations` kaydı **yoktur** (`Create` tabl
 | `category_grid.dart` silindi | `CategoryGrid` widget'ı hiçbir yerden kullanılmıyordu (ana sayfada yalnızca `CategorySlider` var). Slider ayrı dosya ve kendi private sınıflarını kullandığı için etkilenmedi | ✅ |
 
 **Doğrulama:** `flutter analyze` 26 issue — değişiklik öncesiyle aynı taban, dokunulan/silinen dosyalarda uyarı yok (silme sonrası sayının artmaması hiçbir şeyin `CategoryGrid`'e bağlı olmadığını doğruluyor). `flutter test` 166 test geçiyor.
+
+---
+
+## Bildirimler: SnackBar → Üstten Kayan Toast (2026-07-28)
+
+**Sorun:** Bildirimler ekranın altından, kenardan kenara, kare köşeli çıkıyor ve 4 saniye (Flutter varsayılanı) ekranda kalıyordu. Alt navigasyonun ve içeriğin üstünü kapatıyorlardı.
+
+**Bulgu:** 12 `showSnackBar` çağrısı 7 dosyaya dağılmıştı ve her biri kendi stilini kuruyordu — üç farklı başarı rengi (`Colors.green`, `AppTheme.primary`, renksiz), ikon yok, süre yönetimi yok. Ortak bir bildirim bileşeni yoktu.
+
+| İş | Özet | Durum |
+|----|------|-------|
+| `AppToast` bileşeni | `shared/widgets/app_toast.dart` — `Overlay` tabanlı, üstten kayarak gelen bildirim. `success` / `error` / `info` varyantları tema renklerini kullanır (`pinApproved` / `error` / `primary`), her biri kendi ikonuyla | ✅ |
+| Konum ve görünüm | Status bar altında, 16px kenar boşluklu, radius 16, gölgeli kart. Alt navigasyonu ve sayfa içeriğini kapatmaz | ✅ |
+| Süre | Başarı/bilgi 2 sn, hata 3.5 sn. Hatalar okunacak kadar duruyor, başarı mesajları yolu tıkamıyor | ✅ |
+| Animasyon | 260 ms `easeOutCubic` ile yukarıdan kayma + fade. Yukarı sürükleyerek erken kapatılabilir (`Dismissible`) | ✅ |
+| Tek toast garantisi | Statik `OverlayEntry` + `Timer`; yeni toast öncekini anında kaldırır, üst üste binme olmaz | ✅ |
+| 12 çağrı yeri taşındı | 7 dosyada `ScaffoldMessenger.showSnackBar` → `AppToast.success/error`. Kodda `showSnackBar` kalmadı | ✅ |
+
+**Kasıtlı karar:** Toast `Overlay.maybeOf(rootOverlay: true)` kullanıyor — bottom sheet içinden tetiklenen bildirimler (yorum ekleme, mekan bildirme) sheet kapanırken yok olmasın diye kök overlay'e biniyor.
+
+**Doğrulama:** 5 yeni widget testi (mesaj+ikon+renk eşleşmesi, 2 sn'de kaybolma, hatanın daha uzun kalması, ikinci toast'ın birincinin yerini alması). `flutter test` 171 test geçiyor (166→171). `flutter analyze` 26 issue — değişiklik öncesiyle aynı taban, dokunulan dosyalarda uyarı yok.
