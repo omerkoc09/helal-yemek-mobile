@@ -20,3 +20,6 @@ backend/uploads/
 # Editor & tooling configs
 .claude/
 .cursor/
+
+# macOS
+.DS_Store
