@@ -185,8 +185,13 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             ),
 
           // Sağ alt butonlar: Yenile + Konumuma dön
+          // Bu butonlar kaydırılamadığı için nav bar'ın *üstünde* durmalı.
+          // bottomNavClearance tek başına yetmiyor: nav bar SafeArea içinde,
+          // yani cihazın alt güvenli alanı kadar daha yukarıda başlıyor.
           Positioned(
-            bottom: AppTheme.bottomNavClearance,
+            bottom: AppTheme.bottomNavClearance +
+                MediaQuery.of(context).padding.bottom +
+                12,
             right: 16,
             child: Column(
               mainAxisSize: MainAxisSize.min,
