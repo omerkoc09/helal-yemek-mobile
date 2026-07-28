@@ -40,7 +40,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final authState = ref.watch(authProvider);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F8F7),
+      backgroundColor: AppTheme.background,
       body: SafeArea(
         child: SingleChildScrollView(
           child: Padding(
@@ -61,11 +61,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
-                    'Email Address',
+                    'E-posta Adresi',
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
-                      color: Colors.grey.shade700,
+                      color: AppTheme.textSecondary,
                     ),
                   ),
                 ),
@@ -75,30 +75,32 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   keyboardType: TextInputType.emailAddress,
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
-                      return 'Email adresi gerekli';
+                      return 'E-posta adresi gerekli';
                     }
                     if (!RegExp(r'^[\w\-.]+@([\w\-]+\.)+[\w\-]{2,4}$')
                         .hasMatch(value.trim())) {
-                      return 'Geçerli bir email adresi girin';
+                      return 'Geçerli bir e-posta adresi girin';
                     }
                     return null;
                   },
                   decoration: InputDecoration(
-                    hintText: 'you@example.com',
-                    hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
+                    hintText: 'ornek@eposta.com',
+                    hintStyle: TextStyle(
+                      color: AppTheme.textSecondary.withValues(alpha: 0.5),
+                    ),
                     prefixIcon: Icon(
                       Icons.mail_outlined,
-                      color: Colors.grey.shade400,
+                      color: AppTheme.textSecondary.withValues(alpha: 0.6),
                     ),
                     filled: true,
                     fillColor: Colors.white,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(16),
-                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                      borderSide: const BorderSide(color: AppTheme.border),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(16),
-                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                      borderSide: const BorderSide(color: AppTheme.border),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(16),
@@ -119,11 +121,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
-                    'Password',
+                    'Şifre',
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
-                      color: Colors.grey.shade700,
+                      color: AppTheme.textSecondary,
                     ),
                   ),
                 ),
@@ -142,17 +144,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   },
                   decoration: InputDecoration(
                     hintText: '••••••••',
-                    hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
+                    hintStyle: TextStyle(
+                      color: AppTheme.textSecondary.withValues(alpha: 0.5),
+                    ),
                     prefixIcon: Icon(
                       Icons.lock_outlined,
-                      color: Colors.grey.shade400,
+                      color: AppTheme.textSecondary.withValues(alpha: 0.6),
                     ),
                     suffixIcon: IconButton(
                       icon: Icon(
                         _obscurePassword
                             ? Icons.visibility_outlined
                             : Icons.visibility_off_outlined,
-                        color: Colors.grey.shade400,
+                        color: AppTheme.textSecondary.withValues(alpha: 0.6),
                       ),
                       onPressed: () {
                         setState(() => _obscurePassword = !_obscurePassword);
@@ -162,11 +166,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     fillColor: Colors.white,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(16),
-                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                      borderSide: const BorderSide(color: AppTheme.border),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(16),
-                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                      borderSide: const BorderSide(color: AppTheme.border),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(16),
@@ -181,22 +185,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 8),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: () {},
-                    child: const Text(
-                      'Forgot Password?',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        color: AppTheme.primary,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 24),
 
                 // Error message
                 if (authState.error != null)
@@ -204,7 +193,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     padding: const EdgeInsets.only(bottom: 12),
                     child: Text(
                       authState.error!,
-                      style: const TextStyle(color: Colors.red, fontSize: 13),
+                      style: const TextStyle(
+                        color: AppTheme.error,
+                        fontSize: 13,
+                      ),
                     ),
                   ),
 
@@ -233,7 +225,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             ),
                           )
                         : const Text(
-                            'Sign In',
+                            'Giriş Yap',
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
@@ -246,23 +238,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 // OR CONTINUE WITH
                 Row(
                   children: [
-                    Expanded(
-                      child: Divider(color: Colors.grey.shade200),
+                    const Expanded(
+                      child: Divider(color: AppTheme.border),
                     ),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: Text(
-                        'OR CONTINUE WITH',
+                        'VEYA ŞUNUNLA DEVAM ET',
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w500,
-                          color: Colors.grey.shade400,
+                          color: AppTheme.textSecondary.withValues(alpha: 0.7),
                           letterSpacing: 1.2,
                         ),
                       ),
                     ),
-                    Expanded(
-                      child: Divider(color: Colors.grey.shade200),
+                    const Expanded(
+                      child: Divider(color: AppTheme.border),
                     ),
                   ],
                 ),
@@ -282,17 +274,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(
-                      "Don't have an account?",
+                    const Text(
+                      'Hesabınız yok mu?',
                       style: TextStyle(
                         fontSize: 14,
-                        color: Colors.grey.shade600,
+                        color: AppTheme.textSecondary,
                       ),
                     ),
                     TextButton(
                       onPressed: () => context.push(AppRoutes.register),
                       child: const Text(
-                        'Register',
+                        'Kayıt Ol',
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
@@ -336,19 +328,19 @@ class _SocialButton extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 14),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFE2E8F0)),
+            border: Border.all(color: AppTheme.border),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 22, color: Colors.grey.shade800),
+              Icon(icon, size: 22, color: AppTheme.textPrimary),
               const SizedBox(width: 10),
               Text(
                 label,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
-                  color: Colors.grey.shade700,
+                  color: AppTheme.textSecondary,
                 ),
               ),
             ],

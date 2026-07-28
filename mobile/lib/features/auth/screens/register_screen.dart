@@ -47,7 +47,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     final authState = ref.watch(authProvider);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F8F7),
+      backgroundColor: AppTheme.background,
       body: SafeArea(
         child: SingleChildScrollView(
           child: Padding(
@@ -64,20 +64,20 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   ),
                   const SizedBox(height: 16),
                   const Text(
-                    'Create Account',
+                    'Hesap Oluştur',
                     style: TextStyle(
                       fontSize: 30,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF1E293B),
+                      color: AppTheme.textPrimary,
                       letterSpacing: -0.5,
                     ),
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                    'Join the trusted community',
+                    'Güvenilir topluluğa katılın',
                     style: TextStyle(
                       fontSize: 14,
-                      color: Color(0xFF94A3B8),
+                      color: AppTheme.textSecondary,
                     ),
                   ),
                   const SizedBox(height: 40),
@@ -166,30 +166,30 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   const SizedBox(height: 20),
 
                   // Email field
-                  _buildLabel('Email Address'),
+                  _buildLabel('E-posta Adresi'),
                   const SizedBox(height: 8),
                   TextFormField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
-                        return 'Email adresi gerekli';
+                        return 'E-posta adresi gerekli';
                       }
                       if (!RegExp(r'^[\w\-.]+@([\w\-]+\.)+[\w\-]{2,4}$')
                           .hasMatch(value.trim())) {
-                        return 'Geçerli bir email adresi girin';
+                        return 'Geçerli bir e-posta adresi girin';
                       }
                       return null;
                     },
                     decoration: _inputDecoration(
-                      hint: 'you@example.com',
+                      hint: 'ornek@eposta.com',
                       icon: Icons.mail_outlined,
                     ),
                   ),
                   const SizedBox(height: 20),
 
                   // Password field
-                  _buildLabel('Password'),
+                  _buildLabel('Şifre'),
                   const SizedBox(height: 8),
                   TextFormField(
                     controller: _passwordController,
@@ -205,17 +205,19 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     },
                     decoration: InputDecoration(
                       hintText: '••••••••',
-                      hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
+                      hintStyle: TextStyle(
+                        color: AppTheme.textSecondary.withValues(alpha: 0.5),
+                      ),
                       prefixIcon: Icon(
                         Icons.lock_outlined,
-                        color: Colors.grey.shade400,
+                        color: AppTheme.textSecondary.withValues(alpha: 0.6),
                       ),
                       suffixIcon: IconButton(
                         icon: Icon(
                           _obscurePassword
                               ? Icons.visibility_outlined
                               : Icons.visibility_off_outlined,
-                          color: Colors.grey.shade400,
+                          color: AppTheme.textSecondary.withValues(alpha: 0.6),
                         ),
                         onPressed: () {
                           setState(() => _obscurePassword = !_obscurePassword);
@@ -225,13 +227,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       fillColor: Colors.white,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(16),
-                        borderSide:
-                            const BorderSide(color: Color(0xFFE2E8F0)),
+                        borderSide: const BorderSide(color: AppTheme.border),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(16),
-                        borderSide:
-                            const BorderSide(color: Color(0xFFE2E8F0)),
+                        borderSide: const BorderSide(color: AppTheme.border),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(16),
@@ -254,8 +254,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       padding: const EdgeInsets.only(bottom: 12),
                       child: Text(
                         authState.error!,
-                        style:
-                            const TextStyle(color: Colors.red, fontSize: 13),
+                        style: const TextStyle(
+                          color: AppTheme.error,
+                          fontSize: 13,
+                        ),
                       ),
                     ),
 
@@ -284,7 +286,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                               ),
                             )
                           : const Text(
-                              'Create Account',
+                              'Hesap Oluştur',
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
@@ -297,23 +299,23 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   // OR CONTINUE WITH
                   Row(
                     children: [
-                      Expanded(
-                        child: Divider(color: Colors.grey.shade200),
+                      const Expanded(
+                        child: Divider(color: AppTheme.border),
                       ),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         child: Text(
-                          'OR CONTINUE WITH',
+                          'VEYA ŞUNUNLA DEVAM ET',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w500,
-                            color: Colors.grey.shade400,
+                            color: AppTheme.textSecondary.withValues(alpha: 0.7),
                             letterSpacing: 1.2,
                           ),
                         ),
                       ),
-                      Expanded(
-                        child: Divider(color: Colors.grey.shade200),
+                      const Expanded(
+                        child: Divider(color: AppTheme.border),
                       ),
                     ],
                   ),
@@ -334,17 +336,17 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(
-                        'Already have an account?',
+                      const Text(
+                        'Zaten hesabınız var mı?',
                         style: TextStyle(
                           fontSize: 14,
-                          color: Colors.grey.shade600,
+                          color: AppTheme.textSecondary,
                         ),
                       ),
                       TextButton(
                         onPressed: () => context.pop(),
                         child: const Text(
-                          'Sign In',
+                          'Giriş Yap',
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
@@ -369,10 +371,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       alignment: Alignment.centerLeft,
       child: Text(
         text,
-        style: TextStyle(
+        style: const TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.w500,
-          color: Colors.grey.shade700,
+          color: AppTheme.textSecondary,
         ),
       ),
     );
@@ -384,17 +386,22 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   }) {
     return InputDecoration(
       hintText: hint,
-      hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
-      prefixIcon: Icon(icon, color: Colors.grey.shade400),
+      hintStyle: TextStyle(
+        color: AppTheme.textSecondary.withValues(alpha: 0.5),
+      ),
+      prefixIcon: Icon(
+        icon,
+        color: AppTheme.textSecondary.withValues(alpha: 0.6),
+      ),
       filled: true,
       fillColor: Colors.white,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+        borderSide: const BorderSide(color: AppTheme.border),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+        borderSide: const BorderSide(color: AppTheme.border),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
@@ -431,19 +438,19 @@ class _SocialButton extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 14),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFE2E8F0)),
+            border: Border.all(color: AppTheme.border),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 22, color: Colors.grey.shade800),
+              Icon(icon, size: 22, color: AppTheme.textPrimary),
               const SizedBox(width: 10),
               Text(
                 label,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
-                  color: Colors.grey.shade700,
+                  color: AppTheme.textSecondary,
                 ),
               ),
             ],
