@@ -5,6 +5,9 @@ import '../../../core/auth/auth_provider.dart';
 import '../../../core/models/review.dart';
 import '../../../core/models/venue.dart';
 
+// Mekan detayı oturum içinde nadiren değişir; kullanıcının kendi yaptığı
+// değişiklikler (doğrulama, geri çekme, yorum) zaten invalidate ediyor.
+// Bu yüzden cache kalıcı tutulur: liste↔detay gezinmesinde boş ekran olmaz.
 final venueDetailProvider =
     FutureProvider.family<Venue, String>((ref, venueId) async {
   final apiClient = ref.read(apiClientProvider);

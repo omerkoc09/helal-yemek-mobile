@@ -6,6 +6,7 @@ import '../../../core/models/venue.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/star_rating_widget.dart';
 import '../../favorites/providers/favorites_provider.dart';
+import '../models/venue_detail_preview.dart';
 
 class VenueHorizontalCard extends ConsumerWidget {
   final Venue venue;
@@ -36,7 +37,11 @@ class VenueHorizontalCard extends ConsumerWidget {
         borderRadius: BorderRadius.circular(AppTheme.radiusCard),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
-          onTap: () => context.push('/venue/${venue.id}'),
+          onTap: () => context.push(
+            '/venue/${venue.id}',
+            extra:
+                VenueDetailPreview(name: venue.name, city: venue.locationLabel),
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

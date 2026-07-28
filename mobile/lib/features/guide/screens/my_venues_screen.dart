@@ -6,6 +6,7 @@ import '../../../core/models/venue.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/error_retry_widget.dart';
 import '../../../shared/widgets/loading_indicator.dart';
+import '../../venue/models/venue_detail_preview.dart';
 import '../providers/guide_provider.dart';
 
 class MyVenuesScreen extends ConsumerStatefulWidget {
@@ -252,7 +253,10 @@ class _MyVenueCard extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       child: InkWell(
-        onTap: () => context.push('/venue/${venue.id}'),
+        onTap: () => context.push(
+          '/venue/${venue.id}',
+          extra: VenueDetailPreview(name: venue.name, city: venue.locationLabel),
+        ),
         borderRadius: BorderRadius.circular(16),
         child: Padding(
           padding: const EdgeInsets.all(16),

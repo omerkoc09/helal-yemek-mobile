@@ -6,6 +6,7 @@ import '../../../core/models/venue.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/star_rating_widget.dart';
 import '../../favorites/providers/favorites_provider.dart';
+import '../models/venue_detail_preview.dart';
 import 'venue_badge_chip.dart';
 
 class VenueCard extends ConsumerWidget {
@@ -25,7 +26,10 @@ class VenueCard extends ConsumerWidget {
       elevation: 2,
       shadowColor: Colors.black.withValues(alpha: 0.08),
       child: InkWell(
-        onTap: () => context.push('/venue/${venue.id}'),
+        onTap: () => context.push(
+          '/venue/${venue.id}',
+          extra: VenueDetailPreview(name: venue.name, city: venue.locationLabel),
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

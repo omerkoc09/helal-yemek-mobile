@@ -6,6 +6,7 @@ import '../../../core/models/venue.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/map_launcher.dart';
 import '../../../shared/widgets/star_rating_widget.dart';
+import '../../venue/models/venue_detail_preview.dart';
 import '../../venue/providers/direction_tracking_provider.dart';
 import '../../venue/widgets/venue_badge_chip.dart';
 
@@ -108,7 +109,13 @@ class _VenueBottomSheetContent extends ConsumerWidget {
                 child: ElevatedButton.icon(
                   onPressed: () {
                     Navigator.of(context).pop();
-                    context.push('/venue/${venue.id}');
+                    context.push(
+                      '/venue/${venue.id}',
+                      extra: VenueDetailPreview(
+                        name: venue.name,
+                        city: venue.locationLabel,
+                      ),
+                    );
                   },
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 8),

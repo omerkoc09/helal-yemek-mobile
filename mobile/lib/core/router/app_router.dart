@@ -13,6 +13,7 @@ import '../../features/profile/screens/profile_screen.dart';
 import '../../features/profile/screens/edit_profile_screen.dart';
 import '../../features/search/screens/search_screen.dart';
 import '../../features/food_discovery/screens/food_discovery_screen.dart';
+import '../../features/venue/models/venue_detail_preview.dart';
 import '../../features/venue/screens/venue_detail_screen.dart';
 import '../../features/venue/screens/city_venues_screen.dart';
 import '../../features/guide/screens/add_venue_screen.dart';
@@ -193,7 +194,16 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.venueDetail,
         builder: (context, state) {
           final id = state.pathParameters['id']!;
-          return VenueDetailScreen(venueId: id);
+          // Listeden gelindiyse isim/şehir `extra` ile taşınır ve yükleme
+          // iskeletinde gösterilir. Bildirim/derin bağlantıda null olur.
+          final preview = state.extra is VenueDetailPreview
+              ? state.extra as VenueDetailPreview
+              : null;
+          return VenueDetailScreen(
+            venueId: id,
+            previewName: preview?.name,
+            previewCity: preview?.city,
+          );
         },
       ),
       GoRoute(

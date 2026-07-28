@@ -21,13 +21,24 @@ import '../widgets/venue_status_badge.dart';
 import '../widgets/review_card.dart';
 import '../widgets/venue_photo_gallery.dart';
 import '../widgets/venue_badge_chip.dart';
+import '../widgets/venue_detail_skeleton.dart';
 import '../widgets/trust_criteria_badge.dart';
 import '../widgets/verify_button_visibility.dart';
 
 class VenueDetailScreen extends ConsumerWidget {
   final String venueId;
 
-  const VenueDetailScreen({super.key, required this.venueId});
+  /// Listeden gelen ön bilgiler — yalnızca yükleme iskeletini doldurmak için.
+  /// Bilinmiyorsa (ör. bildirimden gelindiğinde) null geçilir.
+  final String? previewName;
+  final String? previewCity;
+
+  const VenueDetailScreen({
+    super.key,
+    required this.venueId,
+    this.previewName,
+    this.previewCity,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -37,7 +48,10 @@ class VenueDetailScreen extends ConsumerWidget {
     final authState = ref.watch(authProvider);
 
     return venueAsync.when(
-      loading: () => const Scaffold(body: LoadingIndicator()),
+      loading: () => VenueDetailSkeleton(
+        name: previewName,
+        city: previewCity,
+      ),
       error: (_, _) => Scaffold(
         appBar: AppBar(),
         body: ErrorRetryWidget(
