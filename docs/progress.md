@@ -1146,3 +1146,49 @@ Ekleyen kişinin otomatik `venue_confirmations` kaydı **yoktur** (`Create` tabl
 **Kasıtlı karar:** Toast `Overlay.maybeOf(rootOverlay: true)` kullanıyor — bottom sheet içinden tetiklenen bildirimler (yorum ekleme, mekan bildirme) sheet kapanırken yok olmasın diye kök overlay'e biniyor.
 
 **Doğrulama:** 5 yeni widget testi (mesaj+ikon+renk eşleşmesi, 2 sn'de kaybolma, hatanın daha uzun kalması, ikinci toast'ın birincinin yerini alması). `flutter test` 171 test geçiyor (166→171). `flutter analyze` 26 issue — değişiklik öncesiyle aynı taban, dokunulan dosyalarda uyarı yok.
+
+---
+
+## App Bar Logo: Sola Yaslama + Yatay Logo Denemesi (2026-07-28)
+
+**İstek:** App bar'daki logoyu `assets/logo/logo_with_name/i_timat_yatay_effaf_logo.svg` ile değiştirmek, logoyu biraz sola yaslamak; arama çubuğu, bildirim ve favori ikonlarının yeri değişmemek.
+
+| İş | Özet | Durum |
+|----|------|-------|
+| Logonun yatay konumu | `AppHeader` içinde logo `Transform.translate` ile sarıldı, kayma miktarı tek sabitte: `_logoShift`. `titleSpacing` yerine offset tercih edildi: `titleSpacing: 0` tüm `Row`'u kaydırıp diğer bileşenleri de taşırdı. Önce -12 (sola) denendi, ardından kullanıcı isteğiyle 12px sağa alınarak **0**'da karar kılındı | ✅ |
+| Diğer bileşenlerin korunması | Konum çubuğu, bildirim ve favori ikonları `Row` içinde aynı sırada/aralıkta; offset yalnız logoya uygulandığı için layout'a etkisi yok | ✅ |
+| Yatay logonun bağlanması | **Geri alındı** — dosya kullanılamaz durumda (aşağıya bak). `screen.svg` (isimsiz logo) korundu, `_Logo` içine TODO bırakıldı | ⛔ |
+
+**Bulgu — `i_timat_yatay_effaf_logo.svg` kullanılamaz:** Dosya adında "şeffaf" geçmesine rağmen içinde hiç şeffaflık verisi yok. Gerçek bir vektör değil, raster bir görüntüden otomatik trace edilmiş:
+
+- 6134 path, hepsi ~28×30 px opak kare; `opacity="0."` **0 adet**, `fill="none"` **0 adet**
+- 35 farklı beyaz/gri ton (`#FEFEFD`, `#BFBFBE`, `#BDBDBD`...) — kaynak PNG'nin şeffaf pikselleri de opak gri karelere çevrilmiş
+- Sonuç: app bar'da logonun arkasında gri dikdörtgen blok görünüyor
+- Ayrıca ağır: 2.8 MB, çözümleme 207 ms (mevcut `screen.svg`: 9 KB / 16 path / 69 ms) — her ekranın app bar'ında ödenecek maliyet
+- viewBox `0 0 1024 1024` (kare), ink bbox tuvali tamamen dolduruyor — dosya adının aksine yatay değil
+
+Kodla düzeltilebilir değil: alpha bilgisi dosyada hiç mevcut olmadığı için `flutter_svg` tarafında çevrilecek bir ayar yok. Gri path'leri toplu silmek de logoyu bozar, çünkü aynı gri tonlar logonun kendi gölge/detaylarında da kullanılıyor.
+
+**Not:** Aynı klasördeki `screen-3.png` gerçekten şeffaf (RGBA, piksellerin %92.9'u tam şeffaf) ama içerik bbox'ı 512×584 — kare/dikey logo, "İtimat" yazılı yatay versiyon değil.
+
+**Çözüm (aynı gün):** Şeffaf yatay PNG sağlandı ve bağlandı — `assets/logo/logo_with_name/itimat_yatay_logo.png` (kaynak dosya adındaki boşluk/parantezler asset yolunda kırılganlık yaratmasın diye temiz adla kopyalandı).
+
+| Kontrol | Sonuç |
+|---------|-------|
+| Şeffaflık | Gerçek — piksellerin %95'i tam şeffaf, dört köşe de alpha=0 | 
+| İçerik oranı | 682×274, oran 2.49 → gerçekten yatay |
+| Turuncu zeminde kontrast | Koyu yeşil yazı (#204020) 3.39:1 — WCAG metin-dışı eşiği 3:1 üzerinde ✅ |
+| Dosya boyutu | 120 KB (reddedilen SVG 2.8 MB idi) |
+
+**Kasıtlı karar — tuval boşluğunun telafisi:** PNG 1024×1024 kare tuval, görünür logo ortada 682×274'lük alanda; üstte/altta ~%37 şeffaf boşluk var. Düz `height: 70` verilse logo ~19px görünürdü. Bunun yerine görünür yükseklik (34px) hedeflenip tuval `OverflowBox` ile oranla büyütülüyor (≈127px çizim). Böylece logo istenen boyutta görünüyor ama layout'ta yalnızca 34px yer kaplıyor — konum çubuğu ve ikonlar etkilenmiyor.
+
+**Doğrulama:** Geçici widget testiyle ölçüldü: görüntü 84.6×127.1 çiziliyor, layout slotu 84.6×34.0 (test sonrası silindi). `flutter analyze lib/shared/widgets/app_header.dart` → temiz (kullanılmayan `flutter_svg` import'u kaldırıldı). `flutter test` → 175 test geçiyor; mevcut `app_header_test.dart` (bildirim ikonu/badge) testleri dahil.
+
+**Ek düzenleme — yazı beyaza çevrildi:** Turuncu app bar üzerinde koyu yeşil (#304830) yazı görsel olarak soluk kalıyordu. PNG piksel düzeyinde işlenerek `itimat_yatay_logo_beyaz.png` üretildi.
+
+- Logo iki bölgeye ayrılıyor: **amblem** x158–382, **yazı** x414–841 (aradaki x≈390 boşluğu ayraç olarak kullanıldı)
+- Yazı zaten %80 tek renkti → yalnızca x≥390 bölgesindeki RGB beyaza alındı, **alpha'ya dokunulmadı**
+- Alpha'ya dokunmamak kritik: ilk denemede parlaklığa göre alpha düşürülünce harf gövdesi yarı saydam olup opak piksel sayısı 0'a düştü. İkinci sürümde yazının opak piksel sayısı 16695 — kaynakla birebir aynı, kenar antialias'ı korunuyor
+- Amblem bilinçli olarak orijinal renklerinde bırakıldı: tamamı beyaz varyantı da üretilip görsel karşılaştırma yapıldı, amblemin beyaz iç dolgusu ile yeşil konturu aynı renge gelince kubbe/yaprak/altın şerit detayı düz siluete dönüşüyor. O varyant silindi.
+
+**Doğrulama (beyaz sürüm):** Yazı %100 beyaz (16695 opak px, kaynakla aynı), amblem birebir korundu (31436 px değişmedi), şeffaflık %95.1. Beyaz yazı / turuncu zemin kontrastı 3.42:1. `flutter analyze` temiz, `flutter test` → 175 test geçiyor.

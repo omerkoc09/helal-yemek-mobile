@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
@@ -28,8 +27,11 @@ class AppHeader extends ConsumerWidget implements PreferredSizeWidget {
       automaticallyImplyLeading: false,
       title: Row(
         children: [
-          // Logo
-          _Logo(),
+          // Logo — yatay konumu _logoShift ile ayarlanır.
+          Transform.translate(
+            offset: const Offset(_logoShift, 0),
+            child: _Logo(),
+          ),
           const SizedBox(width: 12),
           // Konum
           Expanded(
@@ -123,12 +125,36 @@ class AppHeader extends ConsumerWidget implements PreferredSizeWidget {
   }
 }
 
+/// Logonun yatay kaydırma miktarı. Negatif = sola, pozitif = sağa.
+/// Yalnızca logoyu kaydırır; konum çubuğu ve ikonların yeri değişmez.
+const double _logoShift = 0;
+
 class _Logo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return SvgPicture.asset(
-      'assets/logo/logo_without_name/screen.svg',
-      height: 70,
+    // Kaynak PNG 1024x1024 şeffaf tuval; görünür logo ortada 682x274'lük
+    // alanda duruyor (üstte/altta ~%37 boş). Tuvali kırpmadan yüksekliği
+    // 70 versek logo ~19px kalırdı; bu yüzden görünür yüksekliği hedefleyip
+    // tuval yüksekliğini oranla büyütüyoruz.
+    const visibleHeight = 34.0;
+    const canvasHeight = visibleHeight * 1024 / 274; // ≈127
+    return SizedBox(
+      height: visibleHeight,
+      width: canvasHeight * 682 / 1024, // görünür genişlik ≈85
+      child: OverflowBox(
+        maxHeight: canvasHeight,
+        maxWidth: canvasHeight,
+        child: Image.asset(
+          // Yazısı beyaza çevrilmiş varyant: turuncu app bar üzerinde koyu
+          // yeşil yazı görsel olarak soluk kalıyordu. Amblem orijinal
+          // renklerinde bırakıldı; tamamı beyaz yapılınca kubbe/yaprak
+          // detayı düz siluete dönüşüp okunmaz oluyor.
+          'assets/logo/logo_with_name/itimat_yatay_logo_beyaz.png',
+          height: canvasHeight,
+          fit: BoxFit.contain,
+          filterQuality: FilterQuality.medium,
+        ),
+      ),
     );
   }
 }
