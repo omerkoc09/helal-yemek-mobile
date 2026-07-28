@@ -55,22 +55,20 @@ class _AddVenueLocationStepState extends ConsumerState<AddVenueLocationStep> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Mekan Konumu',
+            'Google Maps Linki',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           const Text(
-            'Mekanı Google Maps\'te bulun ve "Paylaş" butonundan linki kopyalayın. '
-            'Haritada kendi işaretlediğiniz bir nokta için "enlem, boylam" '
-            'koordinatlarını da yapıştırabilirsiniz.',
+            'Mekanı Google Maps\'te bulun ve "Paylaş" butonundan linki kopyalayın.',
             style: TextStyle(color: AppTheme.textSecondary),
           ),
           const SizedBox(height: 24),
           TextField(
             controller: _linkController,
             decoration: InputDecoration(
-              labelText: 'Maps linki veya koordinat',
-              hintText: 'https://maps.app.goo.gl/... veya 41.0082, 28.9784',
+              labelText: 'Google Maps linki',
+              hintText: 'https://maps.app.goo.gl/...',
               prefixIcon: const Icon(Icons.link),
               suffixIcon: state.isParsingLink
                   ? const Padding(

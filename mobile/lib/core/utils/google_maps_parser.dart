@@ -6,20 +6,9 @@ import 'dart:io';
 class GoogleMapsParser {
   /// Desteklenen Google Maps link formatlarından koordinat çıkarır.
   /// Başarısız olursa null döner.
-  /// Ham "enlem, boylam" girdisi — kullanıcı haritada kendi işaretlediği bir
-  /// noktayı paylaştığında link yerine bu metni alır.
-  static final RegExp _rawCoordinatePattern =
-      RegExp(r'^(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)$');
-
   static Future<MapCoordinates?> parseLink(String link) async {
     final trimmed = link.trim();
     if (trimmed.isEmpty) return null;
-
-    // Link değil, doğrudan koordinat çifti yapıştırılmış olabilir.
-    final raw = _rawCoordinatePattern.firstMatch(trimmed);
-    if (raw != null) {
-      return _tryParse(raw.group(1)!, raw.group(2)!);
-    }
 
     // Kısa linkleri önce tam URL'e çevir
     final url = await _resolveUrl(trimmed);
@@ -214,11 +203,9 @@ class GoogleMapsParser {
     }
   }
 
-  /// Verilen string'in işlenebilir bir konum girdisi olup olmadığını kontrol eder.
-  /// Google Maps linklerinin yanında ham "enlem, boylam" çiftini de kabul eder.
+  /// Verilen string'in geçerli bir Google Maps linki olup olmadığını kontrol eder.
   static bool isValidMapsLink(String link) {
     final trimmed = link.trim().toLowerCase();
-    if (_rawCoordinatePattern.hasMatch(trimmed)) return true;
     return trimmed.contains('google.com/maps') ||
         trimmed.contains('google.com.tr/maps') ||
         trimmed.contains('maps.google.com') ||
