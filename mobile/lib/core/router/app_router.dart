@@ -36,6 +36,8 @@ class AppRoutes {
   static const String auth = '/auth';
   static const String login = '/login';
   static const String register = '/register';
+  static const String forgotPassword = '/forgot-password';
+  static const String resetPassword = '/reset-password';
   static const String home = '/home';
   static const String map = '/map';
   static const String foodDiscovery = '/food-discovery';
@@ -67,7 +69,9 @@ final routerProvider = Provider<GoRouter>((ref) {
       final isAuthRoute = loc == AppRoutes.auth ||
           loc == AppRoutes.login ||
           loc == AppRoutes.register ||
-          loc == AppRoutes.onboarding;
+          loc == AppRoutes.onboarding ||
+          loc == AppRoutes.forgotPassword ||
+          loc == AppRoutes.resetPassword;
       final isSplash = loc == AppRoutes.splash;
 
       if (authState.status == AuthStatus.unknown) {
