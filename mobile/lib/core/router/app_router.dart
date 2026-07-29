@@ -8,6 +8,7 @@ import '../../features/auth/screens/forgot_password_screen.dart';
 import '../../features/auth/screens/location_permission_screen.dart';
 import '../../features/auth/screens/login_screen.dart';
 import '../../features/auth/screens/register_screen.dart';
+import '../../features/auth/screens/reset_password_screen.dart';
 import '../../features/favorites/screens/favorites_screen.dart';
 import '../../features/map/screens/map_screen.dart';
 import '../../features/profile/screens/profile_screen.dart';
@@ -128,6 +129,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.forgotPassword,
         builder: (context, state) => const ForgotPasswordScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.resetPassword,
+        builder: (context, state) => ResetPasswordScreen(
+          initialEmail: state.uri.queryParameters['email'],
+        ),
       ),
 
       // Ana sekmeler — ShellRoute ile bottom nav + AppHeader
