@@ -20,14 +20,18 @@ func (h *VenueHandler) canViewUnapproved(c *fiber.Ctx, addedBy string) bool {
 }
 
 // List godoc
-// GET /api/v1/venues?q=keyword
+// GET /api/v1/venues?q=keyword&lat=41.0&lng=29.0
 // GET /api/v1/venues?lat=41.0&lng=29.0&radius=5000
 // GET /api/v1/venues?city=Istanbul
 func (h *VenueHandler) List(c *fiber.Ctx) error {
 	q := c.Query("q")
 
 	if q != "" {
-		venues, err := h.venueRepo.SearchByText(c.Context(), q)
+		// Konum opsiyoneldir: gönderilmezse 0,0 gider, mesafe hesaplanmaz ve
+		// sıralama puana düşer.
+		searchLat := c.QueryFloat("lat", 0)
+		searchLng := c.QueryFloat("lng", 0)
+		venues, err := h.venueRepo.SearchByText(c.Context(), q, searchLat, searchLng)
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "arama başarısız"})
 		}
