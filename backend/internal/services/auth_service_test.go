@@ -620,9 +620,17 @@ type fakeEmailService struct {
 	sends    int
 	lastTo   string
 	lastBody string
+
+	// release — verilirse Send bu kanaldan bir değer alana kadar bloklanır.
+	// Asenkronluğu ispatlamak için kullanılır: Send askıdayken çağıran
+	// fonksiyonun ZATEN dönmüş olduğu gösterilebilir. nil ise bloklamaz.
+	release chan struct{}
 }
 
 func (f *fakeEmailService) Send(to, _, htmlBody string) error {
+	if f.release != nil {
+		<-f.release
+	}
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.sends++
@@ -683,6 +691,39 @@ func TestAuthServiceRequestPasswordReset(t *testing.T) {
 		if reset.invalidateCalls != 1 {
 			t.Error("eski tokenlar geçersizleştirilmedi")
 		}
+	})
+
+	t.Run("ağır iş (hash+DB+mail) askıdayken fonksiyon zaten dönmüş olmalı", func(t *testing.T) {
+		// Bu test asenkronluğun KENDİSİNİ doğrular — mail sonunda gitti mi
+		// değil, RequestPasswordReset DÖNERKEN henüz gitmemiş miydi. "go"
+		// anahtar kelimesi kaldırılırsa Send() içindeki <-release bloklaması
+		// RequestPasswordReset'i de bloklar ve bu test timeout ile kırılır.
+		store := &fakeAuthUserStore{byEmail: emailUser()}
+		reset := &fakePasswordResetStore{}
+		mail := &fakeEmailService{release: make(chan struct{})}
+
+		done := make(chan error, 1)
+		go func() {
+			done <- newResetAuthService(store, reset, mail).
+				RequestPasswordReset(context.Background(), "a@b.com")
+		}()
+
+		select {
+		case err := <-done:
+			if err != nil {
+				t.Fatalf("hata döndü: %v", err)
+			}
+		case <-time.After(2 * time.Second):
+			t.Fatal("RequestPasswordReset, mail Send askıdayken dönmedi — arka plan işi senkrona kaçmış olabilir")
+		}
+
+		// Fonksiyon döndü ama mail hâlâ göndermedi (release henüz verilmedi).
+		if mail.sendCount() != 0 {
+			t.Fatal("mail, release verilmeden gönderilmiş görünüyor — test kurulumu bozuk")
+		}
+
+		close(mail.release)
+		waitForSends(t, mail, 1)
 	})
 
 	t.Run("kod DB'ye ham değil hash'li yazılır", func(t *testing.T) {

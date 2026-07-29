@@ -262,6 +262,15 @@ func (s *AuthService) UpdateProfile(ctx context.Context, userID string, name, su
 // Enumeration koruması: hangi durumda olursa olsun nil döner. Çağıran handler
 // her zaman aynı mesajı basar. Kullanıcının var olup olmadığı, Google hesabı
 // olup olmadığı ya da limitin dolduğu istemciye sızmaz.
+//
+// bcrypt.GenerateFromPassword ~50ms süren CPU-ağır bir işlemdir. SMTP round-trip
+// gibi ağ jitter'ına tabi değildir — senkron çalıştırılırsa pozitif/negatif yol
+// arasında SMTP'den bile daha kararlı ve ölçülebilir bir zamanlama farkı
+// (kullanıcı var: ~50ms, kullanıcı yok: ~20ns) oluşur ve enumeration korumasını
+// zamanlama kanalından deler. Bu yüzden kod üretimi + hash'leme + Invalidate +
+// Create dahil TÜM ağır iş goroutine'e taşınır; fonksiyon FindByEmail ve ucuz
+// CountRecentByUserID (basit COUNT sorgusu, ölçülebilir bir zamanlama sinyali
+// oluşturmaz) sonrasında hemen döner.
 func (s *AuthService) RequestPasswordReset(ctx context.Context, email string) error {
 	email = strings.ToLower(strings.TrimSpace(email))
 
@@ -278,32 +287,48 @@ func (s *AuthService) RequestPasswordReset(ctx context.Context, email string) er
 		return nil // saatte en fazla 3 talep
 	}
 
-	code, err := generateResetCode()
-	if err != nil {
-		return nil
-	}
-	codeHash, err := bcrypt.GenerateFromPassword([]byte(code), bcrypt.DefaultCost)
-	if err != nil {
-		return nil
-	}
-
-	// Yeni kod üretildiğinde eski kodlar geçersizleşir.
-	if err := s.resetRepo.InvalidateActiveByUserID(ctx, user.ID); err != nil {
-		return nil
-	}
-	if err := s.resetRepo.Create(ctx, user.ID, string(codeHash), s.now().Add(15*time.Minute)); err != nil {
-		return nil
-	}
-
-	// Mail ARKA PLANDA gönderilir. Senkron gönderim, "her durumda aynı cevap"
-	// korumasını zamanlama kanalından delerdi: pozitif yol SMTP round-trip
-	// kadar yavaşlar, negatif yollar anında döner.
-	go s.sendResetEmail(user.Email, user.Name, code)
+	// Kod üretimi, bcrypt hash'leme, eski kodların geçersizleştirilmesi, yeni
+	// kaydın oluşturulması ve mail gönderimi ARKA PLANDA yapılır. Fonksiyon
+	// burada döner; çağıran için pozitif/negatif yol artık zamanlama açısından
+	// ayırt edilemez.
+	go s.createResetAndSendEmail(user.ID, user.Email, user.Name)
 
 	// Fırsatçı temizlik — eski satırlar sonsuza dek birikmesin.
 	go s.cleanupExpiredResets()
 
 	return nil
+}
+
+// createResetAndSendEmail — kod üretimi, hash'leme, eski tokenların
+// geçersizleştirilmesi, yeni kaydın oluşturulması ve mail gönderimini arka
+// planda yürütür. Kendi context'ini kurar (request context'i request dönünce
+// iptal olur, ama bu iş request'ten bağımsız sürmeli).
+func (s *AuthService) createResetAndSendEmail(userID, toEmail, name string) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	code, err := generateResetCode()
+	if err != nil {
+		log.Printf("şifre sıfırlama kodu üretilemedi (user=%s): %v", userID, err)
+		return
+	}
+	codeHash, err := bcrypt.GenerateFromPassword([]byte(code), bcrypt.DefaultCost)
+	if err != nil {
+		log.Printf("şifre sıfırlama kodu hash'lenemedi (user=%s): %v", userID, err)
+		return
+	}
+
+	// Yeni kod üretildiğinde eski kodlar geçersizleşir.
+	if err := s.resetRepo.InvalidateActiveByUserID(ctx, userID); err != nil {
+		log.Printf("eski şifre sıfırlama tokenları geçersizleştirilemedi (user=%s): %v", userID, err)
+		return
+	}
+	if err := s.resetRepo.Create(ctx, userID, string(codeHash), s.now().Add(15*time.Minute)); err != nil {
+		log.Printf("şifre sıfırlama tokenı oluşturulamadı (user=%s): %v", userID, err)
+		return
+	}
+
+	s.sendResetEmail(toEmail, name, code)
 }
 
 func (s *AuthService) sendResetEmail(to, name, code string) {
