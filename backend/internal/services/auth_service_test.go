@@ -576,6 +576,7 @@ type fakePasswordResetStore struct {
 	createCalls     int
 	invalidateCalls int
 	markUsedCalls   int
+	claimCalls      int
 	gotCodeHash     string
 	gotExpiresAt    time.Time
 }
@@ -588,6 +589,7 @@ func (f *fakePasswordResetStore) Create(_ context.Context, _, codeHash string, e
 }
 
 func (f *fakePasswordResetStore) ClaimAttempt(context.Context, string) (string, string, error) {
+	f.claimCalls++
 	if f.claimErr != nil {
 		return "", "", f.claimErr
 	}
@@ -663,15 +665,34 @@ func TestAuthServiceRequestPasswordReset(t *testing.T) {
 	}
 
 	// waitForSends — mail arka planda gönderildiği için kısa süre bekler.
+	// waitForSends — mail arka planda gönderildiği için beklenir. Bekleme
+	// bütçesi SABİT OLAMAZ: mail gönderiminden önce bcrypt.DefaultCost
+	// çalışıyor ve bu süre ortama göre değişiyor (bu makinede -race'siz ~75ms,
+	// -race ALTINDA ~580ms). Sabit 500ms bütçe -race altında dolmadan mail
+	// gelmiyordu ve test, sayaç eşit olmasına rağmen "1 bekleniyordu, 1 geldi"
+	// gibi kafa karıştırıcı bir mesajla düşüyordu (Fatalf sayacı pencere
+	// kapandıktan SONRA tekrar okuyor). negativeWaitWindow ile aynı gerekçe:
+	// bcrypt süresini bu çalışmada ölçüp bol pay bırak.
 	waitForSends := func(t *testing.T, mail *fakeEmailService, want int) {
 		t.Helper()
-		for i := 0; i < 100; i++ {
+		start := time.Now()
+		if _, err := bcrypt.GenerateFromPassword([]byte("olcum"), bcrypt.DefaultCost); err != nil {
+			t.Fatalf("bcrypt ölçümü başarısız: %v", err)
+		}
+		budget := time.Since(start) * 10
+		if budget < 500*time.Millisecond {
+			budget = 500 * time.Millisecond
+		}
+
+		deadline := time.Now().Add(budget)
+		for time.Now().Before(deadline) {
 			if mail.sendCount() == want {
 				return
 			}
 			time.Sleep(5 * time.Millisecond)
 		}
-		t.Fatalf("beklenen mail sayısı %d, gerçekleşen %d", want, mail.sendCount())
+		t.Fatalf("beklenen mail sayısı %d, %v içinde gerçekleşen %d",
+			want, budget, mail.sendCount())
 	}
 
 	t.Run("geçerli kullanıcı: token oluşur ve mail gider", func(t *testing.T) {
@@ -760,21 +781,31 @@ func TestAuthServiceRequestPasswordReset(t *testing.T) {
 	})
 
 	t.Run("geçerlilik süresi 15 dakika", func(t *testing.T) {
+		// Wall-clock yerine sabit saat enjekte ediyoruz: servisin now() alanı
+		// override edilerek expires_at TAM OLARAK sabit.Add(15*time.Minute)
+		// olarak assert edilebiliyor. Böylece testte tolerans penceresine
+		// (ör. -1s..+5s) gerek kalmıyor — asıl hesaplama (15 dk, ne fazla ne az)
+		// birebir doğrulanıyor.
+		fixedNow := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
+
 		store := &fakeAuthUserStore{byEmail: emailUser()}
 		reset := &fakePasswordResetStore{}
 		mail := &fakeEmailService{}
 
-		before := time.Now()
-		if err := newResetAuthService(store, reset, mail).
-			RequestPasswordReset(context.Background(), "a@b.com"); err != nil {
+		svc := newResetAuthService(store, reset, mail)
+		svc.now = func() time.Time { return fixedNow }
+
+		if err := svc.RequestPasswordReset(context.Background(), "a@b.com"); err != nil {
 			t.Fatalf("hata döndü: %v", err)
 		}
+		// createResetAndSendEmail arka planda (goroutine) çalışıyor; mail
+		// gönderimini beklemek, expires_at'in de o noktada yazılmış olmasını
+		// garanti eder (Create, Send'den önce çağrılıyor).
 		waitForSends(t, mail, 1)
 
-		want := before.Add(15 * time.Minute)
-		diff := reset.gotExpiresAt.Sub(want)
-		if diff < -time.Second || diff > 5*time.Second {
-			t.Fatalf("expires_at 15 dk değil: %v", reset.gotExpiresAt)
+		want := fixedNow.Add(15 * time.Minute)
+		if !reset.gotExpiresAt.Equal(want) {
+			t.Fatalf("expires_at tam olarak +15dk değil: got=%v want=%v", reset.gotExpiresAt, want)
 		}
 	})
 
@@ -934,6 +965,43 @@ func TestAuthServiceResetPassword(t *testing.T) {
 		}
 	})
 
+	t.Run("UpdatePassword hatası: hata dönmeli, kullanıcının şifresi değişmemiş kalmalı", func(t *testing.T) {
+		// auth_service.go: UpdatePassword hata dönerse ResetPassword ham err'i
+		// (sentinel DEĞİL) döndürüyor; bu yüzden errors.Is(ErrResetInvalid) ile
+		// EŞLEŞMEZ. Test bunu bekliyor — sentinel iddiası yapmıyoruz, sadece
+		// hata döndüğünü doğruluyoruz.
+		//
+		// DİKKAT — bilinçli fail-closed tasarım kararı: üretim kodu MarkUsed'ı
+		// UpdatePassword'DEN ÖNCE çağırıyor (bkz. auth_service.go:401-406). Yani
+		// bu senaryoda token ZATEN kullanılmış işaretlenmiş olur, ama şifre
+		// gerçekte değişmemiştir. Kullanıcı aynı kodu tekrar deneyemez (token
+		// tükendi) ama şifresi de değişmemiş kalır — kilitlenme riskine karşı
+		// "güvenli tarafta hata ver" tercih edilmiş. Bu davranışı burada
+		// SABİTLİYORUZ, değiştirmeye çalışmıyoruz.
+		user := activeUser()
+		originalHash := *user.PasswordHash
+		store := &fakeAuthUserStore{byEmail: user, updatePasswordErr: errors.New("db yazma hatası")}
+		reset := &fakePasswordResetStore{claimTokenID: "t1", claimHash: hashedCode(t)}
+
+		err := newResetAuthService(store, reset, &fakeEmailService{}).
+			ResetPassword(context.Background(), "a@b.com", validCode, "yeniSifre123")
+		if err == nil {
+			t.Fatal("UpdatePassword hatasında ResetPassword hata döndürmedi")
+		}
+		if errors.Is(err, ErrResetInvalid) {
+			t.Error("beklenmedik şekilde ErrResetInvalid sentinel'i ile eşleşti; üretim kodu ham err döndürmeliydi")
+		}
+		// Kullanıcının gerçek (fake store üzerindeki) PasswordHash alanı hâlâ
+		// eski hash: UpdatePassword hata döndüğünde çağıran katman (bu fake)
+		// kalıcı durumu güncellemez, dolayısıyla şifre fiilen değişmemiştir.
+		if *store.byEmail.PasswordHash != originalHash {
+			t.Error("UpdatePassword hata dönmesine rağmen kullanıcının şifresi değişmiş görünüyor")
+		}
+		if reset.markUsedCalls != 1 {
+			t.Error("MarkUsed çağrılmamış görünüyor — fail-closed varsayımı bozulmuş olabilir")
+		}
+	})
+
 	t.Run("MarkUsed hatası: şifre değişmez, aynı kod iki kez kullanılamaz", func(t *testing.T) {
 		// MarkUsed, aynı kodun iki paralel istekle iki kez kullanılmasını önleyen
 		// TEK mekanizma (bkz. auth_service.go ClaimAttempt/MarkUsed yorumu).
@@ -972,6 +1040,25 @@ func TestAuthServiceResetPassword(t *testing.T) {
 		}
 		if reset.markUsedCalls != 0 {
 			t.Error("yanlış kodda token tüketildi")
+		}
+	})
+
+	t.Run("yanlış kodda bile ClaimAttempt çağrılır: deneme sayacı harcanır", func(t *testing.T) {
+		// ClaimAttempt, bcrypt karşılaştırmasından ÖNCE çağrılıp deneme sayacını
+		// atomik biçimde artırır. Kod yanlış çıksa da bu çağrı gerçekleşmiş
+		// olmalı; aksi hâlde saldırgan ClaimAttempt'i hiç tetiklemeden (dolayısıyla
+		// sayaç hiç artmadan) kodu sınırsız deneyebilir ve 5-deneme limiti
+		// (bkz. üretim koduna ait ClaimAttempt yorumu) fiilen devre dışı kalır.
+		store := &fakeAuthUserStore{byEmail: activeUser()}
+		reset := &fakePasswordResetStore{claimTokenID: "t1", claimHash: hashedCode(t)}
+
+		err := newResetAuthService(store, reset, &fakeEmailService{}).
+			ResetPassword(context.Background(), "a@b.com", "999999", "yeniSifre123")
+		if !errors.Is(err, ErrResetInvalid) {
+			t.Fatalf("beklenen ErrResetInvalid, gelen: %v", err)
+		}
+		if reset.claimCalls != 1 {
+			t.Fatalf("ClaimAttempt çağrılmadı (deneme sayacı harcanmadı): claimCalls=%d", reset.claimCalls)
 		}
 	})
 
