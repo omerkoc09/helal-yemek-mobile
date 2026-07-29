@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/auth/auth_provider.dart';
@@ -57,9 +58,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               child: Column(
                 children: [
                   const SizedBox(height: 48),
-                  // Logo
-                  Image.asset(
-                    'assets/images/app_logo_nobg.png',
+                  // Logo — login ekranıyla aynı güncel yazısız logo.
+                  // Yükseklik 96: burada altında "Hesap Oluştur" başlığı var,
+                  // login'deki 180 bu uzun formu sıkıştırırdı.
+                  SvgPicture.asset(
+                    'assets/logo/logo_without_name/screen.svg',
                     height: 96,
                   ),
                   const SizedBox(height: 16),

@@ -166,12 +166,6 @@ class _AuthGateScreenState extends ConsumerState<AuthGateScreen> {
                                     label: 'E-posta ile devam et',
                                     onTap: () => context.push(AppRoutes.login),
                                   ),
-                                  const SizedBox(height: 10),
-                                  _ExpandedOptionButton(
-                                    icon: Icons.phone_outlined,
-                                    label: 'Telefon numarası ile devam et',
-                                    onTap: null,
-                                  ),
                                 ],
                               )
                             : const SizedBox.shrink(),
