@@ -813,16 +813,50 @@ func TestAuthServiceRequestPasswordReset(t *testing.T) {
 		},
 	}
 
+	// negativeWaitWindow — negatif senaryoda "asenkron iş hiç tetiklenmedi mi"
+	// diye beklerken kullanılacak pencere. Sabit bir milisaniye değeri (ör. 50ms)
+	// ortam bağımlı bcrypt süresine karşı güvenilmez: bu makinede -race'siz
+	// ~75ms, -race ALTINDA ~580ms sürebiliyor (ölçüldü). Guard mutasyona uğrayıp
+	// goroutine yanlışlıkla başlarsa, hash'leme bitmeden pencere kapanırsa test
+	// yanlışlıkla PASS kalır. Bu yüzden gerçek bcrypt.DefaultCost süresini BU
+	// çalışmada ölçüp bolca pay (10x) bırakarak bekliyoruz — hem hızlı hem
+	// yavaş makinede/CI'da/-race altında doğru sonuç verir.
+	negativeWaitWindow := func(t *testing.T) time.Duration {
+		t.Helper()
+		start := time.Now()
+		if _, err := bcrypt.GenerateFromPassword([]byte("olcum"), bcrypt.DefaultCost); err != nil {
+			t.Fatalf("bcrypt ölçümü başarısız: %v", err)
+		}
+		measured := time.Since(start)
+		window := measured * 10
+		if window < 500*time.Millisecond {
+			window = 500 * time.Millisecond
+		}
+		return window
+	}
+
 	for _, tc := range negatives {
 		t.Run(tc.name+": mail gitmez, hata dönmez", func(t *testing.T) {
+			window := negativeWaitWindow(t)
 			mail := &fakeEmailService{}
 			err := newResetAuthService(tc.store, tc.reset, mail).
 				RequestPasswordReset(context.Background(), "a@b.com")
 			if err != nil {
 				t.Fatalf("hata sızdı: %v", err)
 			}
-			// Asenkron mail'e fırsat tanı; yine de gitmemeli.
-			time.Sleep(50 * time.Millisecond)
+			// Asenkron işe fırsat tanı; yine de hiçbir zaman gitmemeli. Pencere
+			// boyunca sürekli poll ederek hem erken çıkmıyor hem de mutasyon
+			// durumunda (guard silinmiş/gevşetilmiş) sinyali kaçırmıyoruz.
+			deadline := time.Now().Add(window)
+			for time.Now().Before(deadline) {
+				if mail.sendCount() != 0 {
+					t.Fatal("mail gönderildi, gönderilmemeliydi")
+				}
+				if tc.reset.createCalls != 0 {
+					t.Fatal("token oluşturuldu, oluşturulmamalıydı")
+				}
+				time.Sleep(10 * time.Millisecond)
+			}
 			if mail.sendCount() != 0 {
 				t.Error("mail gönderildi, gönderilmemeliydi")
 			}
@@ -897,6 +931,30 @@ func TestAuthServiceResetPassword(t *testing.T) {
 		}
 		if reset.invalidateCalls != 1 {
 			t.Error("kullanıcının diğer aktif tokenları kapatılmadı")
+		}
+	})
+
+	t.Run("MarkUsed hatası: şifre değişmez, aynı kod iki kez kullanılamaz", func(t *testing.T) {
+		// MarkUsed, aynı kodun iki paralel istekle iki kez kullanılmasını önleyen
+		// TEK mekanizma (bkz. auth_service.go ClaimAttempt/MarkUsed yorumu).
+		// Hata dönerse şifre YAZILMAMALI; aksi hâlde bir yarış durumunda tek
+		// kullanımlık kod ihlal edilmiş olur.
+		store := &fakeAuthUserStore{byEmail: activeUser()}
+		reset := &fakePasswordResetStore{
+			claimTokenID: "t1", claimHash: hashedCode(t),
+			markUsedErr: repository.ErrNotFound,
+		}
+
+		err := newResetAuthService(store, reset, &fakeEmailService{}).
+			ResetPassword(context.Background(), "a@b.com", validCode, "yeniSifre123")
+		if err == nil {
+			t.Fatal("MarkUsed hatasında sıfırlama başarılı sayıldı")
+		}
+		if !errors.Is(err, ErrResetInvalid) {
+			t.Errorf("beklenmeyen hata: %v", err)
+		}
+		if store.gotPasswordHash != "" {
+			t.Error("MarkUsed hata dönmesine rağmen şifre değişti")
 		}
 	})
 
@@ -983,6 +1041,13 @@ func TestAuthServiceResetPassword(t *testing.T) {
 			ResetPassword(context.Background(), "a@b.com", validCode, strings.Repeat("a", 73))
 		if err == nil {
 			t.Fatal("72 byte üstü şifre kabul edildi")
+		}
+		// Yalnızca "hata var mı" yeterli değil: 72 byte kontrolü silinirse bcrypt
+		// kendi hatasını döner ve test yine yeşil kalır, ama handler artık
+		// errors.Is(ErrPasswordTooLong) ile eşleşemez — kullanıcı 400 yerine
+		// 500 + jenerik mesaj alır. Spesifik hata tipini zorunlu kılıyoruz.
+		if !errors.Is(err, ErrPasswordTooLong) {
+			t.Fatalf("beklenen ErrPasswordTooLong, gelen: %v", err)
 		}
 	})
 
