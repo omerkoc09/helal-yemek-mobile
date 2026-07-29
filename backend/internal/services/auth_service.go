@@ -344,3 +344,69 @@ func (s *AuthService) cleanupExpiredResets() {
 		log.Printf("şifre sıfırlama temizliği başarısız: %v", err)
 	}
 }
+
+// ErrResetInvalid — kod doğrulamasının TÜM kırılma sebepleri için tek mesaj.
+// Sebepleri ayırmak ("süresi dolmuş" vs "yanlış kod") saldırgana kodu
+// doğruladığını söyler.
+//
+// Bu üçü export edilir çünkü handler, kullanıcıya gösterilebilir hatalarla
+// beklenmeyen iç hataları (DB/bcrypt) errors.Is ile ayırt eder; iç hata
+// metinleri istemciye sızmamalıdır.
+var (
+	ErrResetInvalid     = errors.New("kod geçersiz veya süresi dolmuş")
+	ErrPasswordTooShort = errors.New("şifre en az 6 karakter olmalıdır")
+	ErrPasswordTooLong  = errors.New("şifre en fazla 72 karakter olabilir")
+)
+
+// ResetPassword — sıfırlama kodunu doğrulayıp yeni şifreyi yazar.
+func (s *AuthService) ResetPassword(ctx context.Context, email, code, newPassword string) error {
+	email = strings.ToLower(strings.TrimSpace(email))
+
+	if len(newPassword) < 6 {
+		return ErrPasswordTooShort
+	}
+	// bcrypt 72 byte'tan sonrasını sessizce kırpar.
+	if len(newPassword) > 72 {
+		return ErrPasswordTooLong
+	}
+
+	user, err := s.userRepo.FindByEmail(ctx, email)
+	if err != nil {
+		return ErrResetInvalid
+	}
+	if !user.IsActive || user.PasswordHash == nil {
+		return ErrResetInvalid
+	}
+
+	// ClaimAttempt ATOMİK: deneme sayacını artırır ve token hâlâ geçerliyse
+	// hash'i döner. Sayaç artışı kod yanlış olsa da kalıcıdır, aksi hâlde
+	// saldırgan limitsiz deneyebilirdi.
+	tokenID, codeHash, err := s.resetRepo.ClaimAttempt(ctx, user.ID)
+	if err != nil {
+		return ErrResetInvalid
+	}
+
+	// bcrypt.CompareHashAndPassword sabit zamanlıdır.
+	if err := bcrypt.CompareHashAndPassword([]byte(codeHash), []byte(code)); err != nil {
+		return ErrResetInvalid
+	}
+
+	newHash, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+
+	// Tokenı tüket: MarkUsed yalnızca henüz kullanılmamışsa yazar, böylece
+	// aynı kodla iki paralel istek şifreyi iki kez değiştiremez.
+	if err := s.resetRepo.MarkUsed(ctx, tokenID); err != nil {
+		return ErrResetInvalid
+	}
+	if err := s.userRepo.UpdatePassword(ctx, user.ID, string(newHash)); err != nil {
+		return err
+	}
+	// Şifre değişti: kullanıcının diğer açık kodları da geçersizleşsin.
+	if err := s.resetRepo.InvalidateActiveByUserID(ctx, user.ID); err != nil {
+		log.Printf("şifre sonrası token temizliği başarısız: %v", err)
+	}
+	return nil
+}

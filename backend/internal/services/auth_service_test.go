@@ -857,3 +857,141 @@ func TestAuthServiceRequestPasswordReset(t *testing.T) {
 		}
 	})
 }
+
+func TestAuthServiceResetPassword(t *testing.T) {
+	const validCode = "123456"
+
+	activeUser := func() *models.User {
+		return &models.User{
+			ID: "u1", Email: "a@b.com", Role: models.RoleTraveler,
+			IsActive: true, PasswordHash: hashOf(t, "eskiSifre"),
+		}
+	}
+	hashedCode := func(t *testing.T) string {
+		t.Helper()
+		h, err := bcrypt.GenerateFromPassword([]byte(validCode), bcrypt.MinCost)
+		if err != nil {
+			t.Fatalf("kod hash'lenemedi: %v", err)
+		}
+		return string(h)
+	}
+
+	t.Run("doğru kod: şifre güncellenir ve token kullanılmış işaretlenir", func(t *testing.T) {
+		store := &fakeAuthUserStore{byEmail: activeUser()}
+		reset := &fakePasswordResetStore{claimTokenID: "t1", claimHash: hashedCode(t)}
+
+		err := newResetAuthService(store, reset, &fakeEmailService{}).
+			ResetPassword(context.Background(), "a@b.com", validCode, "yeniSifre123")
+		if err != nil {
+			t.Fatalf("sıfırlama başarısız: %v", err)
+		}
+		if store.gotPasswordUserID != "u1" {
+			t.Errorf("şifre yanlış kullanıcıya yazıldı: %q", store.gotPasswordUserID)
+		}
+		if err := bcrypt.CompareHashAndPassword(
+			[]byte(store.gotPasswordHash), []byte("yeniSifre123")); err != nil {
+			t.Errorf("yeni şifre doğru hash'lenmemiş: %v", err)
+		}
+		if reset.markUsedCalls != 1 {
+			t.Error("token kullanılmış olarak işaretlenmedi")
+		}
+		if reset.invalidateCalls != 1 {
+			t.Error("kullanıcının diğer aktif tokenları kapatılmadı")
+		}
+	})
+
+	t.Run("yanlış kod: şifre değişmez", func(t *testing.T) {
+		store := &fakeAuthUserStore{byEmail: activeUser()}
+		reset := &fakePasswordResetStore{claimTokenID: "t1", claimHash: hashedCode(t)}
+
+		err := newResetAuthService(store, reset, &fakeEmailService{}).
+			ResetPassword(context.Background(), "a@b.com", "999999", "yeniSifre123")
+		if err == nil {
+			t.Fatal("yanlış kod kabul edildi")
+		}
+		if store.gotPasswordHash != "" {
+			t.Error("yanlış kodla şifre değişti")
+		}
+		if reset.markUsedCalls != 0 {
+			t.Error("yanlış kodda token tüketildi")
+		}
+	})
+
+	// ClaimAttempt geçersiz her durumda ErrNotFound döner: süresi dolmuş,
+	// kullanılmış, 5 deneme aşılmış, hiç token yok. Hepsi AYNI mesajla
+	// reddedilmeli — "kod doğru ama süresi dolmuş" demek saldırgana kodu
+	// doğruladığını söyler.
+	t.Run("token geçersiz (süre/kullanım/limit/yok): aynı mesaj", func(t *testing.T) {
+		store := &fakeAuthUserStore{byEmail: activeUser()}
+		reset := &fakePasswordResetStore{claimErr: repository.ErrNotFound}
+
+		err := newResetAuthService(store, reset, &fakeEmailService{}).
+			ResetPassword(context.Background(), "a@b.com", validCode, "yeniSifre123")
+		if err == nil {
+			t.Fatal("geçersiz token kabul edildi")
+		}
+		if !errors.Is(err, ErrResetInvalid) {
+			t.Errorf("beklenmeyen hata: %v", err)
+		}
+		if store.gotPasswordHash != "" {
+			t.Error("şifre değişti")
+		}
+	})
+
+	t.Run("yanlış kod ve geçersiz token AYNI mesajı döner", func(t *testing.T) {
+		store1 := &fakeAuthUserStore{byEmail: activeUser()}
+		errWrong := newResetAuthService(store1,
+			&fakePasswordResetStore{claimTokenID: "t1", claimHash: hashedCode(t)},
+			&fakeEmailService{}).
+			ResetPassword(context.Background(), "a@b.com", "999999", "yeniSifre123")
+
+		store2 := &fakeAuthUserStore{byEmail: activeUser()}
+		errInvalid := newResetAuthService(store2,
+			&fakePasswordResetStore{claimErr: repository.ErrNotFound},
+			&fakeEmailService{}).
+			ResetPassword(context.Background(), "a@b.com", validCode, "yeniSifre123")
+
+		if errWrong == nil || errInvalid == nil {
+			t.Fatal("iki durum da hata döndürmeliydi")
+		}
+		if errWrong.Error() != errInvalid.Error() {
+			t.Errorf("mesajlar ayrışıyor: %q vs %q", errWrong.Error(), errInvalid.Error())
+		}
+	})
+
+	t.Run("kısa şifre reddedilir, token tüketilmez", func(t *testing.T) {
+		store := &fakeAuthUserStore{byEmail: activeUser()}
+		reset := &fakePasswordResetStore{claimTokenID: "t1", claimHash: hashedCode(t)}
+
+		err := newResetAuthService(store, reset, &fakeEmailService{}).
+			ResetPassword(context.Background(), "a@b.com", validCode, "abc")
+		if err == nil {
+			t.Fatal("kısa şifre kabul edildi")
+		}
+		if reset.markUsedCalls != 0 {
+			t.Error("geçersiz şifrede token tüketildi")
+		}
+	})
+
+	t.Run("72 byte üstü şifre reddedilir", func(t *testing.T) {
+		// bcrypt 72 byte'tan sonrasını sessizce kırpar; sınır konmazsa
+		// kullanıcı girdiğinden farklı bir şifreyle hesabına bağlanır.
+		store := &fakeAuthUserStore{byEmail: activeUser()}
+		reset := &fakePasswordResetStore{claimTokenID: "t1", claimHash: hashedCode(t)}
+
+		err := newResetAuthService(store, reset, &fakeEmailService{}).
+			ResetPassword(context.Background(), "a@b.com", validCode, strings.Repeat("a", 73))
+		if err == nil {
+			t.Fatal("72 byte üstü şifre kabul edildi")
+		}
+	})
+
+	t.Run("kullanıcı yoksa reddedilir", func(t *testing.T) {
+		store := &fakeAuthUserStore{byEmailErr: repository.ErrNotFound}
+		err := newResetAuthService(store, &fakePasswordResetStore{}, &fakeEmailService{}).
+			ResetPassword(context.Background(), "yok@b.com", validCode, "yeniSifre123")
+		if err == nil {
+			t.Fatal("olmayan kullanıcı için sıfırlama yapıldı")
+		}
+	})
+}
