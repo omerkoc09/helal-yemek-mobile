@@ -77,7 +77,38 @@ type NoopEmailService struct{}
 
 func NewNoopEmailService() *NoopEmailService { return &NoopEmailService{} }
 
-func (s *NoopEmailService) Send(to, subject, _ string) error {
+func (s *NoopEmailService) Send(to, subject, htmlBody string) error {
+	// Gövdedeki 6 haneli kod da loglanır: SMTP tanımlı değilken şifre sıfırlama
+	// akışının uygulamadan uçtan uca denenebilmesi için tek yol bu (kod DB'de
+	// bcrypt hash'li saklandığı için oradan okunamaz).
+	if code, ok := extractSixDigitCode(htmlBody); ok {
+		fmt.Printf("[EMAIL NOOP] To: %s | Subject: %s | Kod: %s\n", to, subject, code)
+		return nil
+	}
 	fmt.Printf("[EMAIL NOOP] To: %s | Subject: %s\n", to, subject)
 	return nil
+}
+
+// extractSixDigitCode — gövdedeki ilk 6 haneli rakam dizisini döner.
+// Şifre sıfırlama şablonunda başka 6 haneli sayı yok; başka mail türlerinde
+// (ör. doğrulama uyarıları) bulunmazsa sessizce false döner ve log eski
+// biçimine düşer. Yalnızca Noop (geliştirme) yolunda kullanılır.
+func extractSixDigitCode(body string) (string, bool) {
+	run := 0
+	for i := 0; i < len(body); i++ {
+		if body[i] >= '0' && body[i] <= '9' {
+			run++
+			if run == 6 {
+				// Devamında da rakam varsa bu 6 haneli bir kod değildir.
+				if i+1 < len(body) && body[i+1] >= '0' && body[i+1] <= '9' {
+					run = 0
+					continue
+				}
+				return body[i-5 : i+1], true
+			}
+			continue
+		}
+		run = 0
+	}
+	return "", false
 }

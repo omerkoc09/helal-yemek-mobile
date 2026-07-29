@@ -84,3 +84,43 @@ func TestPasswordResetEmailHTML(t *testing.T) {
 		}
 	})
 }
+
+func TestExtractSixDigitCode(t *testing.T) {
+	t.Run("sıfırlama şablonundan kodu çıkarır", func(t *testing.T) {
+		// Asıl kullanım: Noop e-posta servisi, SMTP tanımlı değilken kodu
+		// loga basabilsin diye gövdeden çıkarıyor.
+		body := passwordResetEmailHTML("Ayşe", "042317")
+
+		got, ok := extractSixDigitCode(body)
+		if !ok {
+			t.Fatal("kod bulunamadı")
+		}
+		if got != "042317" {
+			t.Fatalf("yanlış kod: got=%q want=%q", got, "042317")
+		}
+	})
+
+	t.Run("baştaki sıfırlar korunur", func(t *testing.T) {
+		body := passwordResetEmailHTML("Ali", "000042")
+
+		got, ok := extractSixDigitCode(body)
+		if !ok || got != "000042" {
+			t.Fatalf("baştaki sıfırlar bozuldu: got=%q ok=%v", got, ok)
+		}
+	})
+
+	t.Run("6 haneden uzun sayı dizisi kod sayılmaz", func(t *testing.T) {
+		// 7+ haneli bir dizi (ör. bir id) yanlışlıkla kod diye okunmamalı.
+		got, ok := extractSixDigitCode("<p>1234567</p>")
+		if ok {
+			t.Fatalf("uzun sayı dizisi kod sanıldı: %q", got)
+		}
+	})
+
+	t.Run("kod yoksa false döner", func(t *testing.T) {
+		// Diğer mail türleri (uyarı/askıya alma) 6 haneli kod içermiyor.
+		if got, ok := extractSixDigitCode(warningEmailHTML("Ayşe", "Lokanta")); ok {
+			t.Fatalf("kodsuz gövdede kod bulundu: %q", got)
+		}
+	})
+}
