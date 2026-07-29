@@ -72,8 +72,22 @@ hem panelden hangi şehirlerde kaç tane rehber olduğunu görürüz (harita man
 | Saatlik istek limiti | ✅ | Kullanıcı başına saatte en fazla 3 token oluşturulur; limit aşılsa da dışarıya yine `200` döner (`CountRecentByUserID`). Testte 4 ardışık istek → 4 kez `200`, DB'de tam 3 token. |
 | `POST /auth/reset-password` | ✅ | Doğru kod + yeni şifre → `200` ve `users.password_hash` güncellenir (login testiyle doğrulandı). Yanlış/süresi geçmiş/tekrar kullanılan kod → tek tip `400 "kod geçersiz veya süresi dolmuş"` (kod var/yok ayrımı yapılmaz). `ClaimAttempt` atomik `UPDATE ... RETURNING` ile 5 deneme sınırını race-safe uygular. |
 | Tek kullanımlık kod | ✅ | Başarılı sıfırlamadan sonra `used_at` damgalanır; aynı kod ikinci kez denendiğinde `400` (uçtan uca doğrulandı). |
-| Mobil ekranlar | ✅ | `/forgot-password` ve `/reset-password`, login ekranından bağlantılı. |
+| Mobil ekranlar | ✅ | `/forgot-password` ve `/reset-password`, login ekranından bağlantılı. Login'deki eski `TODO` ve "yakında eklenecek" toast'u kaldırıldı. |
 | Testler | ✅ | Backend `go build ./... && go test ./... -race` tamamı PASS. `flutter analyze` yeni hata yok (26 pre-existing info, baseline ile birebir aynı). |
+
+#### Merge sonrası tamamlananlar (aynı gün)
+
+| Değişiklik | Durum | Detay |
+|-----------|-------|-------|
+| Testler mutasyona dayanır hale getirildi | ✅ | Son incelemede üç güvenlik iddiasının testsiz olduğu **mutasyonla kanıtlandı**: saatlik limiti (`count >= 3` → `>= 300`), Google/pasif hesap guard'ını ve `MarkUsed` hata kontrolünü silmek hiçbir testi kırmıyordu. Negatif senaryolardaki sabit `50ms` bekleme, `-race` altında ~580ms süren bcrypt'ten kısa olduğu için pencere kapanmadan sızıntı gerçekleşmiyordu. Bekleme artık bcrypt süresini çalışma anında ölçüyor. Dört mutasyon da denenip testin kırıldığı doğrulandı. |
+| Ertelenen test boşlukları | ✅ | `now` alanı sabit saatle enjekte ediliyor (15dk testi tolerans yerine tam eşitlik); `claimCalls` sayacı eklendi (yanlış kodda da deneme harcandığı sabitlendi); `UpdatePassword` hata dalı test edildi (fail-closed: token yanar, şifre değişmez). |
+| Ölü kod temizliği | ✅ | `models.PasswordResetToken` kaldırıldı — repo katmanı struct'a hiç scan etmiyordu, hiçbir yerde kullanılmıyordu. |
+| Noop e-posta servisi kodu loglar | ✅ | SMTP tanımsızken sıfırlama kodu artık loga basılıyor: `[EMAIL NOOP] To: ... \| Kod: 042317`. Kod DB'de bcrypt hash'li saklandığı için oradan okunamıyordu; geliştirmede akışı denemenin başka yolu yoktu. Gerçek istekle doğrulandı (kod loga düştü → sıfırlama başarılı → aynı kod ikinci denemede reddedildi; admin şifresi ve test tokenları geri alındı). |
+| SMTP zarf adresi düzeltildi | ✅ | Zarf adresi (`MAIL FROM`) olarak `SMTP_USER` kullanılıyordu. Gmail'de ikisi aynı olduğu için sorun çıkmıyordu, ama **Resend'de `SMTP_USER` sabit `"resend"` kelimesidir ve geçerli bir adres değildir** — sunucu zarfı reddederdi. Artık `envelopeFrom` ile `SMTP_FROM`'dan türetiliyor (`"Ad <adres>"` ve çıplak adres biçimleri, 6 vakalık test). `SMTP_HOST` varsayılanı `smtp.resend.com`. |
+
+**Açık konu — üretime çıkmadan önce:** Mail gönderimi için bir alan adı gerekiyor (Resend/Postmark/SES hepsi gönderen alan adını doğrulatıyor; Gmail adresiyle olmuyor). Şu an `.env`'de SMTP alanları **bilinçli olarak boş** → Noop devrede, geliştirme etkilenmiyor. `.env.example` Resend ve Gmail seçeneklerini adım adım içeriyor.
+
+**Bilinen tuzak:** Yanlış SMTP kimlik bilgisi girildiğinde uygulama sessizce çalışmaya devam ediyor — kullanıcı "kod gönderildi" görür, mail gitmez, hata yalnızca logda kalır. Wiring yalnızca alanların boş olup olmadığına bakıyor, doğruluğuna değil. Başlangıçta SMTP bağlantısını doğrulayan bir kontrol eklenebilir (henüz yapılmadı).
 
 ---
 
@@ -1229,7 +1243,7 @@ haritasındaki **üç madde bayat çıktı** ve kod okunarak düzeltildi (aşağ
 |----|------|-------|
 | Giriş/kayıt ekranı Türkçeleştirme | Uygulamanın tek İngilizce kalan yüzeyiydi: "Sign In", "Email Address", "Create Account", "Join the trusted community", "OR CONTINUE WITH", "Don't have an account?". Kullanıcının gördüğü **ilk ekran** olduğu için tutarsızlık en görünür yerdeydi | ✅ |
 | Renk paleti tutarlılığı | Aynı iki ekran temayı bypass edip soğuk gri-mavi sabitler kullanıyordu (`0xFFF6F8F7` zemin, `0xFFE2E8F0` kenarlık, `Colors.grey.shade*`, `Colors.red`) — sıcak turuncu "Spice Market" paletiyle çakışıyordu. Tümü `AppTheme.background/border/textPrimary/textSecondary/error`'a bağlandı. **Hardcoded renk 18 → 0** | ✅ |
-| "Şifremi Unuttum" butonu | Türkçeleştirildi ve **korundu** — şifre sıfırlama akışı yakında eklenecek (ürün kararı). Akış bağlanana kadar `AppToast.info` ile "yakında eklenecek" bildirimi veriyor; sessiz/ölü buton bırakılmadı. Kodda `TODO` ile işaretli | ✅ |
+| "Şifremi Unuttum" butonu | Türkçeleştirildi ve **korundu** — şifre sıfırlama akışı yakında eklenecek (ürün kararı). Akış bağlanana kadar `AppToast.info` ile "yakında eklenecek" bildirimi veriyor; sessiz/ölü buton bırakılmadı. Kodda `TODO` ile işaretli<br>**↳ GÜNCELLEME (2026-07-29):** akış tamamlandı; TODO ve geçici toast kaldırıldı, buton artık `/forgot-password` ekranına gidiyor (bkz. "Şifre Sıfırlama Akışı") | ✅ |
 
 ### ❌ Düz koordinat girdisi — GERİ ALINDI (ürün kararı, 2026-07-28)
 
