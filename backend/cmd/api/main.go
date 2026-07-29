@@ -74,7 +74,15 @@ func main() {
 	directionRepo := repository.NewDirectionClickRepo(pool)
 
 	// Service katmanı
-	authService := services.NewAuthService(userRepo, loginRepo, cfg.JWTSecret, cfg.GoogleClientID)
+	var emailSvc services.EmailService
+	if cfg.SMTPUser != "" && cfg.SMTPPassword != "" {
+		emailSvc = services.NewSMTPEmailService(cfg.SMTPHost, cfg.SMTPPort, cfg.SMTPUser, cfg.SMTPPassword, cfg.SMTPFrom)
+	} else {
+		emailSvc = services.NewNoopEmailService()
+	}
+
+	passwordResetRepo := repository.NewPasswordResetRepo(pool)
+	authService := services.NewAuthService(userRepo, loginRepo, passwordResetRepo, emailSvc, cfg.JWTSecret, cfg.GoogleClientID)
 	// Depolama arka ucu: S3_ENDPOINT tanımlıysa S3, değilse yerel disk.
 	// S3 yapılandırması hatalıysa BURADA fail-fast yapılır — aksi halde sorun
 	// ilk fotoğraf yüklenene kadar gizli kalır ve kullanıcı hatasıyla karışır.
@@ -105,12 +113,6 @@ func main() {
 	venueRepo.WithURLResolver(storageService)
 	placesService := services.NewPlacesService(cfg.GoogleMapsAPIKey)
 
-	var emailSvc services.EmailService
-	if cfg.SMTPUser != "" && cfg.SMTPPassword != "" {
-		emailSvc = services.NewSMTPEmailService(cfg.SMTPHost, cfg.SMTPPort, cfg.SMTPUser, cfg.SMTPPassword, cfg.SMTPFrom)
-	} else {
-		emailSvc = services.NewNoopEmailService()
-	}
 	notifService := services.NewNotificationService(notifRepo, emailSvc)
 	schedulerSvc := services.NewSchedulerService(venueRepo, verifLogRepo, notifService, cfg.SchedulerRunHour, cfg.VerificationWarningDays, cfg.VerificationPeriodDays)
 
@@ -207,6 +209,8 @@ func main() {
 	auth.Post("/register", authHandler.Register)
 	auth.Post("/login", authHandler.Login)
 	auth.Post("/google", authHandler.GoogleLogin)
+	auth.Post("/forgot-password", authHandler.ForgotPassword)
+	auth.Post("/reset-password", authHandler.ResetPassword)
 
 	// Auth endpoint'leri (korumalı)
 	auth.Post("/refresh", authHandler.Refresh)

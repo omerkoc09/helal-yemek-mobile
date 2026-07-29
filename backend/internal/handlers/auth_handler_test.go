@@ -13,6 +13,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 
 	"github.com/omerkoc/itimat-mobile/internal/models"
+	"github.com/omerkoc/itimat-mobile/internal/services"
 	jwtpkg "github.com/omerkoc/itimat-mobile/pkg/jwt"
 )
 
@@ -31,6 +32,9 @@ type fakeAuthService struct {
 	gotPhone    string
 	gotToken    string
 	gotUserID   string
+
+	resetErr error
+	gotCode  string
 }
 
 func (f *fakeAuthService) Register(_ context.Context, email, password, name, surname, phone string) (*jwtpkg.TokenPair, error) {
@@ -70,6 +74,16 @@ func (f *fakeAuthService) UpdateProfile(_ context.Context, userID string, name, 
 		f.gotPhone = *phone
 	}
 	return f.user, f.err
+}
+
+func (f *fakeAuthService) RequestPasswordReset(_ context.Context, email string) error {
+	f.gotEmail = email
+	return f.resetErr
+}
+
+func (f *fakeAuthService) ResetPassword(_ context.Context, email, code, newPassword string) error {
+	f.gotEmail, f.gotCode, f.gotPassword = email, code, newPassword
+	return f.resetErr
 }
 
 // --- test helpers ---
@@ -312,6 +326,157 @@ func TestAuthUpdateProfile(t *testing.T) {
 		resp := doJSON(t, setupAuthApp(svc, ""), http.MethodPut, "/auth/profile", `{"name":"Yeni"}`)
 		if resp.StatusCode != fiber.StatusUnauthorized {
 			t.Fatalf("beklenen 401, alınan %d", resp.StatusCode)
+		}
+	})
+}
+
+// --- ForgotPassword ---
+
+func TestForgotPasswordHandler(t *testing.T) {
+	const wantMsg = "Eğer bu e-posta kayıtlıysa, sıfırlama kodu gönderildi."
+
+	newApp := func(svc AuthServiceInterface) *fiber.App {
+		app := fiber.New()
+		h := NewAuthHandler(svc)
+		app.Post("/forgot-password", h.ForgotPassword)
+		return app
+	}
+
+	post := func(t *testing.T, app *fiber.App, body string) (*http.Response, map[string]any) {
+		t.Helper()
+		req := httptest.NewRequest(http.MethodPost, "/forgot-password", strings.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		resp, err := app.Test(req)
+		if err != nil {
+			t.Fatalf("istek başarısız: %v", err)
+		}
+		raw, _ := io.ReadAll(resp.Body)
+		var parsed map[string]any
+		_ = json.Unmarshal(raw, &parsed)
+		return resp, parsed
+	}
+
+	t.Run("başarılı istek 200 ve sabit mesaj döner", func(t *testing.T) {
+		resp, body := post(t, newApp(&fakeAuthService{}), `{"email":"a@b.com"}`)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("beklenen 200, gelen %d", resp.StatusCode)
+		}
+		if body["message"] != wantMsg {
+			t.Errorf("beklenmeyen mesaj: %v", body["message"])
+		}
+	})
+
+	t.Run("servis hatası da AYNI 200 cevabını döner", func(t *testing.T) {
+		// Enumeration koruması: iç durum istemciye sızmamalı.
+		resp, body := post(t,
+			newApp(&fakeAuthService{resetErr: errors.New("iç hata")}),
+			`{"email":"a@b.com"}`)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("beklenen 200, gelen %d", resp.StatusCode)
+		}
+		if body["message"] != wantMsg {
+			t.Errorf("beklenmeyen mesaj: %v", body["message"])
+		}
+	})
+
+	t.Run("email boşsa 400", func(t *testing.T) {
+		resp, _ := post(t, newApp(&fakeAuthService{}), `{"email":""}`)
+		if resp.StatusCode != http.StatusBadRequest {
+			t.Fatalf("beklenen 400, gelen %d", resp.StatusCode)
+		}
+	})
+
+	t.Run("geçersiz JSON 400", func(t *testing.T) {
+		resp, _ := post(t, newApp(&fakeAuthService{}), `{bozuk`)
+		if resp.StatusCode != http.StatusBadRequest {
+			t.Fatalf("beklenen 400, gelen %d", resp.StatusCode)
+		}
+	})
+}
+
+func TestResetPasswordHandler(t *testing.T) {
+	newApp := func(svc AuthServiceInterface) *fiber.App {
+		app := fiber.New()
+		h := NewAuthHandler(svc)
+		app.Post("/reset-password", h.ResetPassword)
+		return app
+	}
+
+	post := func(t *testing.T, app *fiber.App, body string) (*http.Response, map[string]any) {
+		t.Helper()
+		req := httptest.NewRequest(http.MethodPost, "/reset-password", strings.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		resp, err := app.Test(req)
+		if err != nil {
+			t.Fatalf("istek başarısız: %v", err)
+		}
+		raw, _ := io.ReadAll(resp.Body)
+		var parsed map[string]any
+		_ = json.Unmarshal(raw, &parsed)
+		return resp, parsed
+	}
+
+	t.Run("başarılı sıfırlama 200", func(t *testing.T) {
+		svc := &fakeAuthService{}
+		resp, body := post(t, newApp(svc),
+			`{"email":"a@b.com","code":"123456","new_password":"yeniSifre123"}`)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("beklenen 200, gelen %d", resp.StatusCode)
+		}
+		if body["message"] != "Şifreniz güncellendi." {
+			t.Errorf("beklenmeyen mesaj: %v", body["message"])
+		}
+		if svc.gotCode != "123456" {
+			t.Errorf("kod servise aktarılmadı: %q", svc.gotCode)
+		}
+	})
+
+	t.Run("servis hatası 400 ve mesajı aynen döner", func(t *testing.T) {
+		// errors.New(...) ile aynı metni üreten ama sentinel'i SARMAYAN bir hata
+		// kasıtlı olarak kullanılmıyor: handler errors.Is ile ayrım yapıyor,
+		// dolayısıyla burada gerçek sentinel (services.ErrResetInvalid) verilmeli.
+		resp, body := post(t,
+			newApp(&fakeAuthService{resetErr: services.ErrResetInvalid}),
+			`{"email":"a@b.com","code":"999999","new_password":"yeniSifre123"}`)
+		if resp.StatusCode != http.StatusBadRequest {
+			t.Fatalf("beklenen 400, gelen %d", resp.StatusCode)
+		}
+		if body["error"] != "kod geçersiz veya süresi dolmuş" {
+			t.Errorf("beklenmeyen mesaj: %v", body["error"])
+		}
+	})
+
+	t.Run("beklenmeyen iç hata 500 ve jenerik mesaj döner", func(t *testing.T) {
+		// DB/bcrypt gibi iç hatalar sentinel değildir; ham metin istemciye
+		// sızmamalı, jenerik mesajla 500 dönmeli.
+		resp, body := post(t,
+			newApp(&fakeAuthService{resetErr: errors.New("db bağlantı hatası: dial tcp refused")}),
+			`{"email":"a@b.com","code":"999999","new_password":"yeniSifre123"}`)
+		if resp.StatusCode != http.StatusInternalServerError {
+			t.Fatalf("beklenen 500, gelen %d", resp.StatusCode)
+		}
+		if body["error"] != "bir hata oluştu, lütfen tekrar deneyin" {
+			t.Errorf("iç hata sızmış olabilir: %v", body["error"])
+		}
+	})
+
+	t.Run("eksik alanlar 400", func(t *testing.T) {
+		for _, body := range []string{
+			`{"email":"","code":"123456","new_password":"yeniSifre123"}`,
+			`{"email":"a@b.com","code":"","new_password":"yeniSifre123"}`,
+			`{"email":"a@b.com","code":"123456","new_password":""}`,
+		} {
+			resp, _ := post(t, newApp(&fakeAuthService{}), body)
+			if resp.StatusCode != http.StatusBadRequest {
+				t.Errorf("beklenen 400, gelen %d — gövde: %s", resp.StatusCode, body)
+			}
+		}
+	})
+
+	t.Run("geçersiz JSON 400", func(t *testing.T) {
+		resp, _ := post(t, newApp(&fakeAuthService{}), `{bozuk`)
+		if resp.StatusCode != http.StatusBadRequest {
+			t.Fatalf("beklenen 400, gelen %d", resp.StatusCode)
 		}
 	})
 }

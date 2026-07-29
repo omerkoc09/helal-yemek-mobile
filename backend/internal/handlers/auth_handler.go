@@ -2,9 +2,12 @@ package handlers
 
 import (
 	"context"
+	"errors"
+	"log"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/omerkoc/itimat-mobile/internal/models"
+	"github.com/omerkoc/itimat-mobile/internal/services"
 	jwtpkg "github.com/omerkoc/itimat-mobile/pkg/jwt"
 )
 
@@ -16,6 +19,8 @@ type AuthServiceInterface interface {
 	RefreshTokens(ctx context.Context, refreshToken string) (*jwtpkg.TokenPair, error)
 	GetUser(ctx context.Context, userID string) (*models.User, error)
 	UpdateProfile(ctx context.Context, userID string, name, surname, phone *string) (*models.User, error)
+	RequestPasswordReset(ctx context.Context, email string) error
+	ResetPassword(ctx context.Context, email, code, newPassword string) error
 }
 
 type AuthHandler struct {
@@ -141,4 +146,61 @@ func (h *AuthHandler) UpdateProfile(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "profil güncellenemedi"})
 	}
 	return c.JSON(user)
+}
+
+// ForgotPassword godoc
+// POST /api/v1/auth/forgot-password
+//
+// Enumeration koruması: kullanıcı bulunsun ya da bulunmasın, limit dolsun ya da
+// dolmasın HER ZAMAN aynı 200 döner. Servis hatası da yutulur.
+func (h *AuthHandler) ForgotPassword(c *fiber.Ctx) error {
+	var req struct {
+		Email string `json:"email"`
+	}
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "geçersiz istek"})
+	}
+	if req.Email == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "email zorunludur"})
+	}
+
+	_ = h.authService.RequestPasswordReset(c.Context(), req.Email)
+
+	return c.JSON(fiber.Map{
+		"message": "Eğer bu e-posta kayıtlıysa, sıfırlama kodu gönderildi.",
+	})
+}
+
+// ResetPassword godoc
+// POST /api/v1/auth/reset-password
+func (h *AuthHandler) ResetPassword(c *fiber.Ctx) error {
+	var req struct {
+		Email       string `json:"email"`
+		Code        string `json:"code"`
+		NewPassword string `json:"new_password"`
+	}
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "geçersiz istek"})
+	}
+	if req.Email == "" || req.Code == "" || req.NewPassword == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "email, kod ve yeni şifre zorunludur",
+		})
+	}
+
+	if err := h.authService.ResetPassword(c.Context(), req.Email, req.Code, req.NewPassword); err != nil {
+		switch {
+		case errors.Is(err, services.ErrResetInvalid),
+			errors.Is(err, services.ErrPasswordTooShort),
+			errors.Is(err, services.ErrPasswordTooLong):
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
+		default:
+			// Beklenmeyen iç hata (DB, bcrypt) — metni istemciye sızdırma.
+			log.Printf("şifre sıfırlama iç hatası: %v", err)
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": "bir hata oluştu, lütfen tekrar deneyin",
+			})
+		}
+	}
+	return c.JSON(fiber.Map{"message": "Şifreniz güncellendi."})
 }

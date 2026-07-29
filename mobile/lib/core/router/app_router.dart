@@ -4,9 +4,11 @@ import 'package:go_router/go_router.dart';
 
 import '../auth/auth_provider.dart';
 import '../../features/auth/screens/auth_gate_screen.dart';
+import '../../features/auth/screens/forgot_password_screen.dart';
 import '../../features/auth/screens/location_permission_screen.dart';
 import '../../features/auth/screens/login_screen.dart';
 import '../../features/auth/screens/register_screen.dart';
+import '../../features/auth/screens/reset_password_screen.dart';
 import '../../features/favorites/screens/favorites_screen.dart';
 import '../../features/map/screens/map_screen.dart';
 import '../../features/profile/screens/profile_screen.dart';
@@ -36,6 +38,8 @@ class AppRoutes {
   static const String auth = '/auth';
   static const String login = '/login';
   static const String register = '/register';
+  static const String forgotPassword = '/forgot-password';
+  static const String resetPassword = '/reset-password';
   static const String home = '/home';
   static const String map = '/map';
   static const String foodDiscovery = '/food-discovery';
@@ -67,7 +71,9 @@ final routerProvider = Provider<GoRouter>((ref) {
       final isAuthRoute = loc == AppRoutes.auth ||
           loc == AppRoutes.login ||
           loc == AppRoutes.register ||
-          loc == AppRoutes.onboarding;
+          loc == AppRoutes.onboarding ||
+          loc == AppRoutes.forgotPassword ||
+          loc == AppRoutes.resetPassword;
       final isSplash = loc == AppRoutes.splash;
 
       if (authState.status == AuthStatus.unknown) {
@@ -119,6 +125,16 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.register,
         builder: (context, state) => const RegisterScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.forgotPassword,
+        builder: (context, state) => const ForgotPasswordScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.resetPassword,
+        builder: (context, state) => ResetPasswordScreen(
+          initialEmail: state.uri.queryParameters['email'],
+        ),
       ),
 
       // Ana sekmeler — ShellRoute ile bottom nav + AppHeader

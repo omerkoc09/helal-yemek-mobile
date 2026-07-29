@@ -57,6 +57,26 @@ hem panelden hangi şehirlerde kaç tane rehber olduğunu görürüz (harita man
 
 ## Tamamlanan İşler
 
+### Şifre Sıfırlama Akışı (Forgot/Reset Password) — YENİ
+
+> 2026-07-29'da tamamlandı. Kayıtlı kullanıcılar e-postalarına gönderilen 6 haneli kodla
+> şifrelerini sıfırlayabiliyor. **Kod yöntemi seçildi, link yöntemi değil:** projede deep link
+> altyapısı (mobil için universal link / app link kurulumu) yok; kod yöntemi hem web hem mobil
+> tarafında ek altyapı gerektirmeden çalışıyor. Uçtan uca doğrulama gerçek DB + gerçek API
+> çağrılarıyla yapıldı (bkz. `.superpowers/sdd/2026-07-29-sifre-sifirlama/task-10-report.md`).
+
+| Değişiklik | Durum | Detay |
+|-----------|-------|-------|
+| Migration 047 | ✅ | `password_reset_tokens` tablosu: `user_id` (FK CASCADE), `code_hash` (bcrypt), `expires_at`, `attempts`, `used_at`. `psql \d` ile doğrulandı. |
+| `POST /auth/forgot-password` | ✅ | Her zaman `200 + "Eğer bu e-posta kayıtlıysa, sıfırlama kodu gönderildi."` döner — kayıtlı/kayıtsız email, aktif/pasif hesap, Google-only hesap fark etmez. Mail **asenkron** gönderilir (enumeration'a karşı: yanıt süresi mail gönderim süresine bağlı olmasın). Uçtan uca testte kayıtlı ve kayıtsız email için yanıtlar bayt bayt aynı çıktı. |
+| Saatlik istek limiti | ✅ | Kullanıcı başına saatte en fazla 3 token oluşturulur; limit aşılsa da dışarıya yine `200` döner (`CountRecentByUserID`). Testte 4 ardışık istek → 4 kez `200`, DB'de tam 3 token. |
+| `POST /auth/reset-password` | ✅ | Doğru kod + yeni şifre → `200` ve `users.password_hash` güncellenir (login testiyle doğrulandı). Yanlış/süresi geçmiş/tekrar kullanılan kod → tek tip `400 "kod geçersiz veya süresi dolmuş"` (kod var/yok ayrımı yapılmaz). `ClaimAttempt` atomik `UPDATE ... RETURNING` ile 5 deneme sınırını race-safe uygular. |
+| Tek kullanımlık kod | ✅ | Başarılı sıfırlamadan sonra `used_at` damgalanır; aynı kod ikinci kez denendiğinde `400` (uçtan uca doğrulandı). |
+| Mobil ekranlar | ✅ | `/forgot-password` ve `/reset-password`, login ekranından bağlantılı. |
+| Testler | ✅ | Backend `go build ./... && go test ./... -race` tamamı PASS. `flutter analyze` yeni hata yok (26 pre-existing info, baseline ile birebir aynı). |
+
+---
+
 ### Auth Hardening — Arka Plan Login Kaydı Güvenli Hale Getirildi — YENİ
 
 > 2026-06-28'de yapıldı. Üretim davranışı odaklı küçük bir sağlamlaştırma (hardening). Yeni özellik değil; mevcut "fire-and-forget" login kaydı pattern'indeki iki gizli üretim riski kapatıldı.

@@ -30,6 +30,8 @@ class ApiEndpoints {
   static const String refreshToken = '/auth/refresh';
   static const String me = '/auth/me';
   static const String updateProfile = '/auth/profile';
+  static const String forgotPassword = '/auth/forgot-password';
+  static const String resetPassword = '/auth/reset-password';
 
   // Venues
   static const String venues = '/venues';

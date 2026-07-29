@@ -24,11 +24,22 @@ type authUserStore interface {
 	FindByProviderID(ctx context.Context, provider, providerID string) (*models.User, error)
 	FindByID(ctx context.Context, id string) (*models.User, error)
 	Update(ctx context.Context, id string, name, surname, phone, email *string, role *models.Role, isActive *bool, guideCity *string) error
+	UpdatePassword(ctx context.Context, id, hashedPassword string) error
 }
 
 // loginRecorder — giriş kaydını arka planda yazar.
 type loginRecorder interface {
 	Record(ctx context.Context, userID string) error
+}
+
+// passwordResetStore — şifre sıfırlama tokenları.
+type passwordResetStore interface {
+	Create(ctx context.Context, userID, codeHash string, expiresAt time.Time) error
+	ClaimAttempt(ctx context.Context, userID string) (tokenID, codeHash string, err error)
+	MarkUsed(ctx context.Context, tokenID string) error
+	CountRecentByUserID(ctx context.Context, userID string, since time.Time) (int, error)
+	InvalidateActiveByUserID(ctx context.Context, userID string) error
+	DeleteExpiredBefore(ctx context.Context, cutoff time.Time) error
 }
 
 // googleTokenValidator — Google ID token doğrulaması. Varsayılan uygulama
@@ -38,18 +49,30 @@ type googleTokenValidator func(ctx context.Context, idToken, audience string) (*
 type AuthService struct {
 	userRepo        authUserStore
 	loginRepo       loginRecorder
+	resetRepo       passwordResetStore
+	email           EmailService
 	jwtSecret       string
 	googleClientID  string
 	googleValidator googleTokenValidator
+	now             func() time.Time // testte sabitlenebilir saat
 }
 
-func NewAuthService(userRepo *repository.UserRepo, loginRepo *repository.LoginRepo, jwtSecret, googleClientID string) *AuthService {
+func NewAuthService(
+	userRepo *repository.UserRepo,
+	loginRepo *repository.LoginRepo,
+	resetRepo *repository.PasswordResetRepo,
+	email EmailService,
+	jwtSecret, googleClientID string,
+) *AuthService {
 	return &AuthService{
 		userRepo:        userRepo,
 		loginRepo:       loginRepo,
+		resetRepo:       resetRepo,
+		email:           email,
 		jwtSecret:       jwtSecret,
 		googleClientID:  googleClientID,
 		googleValidator: idtoken.Validate,
+		now:             time.Now,
 	}
 }
 
@@ -232,4 +255,158 @@ func (s *AuthService) UpdateProfile(ctx context.Context, userID string, name, su
 		return nil, err
 	}
 	return s.userRepo.FindByID(ctx, userID)
+}
+
+// RequestPasswordReset — şifre sıfırlama kodu üretip e-posta ile gönderir.
+//
+// Enumeration koruması: hangi durumda olursa olsun nil döner. Çağıran handler
+// her zaman aynı mesajı basar. Kullanıcının var olup olmadığı, Google hesabı
+// olup olmadığı ya da limitin dolduğu istemciye sızmaz.
+//
+// bcrypt.GenerateFromPassword ~50ms süren CPU-ağır bir işlemdir. SMTP round-trip
+// gibi ağ jitter'ına tabi değildir — senkron çalıştırılırsa pozitif/negatif yol
+// arasında SMTP'den bile daha kararlı ve ölçülebilir bir zamanlama farkı
+// (kullanıcı var: ~50ms, kullanıcı yok: ~20ns) oluşur ve enumeration korumasını
+// zamanlama kanalından deler. Bu yüzden kod üretimi + hash'leme + Invalidate +
+// Create dahil TÜM ağır iş goroutine'e taşınır; fonksiyon FindByEmail ve ucuz
+// CountRecentByUserID (basit COUNT sorgusu, ölçülebilir bir zamanlama sinyali
+// oluşturmaz) sonrasında hemen döner.
+func (s *AuthService) RequestPasswordReset(ctx context.Context, email string) error {
+	email = strings.ToLower(strings.TrimSpace(email))
+
+	user, err := s.userRepo.FindByEmail(ctx, email)
+	if err != nil {
+		return nil // kullanıcı yok (ya da DB hatası) — sessizce yut
+	}
+	if !user.IsActive || user.PasswordHash == nil {
+		return nil // pasif hesap ya da Google hesabı (şifresiz)
+	}
+
+	count, err := s.resetRepo.CountRecentByUserID(ctx, user.ID, s.now().Add(-time.Hour))
+	if err != nil || count >= 3 {
+		return nil // saatte en fazla 3 talep
+	}
+
+	// Kod üretimi, bcrypt hash'leme, eski kodların geçersizleştirilmesi, yeni
+	// kaydın oluşturulması ve mail gönderimi ARKA PLANDA yapılır. Fonksiyon
+	// burada döner; çağıran için pozitif/negatif yol artık zamanlama açısından
+	// ayırt edilemez.
+	go s.createResetAndSendEmail(user.ID, user.Email, user.Name)
+
+	// Fırsatçı temizlik — eski satırlar sonsuza dek birikmesin.
+	go s.cleanupExpiredResets()
+
+	return nil
+}
+
+// createResetAndSendEmail — kod üretimi, hash'leme, eski tokenların
+// geçersizleştirilmesi, yeni kaydın oluşturulması ve mail gönderimini arka
+// planda yürütür. Kendi context'ini kurar (request context'i request dönünce
+// iptal olur, ama bu iş request'ten bağımsız sürmeli).
+func (s *AuthService) createResetAndSendEmail(userID, toEmail, name string) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	code, err := generateResetCode()
+	if err != nil {
+		log.Printf("şifre sıfırlama kodu üretilemedi (user=%s): %v", userID, err)
+		return
+	}
+	codeHash, err := bcrypt.GenerateFromPassword([]byte(code), bcrypt.DefaultCost)
+	if err != nil {
+		log.Printf("şifre sıfırlama kodu hash'lenemedi (user=%s): %v", userID, err)
+		return
+	}
+
+	// Yeni kod üretildiğinde eski kodlar geçersizleşir.
+	if err := s.resetRepo.InvalidateActiveByUserID(ctx, userID); err != nil {
+		log.Printf("eski şifre sıfırlama tokenları geçersizleştirilemedi (user=%s): %v", userID, err)
+		return
+	}
+	if err := s.resetRepo.Create(ctx, userID, string(codeHash), s.now().Add(15*time.Minute)); err != nil {
+		log.Printf("şifre sıfırlama tokenı oluşturulamadı (user=%s): %v", userID, err)
+		return
+	}
+
+	s.sendResetEmail(toEmail, name, code)
+}
+
+func (s *AuthService) sendResetEmail(to, name, code string) {
+	if err := s.email.Send(to, "Şifre sıfırlama kodunuz", passwordResetEmailHTML(name, code)); err != nil {
+		log.Printf("şifre sıfırlama maili gönderilemedi: %v", err)
+	}
+}
+
+func (s *AuthService) cleanupExpiredResets() {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := s.resetRepo.DeleteExpiredBefore(ctx, s.now().Add(-24*time.Hour)); err != nil {
+		log.Printf("şifre sıfırlama temizliği başarısız: %v", err)
+	}
+}
+
+// ErrResetInvalid — kod doğrulamasının TÜM kırılma sebepleri için tek mesaj.
+// Sebepleri ayırmak ("süresi dolmuş" vs "yanlış kod") saldırgana kodu
+// doğruladığını söyler.
+//
+// Bu üçü export edilir çünkü handler, kullanıcıya gösterilebilir hatalarla
+// beklenmeyen iç hataları (DB/bcrypt) errors.Is ile ayırt eder; iç hata
+// metinleri istemciye sızmamalıdır.
+var (
+	ErrResetInvalid     = errors.New("kod geçersiz veya süresi dolmuş")
+	ErrPasswordTooShort = errors.New("şifre en az 6 karakter olmalıdır")
+	ErrPasswordTooLong  = errors.New("şifre en fazla 72 karakter olabilir")
+)
+
+// ResetPassword — sıfırlama kodunu doğrulayıp yeni şifreyi yazar.
+func (s *AuthService) ResetPassword(ctx context.Context, email, code, newPassword string) error {
+	email = strings.ToLower(strings.TrimSpace(email))
+
+	if len(newPassword) < 6 {
+		return ErrPasswordTooShort
+	}
+	// bcrypt 72 byte'tan sonrasını sessizce kırpar.
+	if len(newPassword) > 72 {
+		return ErrPasswordTooLong
+	}
+
+	user, err := s.userRepo.FindByEmail(ctx, email)
+	if err != nil {
+		return ErrResetInvalid
+	}
+	if !user.IsActive || user.PasswordHash == nil {
+		return ErrResetInvalid
+	}
+
+	// ClaimAttempt ATOMİK: deneme sayacını artırır ve token hâlâ geçerliyse
+	// hash'i döner. Sayaç artışı kod yanlış olsa da kalıcıdır, aksi hâlde
+	// saldırgan limitsiz deneyebilirdi.
+	tokenID, codeHash, err := s.resetRepo.ClaimAttempt(ctx, user.ID)
+	if err != nil {
+		return ErrResetInvalid
+	}
+
+	// bcrypt.CompareHashAndPassword sabit zamanlıdır.
+	if err := bcrypt.CompareHashAndPassword([]byte(codeHash), []byte(code)); err != nil {
+		return ErrResetInvalid
+	}
+
+	newHash, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+
+	// Tokenı tüket: MarkUsed yalnızca henüz kullanılmamışsa yazar, böylece
+	// aynı kodla iki paralel istek şifreyi iki kez değiştiremez.
+	if err := s.resetRepo.MarkUsed(ctx, tokenID); err != nil {
+		return ErrResetInvalid
+	}
+	if err := s.userRepo.UpdatePassword(ctx, user.ID, string(newHash)); err != nil {
+		return err
+	}
+	// Şifre değişti: kullanıcının diğer açık kodları da geçersizleşsin.
+	if err := s.resetRepo.InvalidateActiveByUserID(ctx, user.ID); err != nil {
+		log.Printf("şifre sonrası token temizliği başarısız: %v", err)
+	}
+	return nil
 }

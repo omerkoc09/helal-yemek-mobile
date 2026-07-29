@@ -82,6 +82,8 @@ itimat-mobile-backend/
 | POST | `/api/v1/auth/google` | Google OAuth | - | Public |
 | POST | `/api/v1/auth/refresh` | Token yenileme | ✅ | Any |
 | GET | `/api/v1/auth/me` | Kullanıcı profili | ✅ | Any |
+| POST | `/api/v1/auth/forgot-password` | Şifre sıfırlama kodu talebi | - | Public |
+| POST | `/api/v1/auth/reset-password` | Kod ile yeni şifre belirleme | - | Public |
 
 ### Venue Endpoints
 | Method | Path | Açıklama | Auth | Role |
