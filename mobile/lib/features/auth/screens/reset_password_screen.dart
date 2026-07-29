@@ -1,9 +1,11 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/api/api_endpoints.dart';
+import '../../../core/api/api_error.dart';
 import '../../../core/auth/auth_provider.dart';
 import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_theme.dart';
@@ -70,9 +72,18 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
       // Otomatik giriş YAPILMAZ: kodu ele geçiren biri doğrudan oturuma
       // sahip olmamalı. Kullanıcı yeni şifresiyle giriş yapar.
       context.go(AppRoutes.login);
-    } catch (_) {
+    } catch (e) {
       if (!mounted) return;
-      setState(() => _error = 'Kod geçersiz veya süresi dolmuş.');
+      // ApiClient interceptor'ı backend hatasını DioException.error alanına
+      // ApiError olarak koyuyor (bkz. core/api/api_client.dart). Backend
+      // ayırt edilebilir mesajlar döndürüyor (kod geçersiz / şifre çok kısa /
+      // çok uzun); hepsini tek mesaja indirmek kullanıcıyı yanıltır.
+      final apiError = e is DioException && e.error is ApiError
+          ? e.error as ApiError
+          : null;
+      setState(
+        () => _error = apiError?.message ?? 'Kod geçersiz veya süresi dolmuş.',
+      );
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -204,6 +215,9 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                       }
                       if (value.length < 6) {
                         return 'Şifre en az 6 karakter olmalıdır';
+                      }
+                      if (value.length > 72) {
+                        return 'Şifre en fazla 72 karakter olabilir';
                       }
                       return null;
                     },
