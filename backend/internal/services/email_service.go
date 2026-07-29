@@ -24,6 +24,23 @@ func NewSMTPEmailService(host, port, user, password, from string) *SMTPEmailServ
 	return &SMTPEmailService{host: host, port: port, user: user, password: password, from: from}
 }
 
+// envelopeFrom — SMTP zarfında (MAIL FROM) kullanılacak adresi döner.
+//
+// Giriş kullanıcı adı (SMTP_USER) zarf adresi olarak KULLANILAMAZ: Gmail'de
+// ikisi aynı şey olduğu için sorun çıkmıyor ama Resend gibi sağlayıcılarda
+// SMTP_USER sabit bir kelimedir ("resend") ve adres değildir. Zarf adresi her
+// zaman SMTP_FROM'dan türetilir.
+//
+// "İtimat <noreply@x.com>" → "noreply@x.com", "noreply@x.com" → "noreply@x.com"
+func envelopeFrom(from string) string {
+	if i := strings.LastIndex(from, "<"); i >= 0 {
+		if j := strings.Index(from[i:], ">"); j > 0 {
+			return strings.TrimSpace(from[i+1 : i+j])
+		}
+	}
+	return strings.TrimSpace(from)
+}
+
 func (s *SMTPEmailService) Send(to, subject, htmlBody string) error {
 	auth := smtp.PlainAuth("", s.user, s.password, s.host)
 
@@ -37,12 +54,13 @@ func (s *SMTPEmailService) Send(to, subject, htmlBody string) error {
 	msg := headers + "\r\n\r\n" + htmlBody
 
 	addr := net.JoinHostPort(s.host, s.port)
+	sender := envelopeFrom(s.from)
 
 	tlsConfig := &tls.Config{ServerName: s.host}
 	conn, err := tls.Dial("tcp", addr, tlsConfig)
 	if err != nil {
 		// TLS başarısız olursa STARTTLS dene
-		return smtp.SendMail(addr, auth, s.user, []string{to}, []byte(msg))
+		return smtp.SendMail(addr, auth, sender, []string{to}, []byte(msg))
 	}
 	defer conn.Close()
 
@@ -55,7 +73,7 @@ func (s *SMTPEmailService) Send(to, subject, htmlBody string) error {
 	if err = client.Auth(auth); err != nil {
 		return fmt.Errorf("smtp auth başarısız: %w", err)
 	}
-	if err = client.Mail(s.user); err != nil {
+	if err = client.Mail(sender); err != nil {
 		return err
 	}
 	if err = client.Rcpt(to); err != nil {

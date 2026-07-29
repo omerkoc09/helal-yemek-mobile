@@ -74,7 +74,7 @@ func Load() *Config {
 		// Not: Fiber CORS, "http://*" gibi host'suz wildcard'ı reddeder; "tümü" için tek geçerli değer "*".
 		CORSAllowOrigins: getEnv("CORS_ALLOW_ORIGINS", "*"),
 
-		SMTPHost:     getEnv("SMTP_HOST", "smtp.gmail.com"),
+		SMTPHost:     getEnv("SMTP_HOST", "smtp.resend.com"),
 		SMTPPort:     getEnv("SMTP_PORT", "587"),
 		SMTPUser:     os.Getenv("SMTP_USER"),
 		SMTPPassword: os.Getenv("SMTP_PASSWORD"),
