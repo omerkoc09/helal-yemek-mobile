@@ -3,6 +3,7 @@ package services
 import (
 	"crypto/rand"
 	"fmt"
+	"html"
 	"math/big"
 )
 
@@ -19,6 +20,8 @@ func generateResetCode() (string, error) {
 }
 
 func passwordResetEmailHTML(name, code string) string {
+	// Kullanıcı adı serbest metin: HTML gövdesine girmeden önce escape edilir.
+	name = html.EscapeString(name)
 	return fmt.Sprintf(`<!DOCTYPE html><html><body>
 <p>Merhaba %s,</p>
 <p>Şifre sıfırlama kodunuz:</p>
