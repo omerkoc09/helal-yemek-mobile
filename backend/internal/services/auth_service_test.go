@@ -6,6 +6,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/api/idtoken"
@@ -22,18 +23,22 @@ const testSecret = "test-secret-en-az-32-karakter-uzunlugunda"
 type fakeAuthUserStore struct {
 	authUserStore // gömülü: override edilmeyen metot çağrılırsa panic
 
-	exists       bool
-	existsErr    error
-	createErr    error
-	byEmail      *models.User
-	byEmailErr   error
-	byProvider   *models.User
-	byProviderErr error
-	byID         *models.User
-	byIDErr      error
-	updateErr    error
+	exists            bool
+	existsErr         error
+	createErr         error
+	byEmail           *models.User
+	byEmailErr        error
+	byProvider        *models.User
+	byProviderErr     error
+	byID              *models.User
+	byIDErr           error
+	updateErr         error
+	updatePasswordErr error
 
-	gotCreated *models.User
+	gotCreated        *models.User
+	gotFindEmail      string
+	gotPasswordUserID string
+	gotPasswordHash   string
 }
 
 func (f *fakeAuthUserStore) EmailExists(context.Context, string) (bool, error) {
@@ -49,7 +54,8 @@ func (f *fakeAuthUserStore) Create(_ context.Context, u *models.User) error {
 	return nil
 }
 
-func (f *fakeAuthUserStore) FindByEmail(context.Context, string) (*models.User, error) {
+func (f *fakeAuthUserStore) FindByEmail(_ context.Context, email string) (*models.User, error) {
+	f.gotFindEmail = email
 	if f.byEmailErr != nil {
 		return nil, f.byEmailErr
 	}
@@ -75,6 +81,12 @@ func (f *fakeAuthUserStore) Update(context.Context, string, *string, *string, *s
 	return f.updateErr
 }
 
+func (f *fakeAuthUserStore) UpdatePassword(_ context.Context, id, hashedPassword string) error {
+	f.gotPasswordUserID = id
+	f.gotPasswordHash = hashedPassword
+	return f.updatePasswordErr
+}
+
 // fakeLoginRecorder — recordLogin ayrı bir goroutine'de çalıştığı için sayaç
 // mutex ile korunuyor; aksi halde -race altında yarış raporlanır.
 // Ayrıca ASLA nil bırakılmamalı: goroutine içindeki panic test binary'sini çökertir.
@@ -94,10 +106,25 @@ func newTestAuthService(store authUserStore) *AuthService {
 	return &AuthService{
 		userRepo:  store,
 		loginRepo: &fakeLoginRecorder{},
+		resetRepo: &fakePasswordResetStore{},
+		email:     &fakeEmailService{},
 		jwtSecret: testSecret,
+		now:       time.Now,
 	}
 }
 
+// newResetAuthService — şifre sıfırlama testleri için; reset deposu ve mail
+// servisi çağıran tarafından verilir.
+func newResetAuthService(store authUserStore, reset passwordResetStore, email EmailService) *AuthService {
+	return &AuthService{
+		userRepo:  store,
+		loginRepo: &fakeLoginRecorder{},
+		resetRepo: reset,
+		email:     email,
+		jwtSecret: testSecret,
+		now:       time.Now,
+	}
+}
 
 func hashOf(t *testing.T, pw string) *string {
 	t.Helper()
@@ -531,6 +558,261 @@ func TestAuthServiceLoginWithGoogle(t *testing.T) {
 		}
 		if store.gotCreated != nil {
 			t.Fatal("depo hatasında kullanıcı oluşturuldu")
+		}
+	})
+}
+
+// --- fakePasswordResetStore ---
+
+type fakePasswordResetStore struct {
+	createErr    error
+	recentCount  int
+	recentErr    error
+	claimTokenID string
+	claimHash    string
+	claimErr     error
+	markUsedErr  error
+
+	createCalls     int
+	invalidateCalls int
+	markUsedCalls   int
+	gotCodeHash     string
+	gotExpiresAt    time.Time
+}
+
+func (f *fakePasswordResetStore) Create(_ context.Context, _, codeHash string, expiresAt time.Time) error {
+	f.createCalls++
+	f.gotCodeHash = codeHash
+	f.gotExpiresAt = expiresAt
+	return f.createErr
+}
+
+func (f *fakePasswordResetStore) ClaimAttempt(context.Context, string) (string, string, error) {
+	if f.claimErr != nil {
+		return "", "", f.claimErr
+	}
+	return f.claimTokenID, f.claimHash, nil
+}
+
+func (f *fakePasswordResetStore) MarkUsed(context.Context, string) error {
+	f.markUsedCalls++
+	return f.markUsedErr
+}
+
+func (f *fakePasswordResetStore) CountRecentByUserID(context.Context, string, time.Time) (int, error) {
+	return f.recentCount, f.recentErr
+}
+
+func (f *fakePasswordResetStore) InvalidateActiveByUserID(context.Context, string) error {
+	f.invalidateCalls++
+	return nil
+}
+
+func (f *fakePasswordResetStore) DeleteExpiredBefore(context.Context, time.Time) error {
+	return nil
+}
+
+// --- fakeEmailService ---
+
+type fakeEmailService struct {
+	mu       sync.Mutex
+	err      error
+	sends    int
+	lastTo   string
+	lastBody string
+}
+
+func (f *fakeEmailService) Send(to, _, htmlBody string) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.sends++
+	f.lastTo = to
+	f.lastBody = htmlBody
+	return f.err
+}
+
+func (f *fakeEmailService) sendCount() int {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.sends
+}
+
+func (f *fakeEmailService) body() string {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.lastBody
+}
+
+// --- RequestPasswordReset ---
+
+func TestAuthServiceRequestPasswordReset(t *testing.T) {
+	emailUser := func() *models.User {
+		return &models.User{
+			ID: "u1", Email: "a@b.com", Name: "Ayşe",
+			Role: models.RoleTraveler, IsActive: true,
+			PasswordHash: hashOf(t, "eskiSifre"),
+		}
+	}
+
+	// waitForSends — mail arka planda gönderildiği için kısa süre bekler.
+	waitForSends := func(t *testing.T, mail *fakeEmailService, want int) {
+		t.Helper()
+		for i := 0; i < 100; i++ {
+			if mail.sendCount() == want {
+				return
+			}
+			time.Sleep(5 * time.Millisecond)
+		}
+		t.Fatalf("beklenen mail sayısı %d, gerçekleşen %d", want, mail.sendCount())
+	}
+
+	t.Run("geçerli kullanıcı: token oluşur ve mail gider", func(t *testing.T) {
+		store := &fakeAuthUserStore{byEmail: emailUser()}
+		reset := &fakePasswordResetStore{}
+		mail := &fakeEmailService{}
+
+		if err := newResetAuthService(store, reset, mail).
+			RequestPasswordReset(context.Background(), "a@b.com"); err != nil {
+			t.Fatalf("hata döndü: %v", err)
+		}
+		waitForSends(t, mail, 1)
+
+		if reset.createCalls != 1 {
+			t.Fatalf("token oluşturulmadı: %d çağrı", reset.createCalls)
+		}
+		if reset.invalidateCalls != 1 {
+			t.Error("eski tokenlar geçersizleştirilmedi")
+		}
+	})
+
+	t.Run("kod DB'ye ham değil hash'li yazılır", func(t *testing.T) {
+		// Güvenlik iddiasının testle bağlanması: ham kod saklanırsa DB'yi
+		// okuyan biri doğrudan kullanabilir.
+		store := &fakeAuthUserStore{byEmail: emailUser()}
+		reset := &fakePasswordResetStore{}
+		mail := &fakeEmailService{}
+
+		if err := newResetAuthService(store, reset, mail).
+			RequestPasswordReset(context.Background(), "a@b.com"); err != nil {
+			t.Fatalf("hata döndü: %v", err)
+		}
+		waitForSends(t, mail, 1)
+
+		if len(reset.gotCodeHash) == 6 {
+			t.Fatal("kod ham olarak saklanmış")
+		}
+		// Mailde giden kod, saklanan hash ile eşleşmeli.
+		var sentCode string
+		for _, line := range strings.Split(mail.body(), "\n") {
+			if strings.Contains(line, "letter-spacing") {
+				start := strings.Index(line, ">") + 1
+				end := strings.LastIndex(line, "<")
+				sentCode = line[start:end]
+			}
+		}
+		if sentCode == "" {
+			t.Fatal("mail gövdesinden kod okunamadı")
+		}
+		if err := bcrypt.CompareHashAndPassword([]byte(reset.gotCodeHash), []byte(sentCode)); err != nil {
+			t.Fatalf("saklanan hash, gönderilen kodla eşleşmiyor: %v", err)
+		}
+	})
+
+	t.Run("geçerlilik süresi 15 dakika", func(t *testing.T) {
+		store := &fakeAuthUserStore{byEmail: emailUser()}
+		reset := &fakePasswordResetStore{}
+		mail := &fakeEmailService{}
+
+		before := time.Now()
+		if err := newResetAuthService(store, reset, mail).
+			RequestPasswordReset(context.Background(), "a@b.com"); err != nil {
+			t.Fatalf("hata döndü: %v", err)
+		}
+		waitForSends(t, mail, 1)
+
+		want := before.Add(15 * time.Minute)
+		diff := reset.gotExpiresAt.Sub(want)
+		if diff < -time.Second || diff > 5*time.Second {
+			t.Fatalf("expires_at 15 dk değil: %v", reset.gotExpiresAt)
+		}
+	})
+
+	// Negatif senaryolar: HEPSİ nil hata döner (enumeration koruması), bu yüzden
+	// ayırt edici sinyal mailin GİTMEMESİ ve token OLUŞMAMASI.
+	negatives := []struct {
+		name  string
+		store *fakeAuthUserStore
+		reset *fakePasswordResetStore
+	}{
+		{
+			name:  "kullanıcı yok",
+			store: &fakeAuthUserStore{byEmailErr: repository.ErrNotFound},
+			reset: &fakePasswordResetStore{},
+		},
+		{
+			name: "google hesabı (şifresiz)",
+			store: &fakeAuthUserStore{byEmail: &models.User{
+				ID: "u2", Email: "g@b.com", Role: models.RoleTraveler,
+				IsActive: true, Provider: "google", PasswordHash: nil,
+			}},
+			reset: &fakePasswordResetStore{},
+		},
+		{
+			name: "pasif hesap",
+			store: &fakeAuthUserStore{byEmail: &models.User{
+				ID: "u3", Email: "p@b.com", Role: models.RoleTraveler,
+				IsActive: false, PasswordHash: hashOf(t, "x"),
+			}},
+			reset: &fakePasswordResetStore{},
+		},
+		{
+			name:  "saatlik limit dolu",
+			store: &fakeAuthUserStore{byEmail: emailUser()},
+			reset: &fakePasswordResetStore{recentCount: 3},
+		},
+	}
+
+	for _, tc := range negatives {
+		t.Run(tc.name+": mail gitmez, hata dönmez", func(t *testing.T) {
+			mail := &fakeEmailService{}
+			err := newResetAuthService(tc.store, tc.reset, mail).
+				RequestPasswordReset(context.Background(), "a@b.com")
+			if err != nil {
+				t.Fatalf("hata sızdı: %v", err)
+			}
+			// Asenkron mail'e fırsat tanı; yine de gitmemeli.
+			time.Sleep(50 * time.Millisecond)
+			if mail.sendCount() != 0 {
+				t.Error("mail gönderildi, gönderilmemeliydi")
+			}
+			if tc.reset.createCalls != 0 {
+				t.Error("token oluşturuldu, oluşturulmamalıydı")
+			}
+		})
+	}
+
+	t.Run("SMTP hatası kullanıcıya sızmaz", func(t *testing.T) {
+		store := &fakeAuthUserStore{byEmail: emailUser()}
+		mail := &fakeEmailService{err: errors.New("smtp patladı")}
+
+		if err := newResetAuthService(store, &fakePasswordResetStore{}, mail).
+			RequestPasswordReset(context.Background(), "a@b.com"); err != nil {
+			t.Fatalf("SMTP hatası sızdı: %v", err)
+		}
+	})
+
+	t.Run("email normalize edilir", func(t *testing.T) {
+		// Login/Register ToLower+TrimSpace yapıyor, FindByEmail birebir eşleşme
+		// arıyor. Normalize edilmezse boşluklu/büyük harfli girişte mail gitmez.
+		store := &fakeAuthUserStore{byEmail: emailUser()}
+		mail := &fakeEmailService{}
+
+		if err := newResetAuthService(store, &fakePasswordResetStore{}, mail).
+			RequestPasswordReset(context.Background(), "  A@B.CoM  "); err != nil {
+			t.Fatalf("hata döndü: %v", err)
+		}
+		if store.gotFindEmail != "a@b.com" {
+			t.Fatalf("email normalize edilmedi: %q", store.gotFindEmail)
 		}
 	})
 }
