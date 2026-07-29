@@ -111,6 +111,7 @@ func main() {
 	// okuma anında burada bağlanan çözücüyle üretilir. Bağlanmazsa istemciye
 	// çıplak dosya adı gider — bu yüzden storageService oluşur oluşmaz bağlanıyor.
 	venueRepo.WithURLResolver(storageService)
+	favoriteRepo.WithURLResolver(storageService)
 	placesService := services.NewPlacesService(cfg.GoogleMapsAPIKey)
 
 	notifService := services.NewNotificationService(notifRepo, emailSvc)
