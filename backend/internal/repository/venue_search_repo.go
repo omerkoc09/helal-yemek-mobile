@@ -50,37 +50,71 @@ func escapeILIKE(s string) string {
 	return r.Replace(s)
 }
 
-// SearchByText — mekan adı veya şehir içinde serbest metin araması yapar.
+// SearchByText — mekan adı, şehir, ilçe veya yemek kategorisi içinde serbest
+// metin araması yapar. Eşleşme Türkçe karakter duyarsızdır (unaccent).
 // Yalnızca onaylı mekanlar döner: yeni eklenen mekanlar `pending` doğduğu için
 // admin onaylayana kadar aramada görünmez.
-func (r *VenueRepo) SearchByText(ctx context.Context, query string) ([]models.Venue, error) {
+//
+// lat/lng kullanıcı konumudur; 0,0 gönderilirse mesafe NULL döner ve sıralama
+// puana düşer. Sütun sırası FindByCity ile birebir aynıdır; bu yüzden ortak
+// scanVenueCityRows tarayıcısı kullanılır.
+//
+// Not: unaccent() immutable olmadığı için bu sütunlara fonksiyonel index
+// kurulamaz; mevcut veri ölçeğinde seq scan kabul edilebilir.
+func (r *VenueRepo) SearchByText(ctx context.Context, query string, lat, lng float64) ([]models.Venue, error) {
 	query = escapeILIKE(query)
 	q := `
 		SELECT
-			v.id, v.name, v.city,
+			v.id, v.name, v.city, v.district,
 			ST_Y(v.location::geometry) AS latitude,
 			ST_X(v.location::geometry) AS longitude,
 			v.google_place_id,
 			v.notes, v.status,
 			v.added_by, v.verified_at,
-			v.created_at, v.updated_at
+			v.created_at, v.updated_at,
+			CASE WHEN $2 != 0.0 AND $3 != 0.0
+			     THEN ST_Distance(v.location, ST_MakePoint($3, $2)::geography)
+			     ELSE NULL END AS distance,
+			COALESCE(AVG(rv.rating), 0)::float8 AS avg_rating,
+			COUNT(rv.id)::int AS review_count,
+			(
+				SELECT STRING_AGG(fc.name, ' · ')
+				FROM (
+					SELECT DISTINCT fc2.name
+					FROM venue_categories vc2
+					JOIN food_categories fc2 ON fc2.id = vc2.category_id
+					WHERE vc2.venue_id = v.id
+					LIMIT 2
+				) fc
+			) AS categories_str,
+			v.confirmation_count
 		FROM venues v
+		LEFT JOIN reviews rv ON rv.venue_id = v.id
 		WHERE v.status = 'approved'
 		  AND v.deleted_at IS NULL
 		  AND (
-		    v.name ILIKE '%' || $1 || '%'
-		    OR v.city ILIKE '%' || $1 || '%'
+		    unaccent(v.name) ILIKE '%' || unaccent($1) || '%'
+		    OR unaccent(v.city) ILIKE '%' || unaccent($1) || '%'
+		    OR unaccent(COALESCE(v.district, '')) ILIKE '%' || unaccent($1) || '%'
+		    OR EXISTS (
+		      SELECT 1
+		      FROM venue_categories vcs
+		      JOIN food_categories fcs ON fcs.id = vcs.category_id
+		      WHERE vcs.venue_id = v.id
+		        AND unaccent(fcs.name) ILIKE '%' || unaccent($1) || '%'
+		    )
 		  )
-		ORDER BY v.name
+		GROUP BY v.id
+		ORDER BY distance ASC NULLS LAST, avg_rating DESC, v.name ASC
 		LIMIT 50`
 
-	rows, err := r.db.Query(ctx, q, query)
+	rows, err := r.db.Query(ctx, q, query, lat, lng)
 	if err != nil {
 		return nil, fmt.Errorf("metin arama sorgusu başarısız: %w", err)
 	}
 	defer rows.Close()
 
-	return r.scanVenueRowsWithPhotos(ctx, rows, false)
+	return r.scanVenueCityRows(ctx, rows)
 }
 
 // FindByCity — şehir adına göre onaylı mekanları döndürür.
