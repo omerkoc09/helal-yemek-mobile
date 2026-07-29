@@ -6,7 +6,6 @@ import 'package:go_router/go_router.dart';
 import '../../../core/auth/auth_provider.dart';
 import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../shared/widgets/app_toast.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -190,11 +189,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton(
-                    // TODO: şifre sıfırlama akışı bağlanacak.
-                    onPressed: () => AppToast.info(
-                      context,
-                      'Şifre sıfırlama yakında eklenecek.',
-                    ),
+                    onPressed: () => context.push(AppRoutes.forgotPassword),
                     child: const Text(
                       'Şifremi Unuttum',
                       style: TextStyle(
