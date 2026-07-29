@@ -1,11 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/auth/auth_provider.dart';
 import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_theme.dart';
+
+// Logonun ekranda görünmesini istediğimiz yükseklik.
+const double _logoVisibleHeight = 180;
+
+// Kare tuvalin (1024) görünür içeriğe (588) oranı. Tuval bu kadar büyütülünce
+// içerik tam olarak _logoVisibleHeight kadar görünür. Logo dosyası değişirse
+// bu oran yeniden ölçülmeli.
+const double _logoCanvasRatio = 1024 / 588;
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -50,10 +57,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               child: Column(
               children: [
                 const SizedBox(height: 48),
-                // Logo
-                SvgPicture.asset(
-                  'assets/logo/logo_without_name/screen.svg',
-                  height: 180,
+                // Logo — "İtimat" yazılı sürüm.
+                // PNG 1024x1024 kare tuval; görünür içerik ortada 517x588'lik
+                // alanda, üstte/altta ~%21 şeffaf boşluk var. Düz height verilse
+                // logo o oranda küçük görünürdü: görünür yükseklik hedeflenip
+                // tuval OverflowBox ile büyütülüyor, layout yalnızca 180px yer
+                // kaplıyor. (Aynı yaklaşım app_header.dart'ta da kullanılıyor.)
+                SizedBox(
+                  height: _logoVisibleHeight,
+                  child: OverflowBox(
+                    maxHeight: _logoVisibleHeight * _logoCanvasRatio,
+                    maxWidth: _logoVisibleHeight * _logoCanvasRatio,
+                    child: Image.asset(
+                      'assets/logo/logo_with_name/screen-3.png',
+                      height: _logoVisibleHeight * _logoCanvasRatio,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 40),
 
