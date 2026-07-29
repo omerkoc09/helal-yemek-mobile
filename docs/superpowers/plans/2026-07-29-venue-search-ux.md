@@ -440,7 +440,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
-import 'package:itimat_mobile/features/search/data/recent_searches_store.dart';
+import 'package:itimat/features/search/data/recent_searches_store.dart';
 
 class MockSecureStorage extends Mock implements FlutterSecureStorage {}
 
@@ -571,8 +571,8 @@ class RecentSearchesStore {
     final trimmed = term.trim();
     if (trimmed.isEmpty) return load();
 
-    final list = await load()
-      ..removeWhere((e) => e == trimmed);
+    final list = await load();
+    list.removeWhere((e) => e == trimmed);
     list.insert(0, trimmed);
 
     final capped = list.take(maxItems).toList();
@@ -624,8 +624,8 @@ git commit -m "feat(search): son aramalar deposunu ekle"
 ```dart
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:itimat_mobile/core/models/venue.dart';
-import 'package:itimat_mobile/features/search/models/search_suggestion.dart';
+import 'package:itimat/core/models/venue.dart';
+import 'package:itimat/features/search/models/search_suggestion.dart';
 
 FoodCategory cat(int id, String name) =>
     FoodCategory(id: id, key: 'k$id', name: name);
@@ -1565,8 +1565,8 @@ Dosya varsa `main()` içine ekle, yoksa `mobile/test/features/home/venue_filter_
 ```dart
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:itimat_mobile/core/models/venue.dart';
-import 'package:itimat_mobile/features/home/providers/venue_filter_provider.dart';
+import 'package:itimat/core/models/venue.dart';
+import 'package:itimat/features/home/providers/venue_filter_provider.dart';
 
 Venue _venue(String name) => Venue(
       id: name,
