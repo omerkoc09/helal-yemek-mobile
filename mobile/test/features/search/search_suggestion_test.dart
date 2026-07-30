@@ -25,6 +25,7 @@ void main() {
       query: '   ',
       categories: categories,
       cities: cities,
+      districts: const [],
       venues: [venue('1', 'Dönerci Ali', 'Bursa')],
     );
     expect(result, isEmpty);
@@ -35,6 +36,7 @@ void main() {
       query: 'doner',
       categories: categories,
       cities: cities,
+      districts: const [],
       venues: const [],
     );
     expect(result.length, 1);
@@ -47,6 +49,7 @@ void main() {
       query: 'istanbul',
       categories: categories,
       cities: cities,
+      districts: const [],
       venues: const [],
     );
     expect(result.any((s) => s.type == SuggestionType.city && s.label == 'İstanbul'), isTrue);
@@ -57,6 +60,7 @@ void main() {
       query: 'ali',
       categories: categories,
       cities: cities,
+      districts: const [],
       venues: [venue('v1', 'Dönerci Ali', 'Bursa')],
     );
     expect(result.length, 1);
@@ -70,6 +74,7 @@ void main() {
       query: 'k',
       categories: [cat(1, 'Kebap')],
       cities: ['Kayseri'],
+      districts: const [],
       venues: [venue('v1', 'Kral Kebap', 'Bursa')],
     );
     expect(result.map((s) => s.type).toList(), [
@@ -90,6 +95,7 @@ void main() {
       query: 'test',
       categories: manyCategories,
       cities: manyCities,
+      districts: const [],
       venues: manyVenues,
     );
 
@@ -103,6 +109,7 @@ void main() {
       query: 'zzzz',
       categories: categories,
       cities: cities,
+      districts: const [],
       venues: const [],
     );
     expect(result, isEmpty);
@@ -113,6 +120,7 @@ void main() {
       query: 'doner',
       categories: categories,
       cities: cities,
+      districts: const [],
       venues: [venue('v1', 'Meşhur Usta', 'Bursa')],
     );
     expect(
@@ -120,5 +128,55 @@ void main() {
           s.type == SuggestionType.venue && s.label == 'Meşhur Usta'),
       isTrue,
     );
+  });
+
+  test('ilçe Türkçe duyarsız eşleşir ve şehirle birlikte etiketlenir', () {
+    final result = buildSuggestions(
+      query: 'fatih',
+      categories: const [],
+      cities: const [],
+      districts: [const CityDistrict(city: 'İstanbul', district: 'Fatih')],
+      venues: const [],
+    );
+
+    expect(result.length, 1);
+    expect(result.first.type, SuggestionType.district);
+    expect(result.first.label, 'İstanbul / Fatih');
+    expect(result.first.city, 'İstanbul');
+    expect(result.first.district, 'Fatih');
+  });
+
+  test('ilçe önerileri en fazla 3 tane gelir', () {
+    final manyDistricts = List.generate(
+      6,
+      (i) => CityDistrict(city: 'İstanbul', district: 'Test İlçe $i'),
+    );
+
+    final result = buildSuggestions(
+      query: 'test',
+      categories: const [],
+      cities: const [],
+      districts: manyDistricts,
+      venues: const [],
+    );
+
+    expect(result.where((s) => s.type == SuggestionType.district).length, 3);
+  });
+
+  test('öneri sırası kategori → ilçe → şehir → mekan olur', () {
+    final result = buildSuggestions(
+      query: 'a',
+      categories: [cat(1, 'Adana Kebap')],
+      cities: ['Adana'],
+      districts: [const CityDistrict(city: 'Adana', district: 'Aladağ')],
+      venues: [venue('v1', 'Ali Usta', 'Adana')],
+    );
+
+    expect(result.map((s) => s.type).toList(), [
+      SuggestionType.category,
+      SuggestionType.district,
+      SuggestionType.city,
+      SuggestionType.venue,
+    ]);
   });
 }

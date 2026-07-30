@@ -73,11 +73,14 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     // Öneri kaynakları — çekilemezse o tip öneriler sessizce atlanır.
     final categories = ref.watch(foodCategoriesProvider).value ?? const [];
     final cities = ref.watch(searchCitiesProvider).value ?? const [];
+    final districts =
+        ref.watch(searchDistrictsProvider).value ?? const <CityDistrict>[];
 
     final suggestions = buildSuggestions(
       query: searchState.query,
       categories: categories,
       cities: cities,
+      districts: districts,
       venues: searchState.venues,
     );
 
@@ -208,12 +211,14 @@ class _SuggestionsView extends StatelessWidget {
 
   IconData _iconFor(SuggestionType type) => switch (type) {
         SuggestionType.category => Icons.restaurant_menu,
+        SuggestionType.district => Icons.place_outlined,
         SuggestionType.city => Icons.place_outlined,
         SuggestionType.venue => Icons.storefront_outlined,
       };
 
   String _labelFor(SearchSuggestion suggestion) => switch (suggestion.type) {
         SuggestionType.category => 'Kategori',
+        SuggestionType.district => 'İlçe',
         SuggestionType.city => 'Şehir',
         SuggestionType.venue => suggestion.subtitle == null
             ? 'Mekan'
