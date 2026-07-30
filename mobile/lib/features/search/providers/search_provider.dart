@@ -6,29 +6,27 @@ import '../../../core/api/api_endpoints.dart';
 import '../../../core/auth/auth_provider.dart';
 import '../../../core/models/venue.dart';
 
+/// Arama kutusunun anlık durumu — yalnızca ÖNERİ listesini besler.
+/// Tam sonuçlar ayrı sayfada searchResultsProvider ile çekilir.
 class SearchState {
   final List<Venue> venues;
   final bool isLoading;
-  final String? error;
   final String query;
 
   const SearchState({
     this.venues = const [],
     this.isLoading = false,
-    this.error,
     this.query = '',
   });
 
   SearchState copyWith({
     List<Venue>? venues,
     bool? isLoading,
-    String? error,
     String? query,
   }) {
     return SearchState(
       venues: venues ?? this.venues,
       isLoading: isLoading ?? this.isLoading,
-      error: error,
       query: query ?? this.query,
     );
   }
@@ -45,17 +43,19 @@ class SearchNotifier extends Notifier<SearchState> {
 
     _debounce?.cancel();
     if (query.trim().isEmpty) {
-      state = state.copyWith(venues: [], isLoading: false, error: null);
+      state = state.copyWith(venues: [], isLoading: false);
       return;
     }
 
     _debounce = Timer(const Duration(milliseconds: 500), () {
-      _performSearch(query.trim());
+      _fetchVenueSuggestions(query.trim());
     });
   }
 
-  Future<void> _performSearch(String query) async {
-    state = state.copyWith(isLoading: true, error: null);
+  /// Mekan adı önerileri — hata durumunda öneri listesi bozulmaz,
+  /// yalnızca mekan satırları görünmez.
+  Future<void> _fetchVenueSuggestions(String query) async {
+    state = state.copyWith(isLoading: true);
     try {
       final apiClient = ref.read(apiClientProvider);
       final response = await apiClient.get(
@@ -73,11 +73,8 @@ class SearchNotifier extends Notifier<SearchState> {
           .toList();
 
       state = state.copyWith(venues: venues, isLoading: false);
-    } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        error: 'Arama başarısız oldu.',
-      );
+    } catch (_) {
+      state = state.copyWith(venues: [], isLoading: false);
     }
   }
 }
@@ -85,4 +82,3 @@ class SearchNotifier extends Notifier<SearchState> {
 final searchProvider = NotifierProvider<SearchNotifier, SearchState>(
   SearchNotifier.new,
 );
-
