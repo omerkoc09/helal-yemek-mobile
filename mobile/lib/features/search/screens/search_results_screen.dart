@@ -24,21 +24,26 @@ class SearchResultsScreen extends ConsumerWidget {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Kullanıcının yazdığı terimi gösteren işlevsel bir başlık; AppBar'ın
+            // varsayılan dekoratif serif fontu (Fraunces) yerine gövde fontu
+            // (titleMedium → Plus Jakarta Sans) kullanılıyor.
             Text(
               '"${query.label}" için sonuçlar',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
             ),
             resultsAsync.maybeWhen(
               data: (venues) => Text(
                 '${venues.length} mekan bulundu',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 13,
-                  color: AppTheme.textSecondary,
-                ),
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Colors.white70,
+                    ),
               ),
               orElse: () => const SizedBox.shrink(),
             ),
