@@ -11,6 +11,7 @@ import '../data/recent_searches_store.dart';
 import '../models/search_suggestion.dart';
 import '../providers/search_provider.dart';
 import '../providers/search_sources_provider.dart';
+import '../widgets/suggestion_list.dart';
 
 class SearchScreen extends ConsumerStatefulWidget {
   const SearchScreen({super.key});
@@ -121,7 +122,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                       onTap: _openResults,
                       onClear: _clearRecentSearches,
                     )
-                  : _SuggestionsView(
+                  : SuggestionList(
                       suggestions: suggestions,
                       isLoading: searchState.isLoading,
                       onSelect: (suggestion) {
@@ -193,67 +194,6 @@ class _RecentSearchesView extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-/// Yazarken düşen öneri listesi.
-class _SuggestionsView extends StatelessWidget {
-  final List<SearchSuggestion> suggestions;
-  final bool isLoading;
-  final ValueChanged<SearchSuggestion> onSelect;
-
-  const _SuggestionsView({
-    required this.suggestions,
-    required this.isLoading,
-    required this.onSelect,
-  });
-
-  IconData _iconFor(SuggestionType type) => switch (type) {
-        SuggestionType.category => Icons.restaurant_menu,
-        SuggestionType.district => Icons.place_outlined,
-        SuggestionType.city => Icons.place_outlined,
-        SuggestionType.venue => Icons.storefront_outlined,
-      };
-
-  String _labelFor(SearchSuggestion suggestion) => switch (suggestion.type) {
-        SuggestionType.category => 'Kategori',
-        SuggestionType.district => 'İlçe',
-        SuggestionType.city => 'Şehir',
-        SuggestionType.venue => suggestion.subtitle == null
-            ? 'Mekan'
-            : 'Mekan · ${suggestion.subtitle}',
-      };
-
-  @override
-  Widget build(BuildContext context) {
-    if (suggestions.isEmpty) {
-      if (isLoading) {
-        return const Center(child: CircularProgressIndicator());
-      }
-      return const Center(
-        child: Text(
-          'Öneri bulunamadı. Aramak için Enter\'a basın.',
-          textAlign: TextAlign.center,
-          style: TextStyle(color: AppTheme.textSecondary, fontSize: 14),
-        ),
-      );
-    }
-
-    return ListView.builder(
-      itemCount: suggestions.length,
-      itemBuilder: (context, index) {
-        final suggestion = suggestions[index];
-        return ListTile(
-          leading: Icon(_iconFor(suggestion.type), color: AppTheme.textSecondary),
-          title: Text(suggestion.label),
-          subtitle: Text(
-            _labelFor(suggestion),
-            style: const TextStyle(fontSize: 12),
-          ),
-          onTap: () => onSelect(suggestion),
-        );
-      },
     );
   }
 }
