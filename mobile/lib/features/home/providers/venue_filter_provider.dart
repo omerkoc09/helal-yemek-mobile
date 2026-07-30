@@ -129,9 +129,22 @@ List<Venue> filterAndSortVenues(
   Iterable<Venue> list = venues;
 
   // Türkçe karakter duyarsız eşleşme — arama ekranıyla aynı davranış.
+  // Liste içi filtre; mekan adı, yemek kategorisi ve ilçe üzerinde eşleşir
+  // (backend aramasıyla tutarlı olsun diye). Sunucuya gitmez: bu ekranda
+  // zaten yüklü olan liste yerinde daraltılır.
   final query = normalizeTr(nameQuery);
   if (query.isNotEmpty) {
-    list = list.where((v) => normalizeTr(v.name).contains(query));
+    list = list.where((v) {
+      if (normalizeTr(v.name).contains(query)) return true;
+
+      final district = v.district;
+      if (district != null && normalizeTr(district).contains(query)) return true;
+
+      for (final category in v.categories) {
+        if (normalizeTr(category.name).contains(query)) return true;
+      }
+      return false;
+    });
   }
 
   if (selectedCuisineIds.isNotEmpty) {

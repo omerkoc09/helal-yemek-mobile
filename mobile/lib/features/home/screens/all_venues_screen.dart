@@ -287,7 +287,7 @@ class _SearchFieldState extends State<_SearchField> {
           setState(() {}); // temizle ikonunu güncellemek için
         },
         decoration: InputDecoration(
-          hintText: 'Bu listede ara...',
+          hintText: 'Bu listede ara (mekan, mutfak, ilçe)',
           hintStyle:
               const TextStyle(color: AppTheme.textSecondary, fontSize: 15),
           prefixIcon: const Icon(Icons.search, color: AppTheme.textSecondary),
