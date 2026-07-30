@@ -42,9 +42,9 @@ const int _maxVenueSuggestions = 5;
 /// sonra mekanlar. Eşleşme Türkçe karakter duyarsızdır ([normalizeTr]).
 ///
 /// [categories] ve [cities] istemcide cache'lenen tam listelerdir; [venues]
-/// ise arama isteğinden dönen mekan adaylarıdır. Mekanlar da isim üzerinden
-/// Türkçe duyarsız olarak yeniden filtrelenir ki eşleşmeyen bir mekan listede
-/// kalmasın; yalnızca sayı sınırı için değil, eşleşme için de kontrol edilir.
+/// ise arama isteğinden dönen mekanlardır (zaten sunucuda isim/şehir/ilçe/
+/// kategori adına göre eşleşmiş olduğu için burada yeniden filtrelenmez,
+/// yalnızca sayısı sınırlanır).
 List<SearchSuggestion> buildSuggestions({
   required String query,
   required List<FoodCategory> categories,
@@ -78,18 +78,13 @@ List<SearchSuggestion> buildSuggestions({
     }
   }
 
-  var venueCount = 0;
-  for (final venue in venues) {
-    if (venueCount >= _maxVenueSuggestions) break;
-    if (normalizeTr(venue.name).contains(normalized)) {
-      suggestions.add(SearchSuggestion(
-        type: SuggestionType.venue,
-        label: venue.name,
-        venueId: venue.id,
-        subtitle: venue.city,
-      ));
-      venueCount++;
-    }
+  for (final venue in venues.take(_maxVenueSuggestions)) {
+    suggestions.add(SearchSuggestion(
+      type: SuggestionType.venue,
+      label: venue.name,
+      venueId: venue.id,
+      subtitle: venue.city,
+    ));
   }
 
   return suggestions;

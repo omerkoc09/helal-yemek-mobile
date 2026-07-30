@@ -103,8 +103,22 @@ void main() {
       query: 'zzzz',
       categories: categories,
       cities: cities,
-      venues: [venue('v1', 'Dönerci Ali', 'Bursa')],
+      venues: const [],
     );
     expect(result, isEmpty);
+  });
+
+  test('sunucudan gelen mekanlar ada göre yeniden filtrelenmez', () {
+    final result = buildSuggestions(
+      query: 'doner',
+      categories: categories,
+      cities: cities,
+      venues: [venue('v1', 'Meşhur Usta', 'Bursa')],
+    );
+    expect(
+      result.any((s) =>
+          s.type == SuggestionType.venue && s.label == 'Meşhur Usta'),
+      isTrue,
+    );
   });
 }
