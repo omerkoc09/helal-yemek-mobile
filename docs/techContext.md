@@ -88,7 +88,7 @@ itimat-mobile-backend/
 ### Venue Endpoints
 | Method | Path | Açıklama | Auth | Role |
 |---|---|---|---|---|
-| GET | `/api/v1/venues` | Yakın/şehir mekanları | - | Public |
+| GET | `/api/v1/venues` | Yakın/şehir mekanları; `?q=<terim>&lat=&lng=` verilirse ad/şehir/ilçe/yemek kategorisi üzerinde Türkçe karakter duyarsız (unaccent) serbest metin araması yapar — `lat`/`lng` opsiyoneldir, verilirse mesafeye göre sıralanır | - | Public |
 | GET | `/api/v1/venues/by-category/:categoryId` | Kategoriye göre yakın mekanlar | - | Public |
 | GET | `/api/v1/venues/:id` | Mekan detayı | - | Public |
 | POST | `/api/v1/venues` | Mekan ekleme | ✅ | Guide+ |

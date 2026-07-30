@@ -1,6 +1,6 @@
 # İtimat — Proje İlerleme Durumu
 
-> Son güncelleme: 2026-07-27
+> Son güncelleme: 2026-07-30
 Mevcut Durum Notu: Proje genel hatlarıyla Faz 5'e (Test & Yayın) geçmiş gibi görünse de, Faz 1-4 arasındaki bazı özelliklerde (MVP çekirdeği) mimari değişiklikler, UX revizyonları ve bug fix'ler yapılmaktadır. Bir modülü düzenlerken, eski kodun kusursuz olduğunu varsayma; refactoring (kod iyileştirme) ve mantık değişiklikleri yapmak serbesttir ve gereklidir.
 ---
 
@@ -15,8 +15,23 @@ kırık bir şey yok. Ham "enlem, boylam" metni desteği denendi ve ürün karar
 
 search kısmında places api kullanılmalı mı?
 
-search de dondurma kategorisinde olmasına rağmen gelmeyen mekan var
-bunun sebebi aynı şehirdekileri gösteriyor sadece yani gizli bir şehir filter var olmalı mı filter da da aynı durum geçerli.?
+~~search de dondurma kategorisinde olmasına rağmen gelmeyen mekan var~~ ✅ **KAPANDI
+(2026-07-30)** — sebep buydu: `SearchByText` daha önce yalnızca mekan **adı ve şehir**
+alanlarında arıyordu (`v.name ILIKE ... OR v.city ILIKE ...`); yemek kategorisi adı (ör.
+"Dondurma") aranan alanlar arasında değildi, bu yüzden adında "dondurma" geçmeyen bir mekan
+kategoride eşleşse bile listeye girmiyordu. Artık
+`backend/internal/repository/venue_search_repo.go` içindeki `SearchByText` mekan adı, şehir,
+ilçe **ve** yemek kategorisi adını `unaccent()` ile Türkçe karakter duyarsız şekilde
+(`EXISTS` alt sorgusuyla `venue_categories`/`food_categories` join'i) arıyor — "kofte" gibi
+aksansız yazımlar da "Köfte" ile eşleşiyor.
+**"gizli şehir filtresi" sorusu için:** hem eski hem yeni kod okunarak doğrulandı,
+`SearchByText` sorgusunda (ne önceki sürümde ne şimdi) şehri kısıtlayan **hiçbir WHERE
+koşulu yok** — yalnızca `status = 'approved'` ve `deleted_at IS NULL` filtreleniyor, sonuçlar
+tüm şehirlerden gelebiliyor. Yani kodda gizli bir şehir filtresi hiç **olmamış**; orijinal
+şikayetin "aynı şehirdekileri gösteriyor" gözlemi, kategori eşleşmesi eksik olduğu için
+kullanıcının kendi ilindeki (adında arananın geçtiği) mekanları görüp diğer illerdekileri
+göremediği bir yorum olabilir — ama bu yorum kesin kanıtla doğrulanmadı, sadece "kod bazlı
+filtre yok" kısmı kesin. Detay: `.superpowers/sdd/2026-07-29-venue-search-ux/task-11-report.md`.
 
 ## Revize Edilecek Özellikler:
 Design of the app:
@@ -56,6 +71,33 @@ hem panelden hangi şehirlerde kaç tane rehber olduğunu görürüz (harita man
 
 
 ## Tamamlanan İşler
+
+### Mekan Arama UX İyileştirmesi — YENİ
+
+> 2026-07-29'da tamamlandı. Arama artık ad + şehire ek olarak ilçe ve yemek kategorisi adına
+> da bakıyor, hepsi Türkçe karakter duyarsız (unaccent). Mobilde arama ekranı öneri listesine
+> dönüştü. Tasarım: `docs/superpowers/specs/2026-07-29-venue-search-ux-design.md`.
+
+| Değişiklik | Durum | Detay |
+|-----------|-------|-------|
+| Migration 048 | ✅ | Postgres `unaccent` extension'ı etkinleştirildi. |
+| `SearchByText` genişletme | ✅ | `backend/internal/repository/venue_search_repo.go`. İmza `SearchByText(ctx, query, lat, lng)` oldu. Ad + şehir + ilçe + yemek kategorisi adı üzerinde `unaccent()` ile Türkçe duyarsız arama ("kofte" → "Köfte" eşleşir). `FindByCity` ile aynı zengin sütun setini döner (mesafe, ortalama puan, yorum sayısı, kategoriler, rozet) — ortak `scanVenueCityRows` tarayıcısı paylaşılıyor. Sıralama: `distance ASC NULLS LAST, avg_rating DESC, v.name ASC`. Yalnızca onaylı/silinmemiş mekanlar, `LIMIT 50`. `unaccent()` immutable olmadığından fonksiyonel index kurulamıyor — mevcut veri ölçeğinde seq scan kabul edilebilir. |
+| `GET /venues?q=` handler | ✅ | `backend/internal/handlers/venue_query_handler.go` — `q` dalı artık opsiyonel `lat`/`lng` query param'larını okuyup geçiriyor. Yanıt şekli değişmedi: `{"data": [...], "count": n}`. |
+| Son aramalar (mobil) | ✅ | `mobile/lib/features/search/data/recent_searches_store.dart` — cihazda `flutter_secure_storage` ile saklanıyor (max 10, tekrarsız, en yeni önde). |
+| Öneri listesi (mobil) | ✅ | `mobile/lib/features/search/models/search_suggestion.dart` — `SuggestionType` + `SearchSuggestion` + `buildSuggestions()`; kategori/şehir eşlemesi istemcide `normalizeTr` ile lokal yapılıyor (3 kategori, 3 şehir, 5 mekan limiti). Sunucudan gelen mekan eşleşmeleri isme göre tekrar filtrelenmiyor (bilinçli). |
+| Arama sonuçları ekranı (mobil) | ✅ | `mobile/lib/features/search/screens/search_results_screen.dart` + `AppRoutes.searchResults` (`/search/results?q=<terim>`) — "X için sonuçlar" sayfası, tek birleşik liste (`VenueCard`). Konum best-effort eklenir; konum alınamazsa `lat`/`lng` olmadan aramaya düşülür (`search_results_provider.dart`). |
+| Arama ekranı yeniden yazımı | ✅ | `mobile/lib/features/search/screens/search_screen.dart` — öneri odaklı akışa geçti; kutu boşken son aramalar gösteriliyor. |
+| Liste-içi lokal filtre | ✅ | `mobile/lib/features/home/providers/venue_filter_provider.dart` — artık `normalizeTr` kullanıyor, arama ekranıyla tutarlı şekilde Türkçe karakter duyarsız. |
+| Testler | ✅ | Backend: 7 yeni integration testi (`TestSearchByText_*`). Mobil: tüm suite 194 test PASS. |
+
+**Düzgün Çalışmayan Kısımlar'daki ilgili kayıt:** "dondurma kategorisinde olmasına rağmen
+gelmeyen mekan" şikayetinin kategori kısmı bu işle kapatıldı (yukarıdaki "Düzgün Çalışmayan
+Kısımlar" bölümüne işlendi). "Gizli şehir filtresi" iddiası için eski ve yeni kod okundu:
+`SearchByText` sorgusunda (ne önceki sürümde ne şimdi) şehri kısıtlayan bir koşul yok; bu
+nedenle o soru "kodda filtre yok" olarak doğrulandı, ama orijinal gözlemin sebebinin kesin
+olarak eski kategori eksikliği olduğu geriye dönük kanıtlanamadı.
+
+---
 
 ### Şifre Sıfırlama Akışı (Forgot/Reset Password) — YENİ
 
