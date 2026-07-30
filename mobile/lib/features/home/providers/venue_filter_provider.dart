@@ -4,6 +4,7 @@ import '../../../core/api/api_endpoints.dart';
 import '../../../core/auth/auth_provider.dart';
 import '../../../core/models/venue.dart';
 import '../../../core/utils/location_service.dart';
+import '../../guide/data/turkish_cities.dart';
 
 enum VenueSortOption {
   none,
@@ -127,9 +128,10 @@ List<Venue> filterAndSortVenues(
 }) {
   Iterable<Venue> list = venues;
 
-  final query = nameQuery.trim().toLowerCase();
+  // Türkçe karakter duyarsız eşleşme — arama ekranıyla aynı davranış.
+  final query = normalizeTr(nameQuery);
   if (query.isNotEmpty) {
-    list = list.where((v) => v.name.toLowerCase().contains(query));
+    list = list.where((v) => normalizeTr(v.name).contains(query));
   }
 
   if (selectedCuisineIds.isNotEmpty) {
