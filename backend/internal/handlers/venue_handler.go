@@ -36,6 +36,7 @@ type venueStore interface {
 	FindNearbyApproved(ctx context.Context, lat, lng, radiusMeters float64, limit int) ([]models.Venue, error)
 	FindPopular(ctx context.Context, lat, lng, radiusMeters float64, limit int) ([]models.Venue, error)
 	FindDistinctCities(ctx context.Context) ([]string, error)
+	FindDistinctDistricts(ctx context.Context) ([]repository.CityDistrict, error)
 	SearchByText(ctx context.Context, query string, lat, lng float64) ([]models.Venue, error)
 
 	// Yazma

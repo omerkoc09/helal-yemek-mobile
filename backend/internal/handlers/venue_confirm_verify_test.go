@@ -80,6 +80,9 @@ func (f *fakeVenueStore) FindPopular(context.Context, float64, float64, float64,
 	return nil, nil
 }
 func (f *fakeVenueStore) FindDistinctCities(context.Context) ([]string, error) { return nil, nil }
+func (f *fakeVenueStore) FindDistinctDistricts(context.Context) ([]repository.CityDistrict, error) {
+	return nil, nil
+}
 func (f *fakeVenueStore) SearchByText(context.Context, string, float64, float64) ([]models.Venue, error) {
 	return nil, nil
 }

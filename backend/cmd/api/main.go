@@ -223,6 +223,7 @@ func main() {
 	api.Get("/venues/nearby", venueHandler.ListNearby)
 	api.Get("/venues/popular", venueHandler.ListPopular)
 	api.Get("/venues/cities", venueHandler.ListCities)
+	api.Get("/venues/districts", venueHandler.ListDistricts)
 	api.Get("/venues/by-category/:categoryId", venueHandler.ListByCategory)
 	api.Get("/venues/place-preview",
 		middleware.Auth(cfg.JWTSecret),
