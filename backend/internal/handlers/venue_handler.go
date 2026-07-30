@@ -30,6 +30,7 @@ type venueStore interface {
 	// Okuma / listeleme
 	FindByID(ctx context.Context, id string) (*models.Venue, error)
 	FindByCity(ctx context.Context, city string, lat, lng float64, limit int) ([]models.Venue, error)
+	FindByCityDistrict(ctx context.Context, city, district string, lat, lng float64, limit int) ([]models.Venue, error)
 	FindByFoodCategory(ctx context.Context, categoryID int) ([]models.Venue, error)
 	FindByGooglePlaceID(ctx context.Context, placeID string) (*models.Venue, error)
 	FindNearby(ctx context.Context, lat, lng, radiusMeters float64) ([]models.Venue, error)

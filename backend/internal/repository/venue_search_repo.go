@@ -169,6 +169,64 @@ func (r *VenueRepo) FindByCity(ctx context.Context, city string, lat, lng float6
 	return r.scanVenueCityRows(ctx, rows)
 }
 
+// FindByCityDistrict — belirli bir şehrin belirli bir ilçesindeki onaylı mekanları
+// döndürür. Arama önerisinden "İstanbul / Fatih" seçildiğinde kullanılır: serbest
+// metin aramasının aksine başka ildeki aynı adlı ilçeler ve adında o kelime geçen
+// mekanlar karışmaz.
+//
+// lat, lng: kullanıcı konumu (mesafe hesabı için); 0,0 gönderilirse mesafe NULL döner.
+// limit: 0 ise tüm mekanlar döner.
+// Sütun sırası FindByCity ile birebir aynıdır (ortak scanVenueCityRows kullanılır).
+func (r *VenueRepo) FindByCityDistrict(ctx context.Context, city, district string, lat, lng float64, limit int) ([]models.Venue, error) {
+	limitClause := ""
+	if limit > 0 {
+		limitClause = fmt.Sprintf("LIMIT %d", limit)
+	}
+
+	query := fmt.Sprintf(`
+		SELECT
+			v.id, v.name, v.city, v.district,
+			ST_Y(v.location::geometry) AS latitude,
+			ST_X(v.location::geometry) AS longitude,
+			v.google_place_id,
+			v.notes, v.status,
+			v.added_by, v.verified_at,
+			v.created_at, v.updated_at,
+			CASE WHEN $3 != 0.0 AND $4 != 0.0
+			     THEN ST_Distance(v.location, ST_MakePoint($4, $3)::geography)
+			     ELSE NULL END AS distance,
+			COALESCE(AVG(rv.rating), 0)::float8 AS avg_rating,
+			COUNT(rv.id)::int AS review_count,
+			(
+				SELECT STRING_AGG(fc.name, ' · ')
+				FROM (
+					SELECT DISTINCT fc2.name
+					FROM venue_categories vc2
+					JOIN food_categories fc2 ON fc2.id = vc2.category_id
+					WHERE vc2.venue_id = v.id
+					LIMIT 2
+				) fc
+			) AS categories_str,
+			v.confirmation_count
+		FROM venues v
+		LEFT JOIN reviews rv ON rv.venue_id = v.id
+		WHERE v.city ILIKE $1
+		  AND v.district ILIKE $2
+		  AND v.status = 'approved'
+		  AND v.deleted_at IS NULL
+		GROUP BY v.id
+		ORDER BY distance ASC NULLS LAST, v.name ASC
+		%s`, limitClause)
+
+	rows, err := r.db.Query(ctx, query, escapeILIKE(city), escapeILIKE(district), lat, lng)
+	if err != nil {
+		return nil, fmt.Errorf("şehir/ilçe sorgusu başarısız: %w", err)
+	}
+	defer rows.Close()
+
+	return r.scanVenueCityRows(ctx, rows)
+}
+
 // FindByAddedBy — guide'ın eklediği tüm mekanları döndürür (tüm durumlar dahil).
 func (r *VenueRepo) FindByAddedBy(ctx context.Context, userID string) ([]models.Venue, error) {
 	rows, err := r.db.Query(ctx,

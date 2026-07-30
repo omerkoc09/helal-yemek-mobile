@@ -67,6 +67,9 @@ func (f *fakeVenueStore) FindByGooglePlaceID(_ context.Context, _ string) (*mode
 func (f *fakeVenueStore) FindByCity(context.Context, string, float64, float64, int) ([]models.Venue, error) {
 	return nil, nil
 }
+func (f *fakeVenueStore) FindByCityDistrict(context.Context, string, string, float64, float64, int) ([]models.Venue, error) {
+	return nil, nil
+}
 func (f *fakeVenueStore) FindByFoodCategory(context.Context, int) ([]models.Venue, error) {
 	return nil, nil
 }

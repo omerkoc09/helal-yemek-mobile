@@ -23,6 +23,7 @@ func (h *VenueHandler) canViewUnapproved(c *fiber.Ctx, addedBy string) bool {
 // GET /api/v1/venues?q=keyword&lat=41.0&lng=29.0
 // GET /api/v1/venues?lat=41.0&lng=29.0&radius=5000
 // GET /api/v1/venues?city=Istanbul
+// GET /api/v1/venues?city=Istanbul&district=Fatih
 func (h *VenueHandler) List(c *fiber.Ctx) error {
 	q := c.Query("q")
 
@@ -43,6 +44,18 @@ func (h *VenueHandler) List(c *fiber.Ctx) error {
 	if city != "" {
 		lat := c.QueryFloat("lat", 0)
 		lng := c.QueryFloat("lng", 0)
+
+		// district verilirse şehir+ilçe kesin filtresi uygulanır; arama
+		// önerisinden "İstanbul / Fatih" seçildiğinde bu yol kullanılır ve
+		// limit uygulanmaz (ilçedeki tüm mekanlar listelenir).
+		if district := c.Query("district"); district != "" {
+			venues, err := h.venueRepo.FindByCityDistrict(c.Context(), city, district, lat, lng, 0)
+			if err != nil {
+				return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "mekanlar listelenemedi"})
+			}
+			return c.JSON(fiber.Map{"data": venues, "count": len(venues)})
+		}
+
 		limit := c.QueryInt("limit", 10)
 		venues, err := h.venueRepo.FindByCity(c.Context(), city, lat, lng, limit)
 		if err != nil {

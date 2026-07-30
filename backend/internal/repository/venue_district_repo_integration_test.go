@@ -82,3 +82,60 @@ func TestFindDistinctDistricts_KayitYokkaBosDilim(t *testing.T) {
 		t.Fatalf("boş dilim beklendi, %d geldi", len(list))
 	}
 }
+
+func TestFindByCityDistrict_YalnizcaOSehirVeIlce(t *testing.T) {
+	truncate(t)
+	userID := insertTestUser(t)
+	// Aynı ilçe adı iki farklı şehirde: yalnızca istenen şehrin ilçesi dönmeli.
+	insertDistrictVenue(t, userID, "İstanbul", "Fatih", "approved")
+	insertDistrictVenue(t, userID, "Trabzon", "Fatih", "approved")
+	insertDistrictVenue(t, userID, "İstanbul", "Kadıköy", "approved")
+
+	repo := repository.NewVenueRepo(testPool)
+	venues, err := repo.FindByCityDistrict(context.Background(), "İstanbul", "Fatih", 0, 0, 0)
+	if err != nil {
+		t.Fatalf("FindByCityDistrict hatası: %v", err)
+	}
+	if len(venues) != 1 {
+		t.Fatalf("1 mekan beklendi, %d geldi", len(venues))
+	}
+	if venues[0].City != "İstanbul" {
+		t.Fatalf("beklenen İstanbul, gelen %q", venues[0].City)
+	}
+	if venues[0].District == nil || *venues[0].District != "Fatih" {
+		t.Fatalf("beklenen ilçe Fatih, gelen %v", venues[0].District)
+	}
+}
+
+func TestFindByCityDistrict_OnaysizDonmez(t *testing.T) {
+	truncate(t)
+	userID := insertTestUser(t)
+	insertDistrictVenue(t, userID, "İstanbul", "Fatih", "pending")
+
+	repo := repository.NewVenueRepo(testPool)
+	venues, err := repo.FindByCityDistrict(context.Background(), "İstanbul", "Fatih", 0, 0, 0)
+	if err != nil {
+		t.Fatalf("FindByCityDistrict hatası: %v", err)
+	}
+	if len(venues) != 0 {
+		t.Fatalf("onaysız mekan dönmemeliydi, %d geldi", len(venues))
+	}
+}
+
+func TestFindByCityDistrict_KonumYoksaMesafeNil(t *testing.T) {
+	truncate(t)
+	userID := insertTestUser(t)
+	insertDistrictVenue(t, userID, "İstanbul", "Fatih", "approved")
+
+	repo := repository.NewVenueRepo(testPool)
+	venues, err := repo.FindByCityDistrict(context.Background(), "İstanbul", "Fatih", 0, 0, 0)
+	if err != nil {
+		t.Fatalf("FindByCityDistrict hatası: %v", err)
+	}
+	if len(venues) != 1 {
+		t.Fatalf("1 mekan beklendi, %d geldi", len(venues))
+	}
+	if venues[0].Distance != nil {
+		t.Fatalf("konum yokken distance nil olmalı, gelen %v", *venues[0].Distance)
+	}
+}
