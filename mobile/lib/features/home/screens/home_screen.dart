@@ -2,8 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/models/venue.dart';
+import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../venue/widgets/venue_card.dart';
+import '../../guide/providers/guide_provider.dart';
+import '../../search/data/recent_searches_store.dart';
+import '../../search/models/search_suggestion.dart';
+import '../../search/providers/search_sources_provider.dart';
+import '../../search/widgets/suggestion_list.dart';
+import '../../venue/models/venue_detail_preview.dart';
 import '../../venue/widgets/venue_horizontal_card.dart';
 import '../providers/home_provider.dart';
 import '../providers/venue_filter_provider.dart';
@@ -51,10 +58,79 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
   }
 
+  /// Sonuç sayfasını açar ve terimi son aramalara kaydeder.
+  Future<void> _openResults(String term) async {
+    final trimmed = term.trim();
+    if (trimmed.isEmpty) return;
+
+    await ref.read(recentSearchesStoreProvider).add(trimmed);
+    if (!mounted) return;
+
+    _focusNode.unfocus();
+    context.push(
+      '${AppRoutes.searchResults}?q=${Uri.encodeComponent(trimmed)}',
+    );
+  }
+
+  /// İlçe önerisi — şehir+ilçe kesin filtresiyle sonuç sayfasına gider.
+  Future<void> _openDistrictResults(String city, String district) async {
+    await ref.read(recentSearchesStoreProvider).add('$city / $district');
+    if (!mounted) return;
+
+    _focusNode.unfocus();
+    context.push(
+      '${AppRoutes.searchResults}'
+      '?city=${Uri.encodeComponent(city)}'
+      '&district=${Uri.encodeComponent(district)}',
+    );
+  }
+
+  /// Öneri satırı seçildiğinde tipine göre yönlendirir.
+  void _handleSuggestion(SearchSuggestion suggestion) {
+    switch (suggestion.type) {
+      case SuggestionType.venue:
+        final venue = _findSuggestedVenue(suggestion.venueId!);
+        if (venue == null) return;
+        _focusNode.unfocus();
+        context.push(
+          '/venue/${venue.id}',
+          extra: VenueDetailPreview(name: venue.name, city: venue.locationLabel),
+        );
+      case SuggestionType.district:
+        _openDistrictResults(suggestion.city!, suggestion.district!);
+      case SuggestionType.category:
+      case SuggestionType.city:
+        _openResults(suggestion.label);
+    }
+  }
+
+  /// Öneri satırındaki mekanı güncel öneri listesinden bulur.
+  /// Liste tıklama anında değişmiş olabileceği için null-güvenli arama yapılır
+  /// (firstWhere yerine) — bulunamazsa hiçbir şey yapılmaz.
+  Venue? _findSuggestedVenue(String venueId) {
+    for (final v in ref.read(homeProvider).searchResults) {
+      if (v.id == venueId) return v;
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(homeProvider);
     final query = _searchController.text;
+
+    final categories = ref.watch(foodCategoriesProvider).value ?? const [];
+    final cities = ref.watch(searchCitiesProvider).value ?? const <String>[];
+    final districts =
+        ref.watch(searchDistrictsProvider).value ?? const <CityDistrict>[];
+
+    final suggestions = buildSuggestions(
+      query: query,
+      categories: categories,
+      cities: cities,
+      districts: districts,
+      venues: state.searchResults,
+    );
 
     return Scaffold(
       backgroundColor: AppTheme.background,
@@ -73,6 +149,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 setState(() {});
                 ref.read(homeProvider.notifier).clearSearch();
               },
+              onSubmitted: (value) => _openResults(value),
             ),
             if (!_isFocused)
               _FilterActionsRow(
@@ -84,15 +161,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 children: [
                   // Arka plan her zaman feed
                   _Feed(state: state),
-                  // Aramaya yazı girilince karartma + sonuç overlay'i
+                  // Aramaya yazı girilince karartma + öneri overlay'i
                   if (_isFocused && query.isNotEmpty) ...[
                     GestureDetector(
                       onTap: () => _focusNode.unfocus(),
                       child: Container(color: Colors.black.withValues(alpha: 0.35)),
                     ),
-                    _SearchResultsOverlay(
-                      state: state,
-                      onDismiss: () => _focusNode.unfocus(),
+                    _SearchSuggestionsOverlay(
+                      suggestions: suggestions,
+                      isLoading: state.isSearching,
+                      onSelect: _handleSuggestion,
                     ),
                   ],
                 ],
@@ -110,12 +188,14 @@ class _SearchBar extends StatelessWidget {
   final FocusNode focusNode;
   final ValueChanged<String> onChanged;
   final VoidCallback onClear;
+  final ValueChanged<String> onSubmitted;
 
   const _SearchBar({
     required this.controller,
     required this.focusNode,
     required this.onChanged,
     required this.onClear,
+    required this.onSubmitted,
   });
 
   @override
@@ -126,6 +206,8 @@ class _SearchBar extends StatelessWidget {
         controller: controller,
         focusNode: focusNode,
         onChanged: onChanged,
+        textInputAction: TextInputAction.search,
+        onSubmitted: onSubmitted,
         decoration: InputDecoration(
           hintText: 'Restoran, mutfak veya yemek ara',
           hintStyle: const TextStyle(color: AppTheme.textSecondary, fontSize: 15),
@@ -157,14 +239,16 @@ class _SearchBar extends StatelessWidget {
   }
 }
 
-/// Sorgu varken sonuçları inline kart olarak gösteren overlay.
-class _SearchResultsOverlay extends StatelessWidget {
-  final HomeState state;
-  final VoidCallback onDismiss;
+/// Yazarken öneri listesini modal görünümünde gösteren overlay.
+class _SearchSuggestionsOverlay extends StatelessWidget {
+  final List<SearchSuggestion> suggestions;
+  final bool isLoading;
+  final ValueChanged<SearchSuggestion> onSelect;
 
-  const _SearchResultsOverlay({
-    required this.state,
-    required this.onDismiss,
+  const _SearchSuggestionsOverlay({
+    required this.suggestions,
+    required this.isLoading,
+    required this.onSelect,
   });
 
   @override
@@ -189,34 +273,13 @@ class _SearchResultsOverlay extends StatelessWidget {
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(16),
-          child: _buildContent(),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildContent() {
-    if (state.isSearching) {
-      return const Padding(
-        padding: EdgeInsets.all(32),
-        child: Center(child: CircularProgressIndicator()),
-      );
-    }
-    if (state.searchResults.isEmpty) {
-      return Padding(
-        padding: const EdgeInsets.all(32),
-        child: Center(
-          child: Text(
-            '"${state.searchQuery}" için sonuç bulunamadı.',
-            style: const TextStyle(color: AppTheme.textSecondary),
+          child: SuggestionList(
+            suggestions: suggestions,
+            isLoading: isLoading,
+            onSelect: onSelect,
           ),
         ),
-      );
-    }
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      itemCount: state.searchResults.length,
-      itemBuilder: (_, i) => VenueCard(venue: state.searchResults[i]),
+      ),
     );
   }
 }

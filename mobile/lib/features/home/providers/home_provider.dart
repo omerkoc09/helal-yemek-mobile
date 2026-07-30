@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/api/api_endpoints.dart';
@@ -64,8 +66,13 @@ class HomeState {
 }
 
 class HomeNotifier extends Notifier<HomeState> {
+  Timer? _searchDebounce;
+
   @override
-  HomeState build() => const HomeState();
+  HomeState build() {
+    ref.onDispose(() => _searchDebounce?.cancel());
+    return const HomeState();
+  }
 
   Future<void> fetchFeed({int limit = 10}) async {
     state = state.copyWith(
@@ -242,18 +249,26 @@ class HomeNotifier extends Notifier<HomeState> {
     }
   }
 
+  /// Ana sayfa arama kutusu — öneri listesindeki MEKAN satırlarını besler.
+  /// Tam sonuçlar ayrı sayfada (searchResultsProvider) çekilir.
   Future<void> search(String query) async {
-    if (query.isEmpty) {
-      state = state.copyWith(
-        searchQuery: '',
-        searchResults: [],
-        isSearching: false,
-      );
+    state = state.copyWith(searchQuery: query);
+
+    _searchDebounce?.cancel();
+    if (query.trim().isEmpty) {
+      state = state.copyWith(searchQuery: '', searchResults: [], isSearching: false);
       return;
     }
 
-    state = state.copyWith(searchQuery: query, isSearching: true);
+    state = state.copyWith(isSearching: true);
+    _searchDebounce = Timer(const Duration(milliseconds: 500), () async {
+      await _fetchSearchSuggestions(query.trim());
+    });
+  }
 
+  /// Mekan öneri satırları — hata durumunda öneri listesi bozulmaz, yalnızca
+  /// mekan satırları görünmez; hata state'i dışarı yayılmaz.
+  Future<void> _fetchSearchSuggestions(String query) async {
     try {
       final apiClient = ref.read(apiClientProvider);
       final response = await apiClient.get(
@@ -274,6 +289,7 @@ class HomeNotifier extends Notifier<HomeState> {
   }
 
   void clearSearch() {
+    _searchDebounce?.cancel();
     state = state.copyWith(
       searchQuery: '',
       searchResults: [],
