@@ -7,14 +7,17 @@ import '../providers/search_results_provider.dart';
 
 /// "Terim için sonuçlar" sayfası — kategori, şehir, ilçe veya ad eşleşen
 /// mekanların tek birleşik listesi.
+///
+/// [query] serbest metin (term) ya da şehir+ilçe kesin filtresi taşıyabilir;
+/// bkz. [SearchQuery].
 class SearchResultsScreen extends ConsumerWidget {
-  final String term;
+  final SearchQuery query;
 
-  const SearchResultsScreen({super.key, required this.term});
+  const SearchResultsScreen({super.key, required this.query});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final resultsAsync = ref.watch(searchResultsProvider(term));
+    final resultsAsync = ref.watch(searchResultsProvider(query));
 
     return Scaffold(
       appBar: AppBar(
@@ -22,7 +25,7 @@ class SearchResultsScreen extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              '"$term" için sonuçlar',
+              '"${query.label}" için sonuçlar',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
@@ -45,10 +48,10 @@ class SearchResultsScreen extends ConsumerWidget {
       body: resultsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (_, _) => _ErrorView(
-          onRetry: () => ref.read(searchResultsProvider(term).notifier).retry(),
+          onRetry: () => ref.read(searchResultsProvider(query).notifier).retry(),
         ),
         data: (venues) {
-          if (venues.isEmpty) return _EmptyView(term: term);
+          if (venues.isEmpty) return _EmptyView(label: query.label);
           return ListView.builder(
             padding: const EdgeInsets.only(
               top: 8,
@@ -87,9 +90,9 @@ class _ErrorView extends StatelessWidget {
 }
 
 class _EmptyView extends StatelessWidget {
-  final String term;
+  final String label;
 
-  const _EmptyView({required this.term});
+  const _EmptyView({required this.label});
 
   @override
   Widget build(BuildContext context) {
@@ -100,7 +103,7 @@ class _EmptyView extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              '"$term" için sonuç bulunamadı',
+              '"$label" için sonuç bulunamadı',
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 16),
             ),

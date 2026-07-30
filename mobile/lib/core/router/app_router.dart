@@ -15,6 +15,7 @@ import '../../features/profile/screens/profile_screen.dart';
 import '../../features/profile/screens/edit_profile_screen.dart';
 import '../../features/search/screens/search_screen.dart';
 import '../../features/search/screens/search_results_screen.dart';
+import '../../features/search/providers/search_results_provider.dart';
 import '../../features/food_discovery/screens/food_discovery_screen.dart';
 import '../../features/venue/models/venue_detail_preview.dart';
 import '../../features/venue/screens/venue_detail_screen.dart';
@@ -170,9 +171,17 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: AppRoutes.searchResults,
-            builder: (context, state) => SearchResultsScreen(
-              term: state.uri.queryParameters['q'] ?? '',
-            ),
+            builder: (context, state) {
+              final params = state.uri.queryParameters;
+              final city = params['city'];
+              final district = params['district'];
+              // Şehir+ilçe verilmişse kesin filtre, aksi halde serbest metin.
+              final query = (city != null && city.isNotEmpty &&
+                      district != null && district.isNotEmpty)
+                  ? SearchQuery.cityDistrict(city: city, district: district)
+                  : SearchQuery.text(params['q'] ?? '');
+              return SearchResultsScreen(query: query);
+            },
           ),
           // Rehber sekmesi — shell içinde kalır (bottom nav + AppHeader korunur)
           GoRoute(

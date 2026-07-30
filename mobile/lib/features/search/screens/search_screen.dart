@@ -54,6 +54,20 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     context.push('${AppRoutes.searchResults}?q=${Uri.encodeComponent(trimmed)}');
   }
 
+  /// İlçe önerisi — şehir+ilçe kesin filtresiyle sonuç sayfasına gider.
+  Future<void> _openDistrictResults(String city, String district) async {
+    final label = '$city / $district';
+    final updated = await ref.read(recentSearchesStoreProvider).add(label);
+    if (!mounted) return;
+    setState(() => _recentSearches = updated);
+
+    context.push(
+      '${AppRoutes.searchResults}'
+      '?city=${Uri.encodeComponent(city)}'
+      '&district=${Uri.encodeComponent(district)}',
+    );
+  }
+
   void _openVenue(Venue venue) {
     context.push(
       '/venue/${venue.id}',
@@ -131,6 +145,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                             (v) => v.id == suggestion.venueId,
                           );
                           _openVenue(venue);
+                        } else if (suggestion.type == SuggestionType.district) {
+                          _openDistrictResults(
+                            suggestion.city!,
+                            suggestion.district!,
+                          );
                         } else {
                           _openResults(suggestion.label);
                         }

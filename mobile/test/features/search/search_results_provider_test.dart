@@ -54,15 +54,15 @@ void main() {
       ]);
       addTearDown(container.dispose);
 
-      const term = 'döner';
+      const query = SearchQuery.text('döner');
 
       // İlk okuma: dinleyici ekle, build() tamamlanana kadar bekle.
       final sub1 = container.listen(
-        searchResultsProvider(term),
+        searchResultsProvider(query),
         (_, _) {},
         fireImmediately: true,
       );
-      await container.read(searchResultsProvider(term).future);
+      await container.read(searchResultsProvider(query).future);
       sub1.close();
 
       // Sonuçlar ekranından çıkıldığında son dinleyici de kapanmış olur.
@@ -74,15 +74,34 @@ void main() {
       // Aynı terimle tekrar arama: provider hâlâ canlıysa (auto-dispose
       // yoksa) build() bir daha çalışmaz ve API ikinci kez çağrılmaz.
       final sub2 = container.listen(
-        searchResultsProvider(term),
+        searchResultsProvider(query),
         (_, _) {},
         fireImmediately: true,
       );
-      await container.read(searchResultsProvider(term).future);
+      await container.read(searchResultsProvider(query).future);
       sub2.close();
 
       verify(() => mockApi.get(any(), queryParameters: any(named: 'queryParameters')))
           .called(2);
     },
   );
+
+  test('SearchQuery değer eşitliği uygular (family anahtarı olarak güvenli)', () {
+    expect(
+      const SearchQuery.text('döner'),
+      const SearchQuery.text('döner'),
+    );
+    expect(
+      const SearchQuery.cityDistrict(city: 'İstanbul', district: 'Fatih'),
+      const SearchQuery.cityDistrict(city: 'İstanbul', district: 'Fatih'),
+    );
+    expect(
+      const SearchQuery.text('döner'),
+      isNot(const SearchQuery.text('kebap')),
+    );
+    expect(
+      const SearchQuery.cityDistrict(city: 'İstanbul', district: 'Fatih'),
+      isNot(const SearchQuery.cityDistrict(city: 'Trabzon', district: 'Fatih')),
+    );
+  });
 }
