@@ -723,13 +723,31 @@ void main() {
   });
 
   test('eşleşme yoksa boş liste döner', () {
+    // Sunucu eşleşme bulamadığında venues boş gelir; kategori/şehir de
+    // eşleşmezse öneri listesi boştur.
     final result = buildSuggestions(
       query: 'zzzz',
       categories: categories,
       cities: cities,
-      venues: [venue('v1', 'Dönerci Ali', 'Bursa')],
+      venues: const [],
     );
     expect(result, isEmpty);
+  });
+
+  test('sunucudan gelen mekanlar ada göre yeniden filtrelenmez', () {
+    // "Meşhur Usta" adında "doner" geçmiyor ama sunucu kategori eşleşmesiyle
+    // döndürdü; öneri listesi sonuç sayfasından daha dar olmamalı.
+    final result = buildSuggestions(
+      query: 'doner',
+      categories: categories,
+      cities: cities,
+      venues: [venue('v1', 'Meşhur Usta', 'Bursa')],
+    );
+    expect(
+      result.any((s) =>
+          s.type == SuggestionType.venue && s.label == 'Meşhur Usta'),
+      isTrue,
+    );
   });
 }
 ```
@@ -788,8 +806,11 @@ const int _maxVenueSuggestions = 5;
 /// sonra mekanlar. Eşleşme Türkçe karakter duyarsızdır ([normalizeTr]).
 ///
 /// [categories] ve [cities] istemcide cache'lenen tam listelerdir; [venues]
-/// ise arama isteğinden dönen mekanlardır (zaten sunucuda eşleşmiş olduğu için
-/// yeniden filtrelenmez, yalnızca sayısı sınırlanır).
+/// ise arama isteğinden dönen mekanlardır. Sunucu ad, şehir, ilçe VEYA kategori
+/// üzerinden eşleştirdiği için burada ada göre yeniden filtreleme YAPILMAZ —
+/// aksi halde kategorisi eşleşen mekanlar (ör. "doner" için "Meşhur Usta")
+/// öneri listesinden düşer ve öneriler sonuç sayfasından dar kalır.
+/// Yalnızca sayı sınırlanır.
 List<SearchSuggestion> buildSuggestions({
   required String query,
   required List<FoodCategory> categories,
