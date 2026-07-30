@@ -34,7 +34,13 @@ class SearchState {
 
 class SearchNotifier extends Notifier<SearchState> {
   @override
-  SearchState build() => const SearchState();
+  SearchState build() {
+    // Provider dispose edildiğinde bekleyen debounce timer'ı iptal et;
+    // aksi halde kullanıcı arama ekranından ayrıldıktan sonra 500ms'lik
+    // timer tetiklenip artık var olmayan state'i güncellemeye çalışabilir.
+    ref.onDispose(() => _debounce?.cancel());
+    return const SearchState();
+  }
 
   Timer? _debounce;
 

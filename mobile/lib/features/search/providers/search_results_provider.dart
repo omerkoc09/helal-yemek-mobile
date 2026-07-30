@@ -61,7 +61,18 @@ class SearchResultsNotifier extends AsyncNotifier<List<Venue>> {
   }
 }
 
+// `isAutoDispose: true` şart: aksi halde her arama terimi için notifier ve
+// çektiği List<Venue> (fotoğraf + kategorilerle) uygulama oturumu boyunca
+// canlı kalır. Sonuç: (1) aynı terim farklı bir konumdan veya yeni mekan
+// onaylandıktan sonra tekrar arandığında build() yeniden çalışmaz, kullanıcı
+// bayat sonuçları (eski konuma göre sıralanmış) görür — pull-to-refresh yok,
+// uygulamayı yeniden başlatmadan kurtuluş yok; (2) her farklı terim için
+// ayrı bir notifier+liste sızıntı gibi birikir (sınırsız bellek büyümesi).
+// Riverpod 3.2.1'de family provider'larda isAutoDispose varsayılanı false'tur
+// (bkz. AsyncNotifierProviderFamilyBuilder.call, lib/src/builder.dart) —
+// bu yüzden burada açıkça true verilmesi gerekiyor. LÜTFEN KALDIRMAYIN.
 final searchResultsProvider =
     AsyncNotifierProvider.family<SearchResultsNotifier, List<Venue>, String>(
   SearchResultsNotifier.new,
+  isAutoDispose: true,
 );

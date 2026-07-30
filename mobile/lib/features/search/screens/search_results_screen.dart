@@ -23,11 +23,15 @@ class SearchResultsScreen extends ConsumerWidget {
           children: [
             Text(
               '"$term" için sonuçlar',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
             ),
             resultsAsync.maybeWhen(
               data: (venues) => Text(
                 '${venues.length} mekan bulundu',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   fontSize: 13,
                   color: AppTheme.textSecondary,
