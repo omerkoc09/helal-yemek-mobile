@@ -13,7 +13,6 @@ kırık bir şey yok. Ham "enlem, boylam" metni desteği denendi ve ürün karar
 (mekan kimliği Maps kaydına bağlı kalsın). Yapılacak iş yok.
 
 
-search kısmında places api kullanılmalı mı?
 
 ~~search de dondurma kategorisinde olmasına rağmen gelmeyen mekan var~~ ✅ **KAPANDI
 (2026-07-30)** — sebep buydu: `SearchByText` daha önce yalnızca mekan **adı ve şehir**
@@ -71,6 +70,37 @@ hem panelden hangi şehirlerde kaç tane rehber olduğunu görürüz (harita man
 
 
 ## Tamamlanan İşler
+
+### Ana Sayfa Araması + İlçe Önerileri — YENİ
+
+> 2026-07-30'da tamamlandı. Ana sayfadaki arama, search sekmesindeki öneri akışına çevrildi;
+> öneri listesi modal/overlay olarak açılıyor, öneri satırı görünümü iki ekranda paylaşılan
+> `SuggestionList` widget'ından geliyor. Öneri listesine ilçe satırları eklendi ("İstanbul /
+> Fatih", alt başlık "İlçe"); kaynak yeni `GET /venues/districts` endpoint'i (yalnızca onaylı
+> mekanı olan şehir/ilçe çiftleri). İlgili plan:
+> `.superpowers/sdd/2026-07-30-search-home-and-district/`.
+
+| Değişiklik | Durum | Detay |
+|-----------|-------|-------|
+| `FindDistinctDistricts` + `GET /venues/districts` | ✅ | `backend/internal/repository/venue_search_repo.go` + `venue_query_handler.go`. Onaylı/silinmemiş mekanlarda DISTINCT (city, district) çiftleri, boş city ve NULL/boş district hariç, city→district sıralı. Boş sonuçta nil değil boş dizi döner. |
+| `FindByCityDistrict` + `GET /venues?city=&district=` | ✅ | Aynı dosya. Şehir+ilçe **kesin** filtresi, `FindByCity` ile aynı 18 kolonlu SELECT sırası (ortak `scanVenueCityRows` taranıyor), sıralama `distance ASC NULLS LAST, v.name ASC`. `district` param'ı varsa limitsiz kesin-filtre yoluna girilir; yoksa mevcut şehir-only davranış (limit 10) değişmedi. Testte "Fatih" hem İstanbul hem Trabzon'da var olacak şekilde kurulup yalnız İstanbul'unkinin döndüğü doğrulandı (izolasyon kanıtı). |
+| İlçe önerisine tıklama → kesin filtre sonuçları (mobil) | ✅ | İlçe önerisine tıklandığında sonuçlar şehir+ilçe kesin filtresiyle listeleniyor, böylece başka ildeki aynı adlı ilçeler ve adında o kelime geçen mekanlar karışmıyor. Başlık: "İstanbul / Fatih için sonuçlar". |
+| `CityDistrict` modeli + öneri sıralaması (mobil) | ✅ | `mobile/lib/features/search/models/search_suggestion.dart` — `CityDistrict` (value equality, `label` getter'ı "Şehir / İlçe") ve `SuggestionType.district` eklendi; `SearchSuggestion`'a `city`/`district` alanları eklendi. `buildSuggestions` artık `districts` parametresi alıyor; sıra: 3 kategori → 3 ilçe → 3 şehir → 5 mekan. İlçe eşleşmesi Türkçe karakter duyarsız, hem çıplak ilçe adını hem birleşik "Şehir / İlçe" etiketini kapsıyor. |
+| Paylaşılan `SuggestionList` widget'ı (mobil) | ✅ | `mobile/lib/features/search/widgets/suggestion_list.dart` — öneri satırı görünümü tek yerde, hem search sekmesi hem ana sayfa tarafından kullanılıyor. |
+| `SearchQuery` + sonuç rotası genişlemesi (mobil) | ✅ | `SearchQuery` (value-equal, `text`/`cityDistrict` adlı iki kurucu) artık sonuç provider'ının family key'i; `searchResultsProvider` `isAutoDispose: true` olarak kalıyor. Rota `/search/results?q=<terim>` **veya** `?city=&district=` kabul ediyor (ilçe modu ikisinin de dolu olmasını gerektiriyor, yoksa metin moduna düşer). |
+| Ana sayfa arama kutusu → öneri overlay'i (mobil) | ✅ | `mobile/lib/features/home/screens/home_screen.dart` — yazarken artık ham mekan kartları yerine öneri overlay'i gösteriyor; modal/backdrop/temizle butonu ve arkadaki feed değişmedi. Kategori/şehir → metin sonuçları, ilçe → kesin filtre sonuçları, mekan → doğrudan mekan detayı, Enter → metin sonuçları. Her sonuç sayfası gezinmesi terimi son aramalara kaydediyor. `home_provider`'ın `search()` fonksiyonuna 500ms debounce eklendi (dispose'da iptal ediliyor). |
+| Liste içi filtre genişlemesi (mobil) | ✅ | `mobile/lib/features/home/providers/venue_filter_provider.dart` (all_venues_screen) — **bilinçli olarak** öneri akışına çevrilmedi, yerinde/local filtre olarak kaldı, sunucuya gitmiyor. Eşleşme alanı artık mekan adı + yemek kategorisi + ilçe, hepsi Türkçe karakter duyarsız. İpucu metni: "Bu listede ara (mekan, mutfak, ilçe)". |
+| Testler | ✅ | Backend: 6 yeni integration testi (3× `FindDistinctDistricts`, 3× `FindByCityDistrict`), önceki 7 `TestSearchByText_*` testi de geçmeye devam ediyor. Mobil: suite 195 → 205 PASS. |
+
+**Doğrulanmayan kısım:** Ana sayfadaki öneri overlay'i bir cihaz/emülatörde çalıştırılarak
+görsel olarak doğrulanmadı (build ortamında emülatör yoktu) — yalnızca kod incelemesi ve
+otomatik test suite ile doğrulandı.
+
+**Bilinen kabul edilmiş boşluk:** Son aramalar bir ilçeyi düz etiket olarak saklıyor
+("İstanbul / Fatih"); kaydedilmiş bu kaydına daha sonra tıklamak serbest metin moduna
+düşürüyor, kesin ilçe moduna değil.
+
+---
 
 ### Mekan Arama UX İyileştirmesi — YENİ
 
