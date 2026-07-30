@@ -753,6 +753,45 @@ func (r *VenueRepo) FindDistinctCities(ctx context.Context) ([]string, error) {
 	return cities, nil
 }
 
+// CityDistrict — şehir/ilçe çifti (arama önerileri için).
+type CityDistrict struct {
+	City     string `json:"city"`
+	District string `json:"district"`
+}
+
+// FindDistinctDistricts — approved mekanlardaki benzersiz şehir/ilçe çiftlerini
+// alfabetik döndürür. Arama ekranında "İstanbul / Fatih" gibi ilçe önerileri
+// bu listeden üretilir; yalnızca gerçekten mekanı olan ilçeler önerilir.
+func (r *VenueRepo) FindDistinctDistricts(ctx context.Context) ([]CityDistrict, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT DISTINCT city, district
+		FROM venues
+		WHERE status = 'approved'
+		  AND deleted_at IS NULL
+		  AND city != ''
+		  AND district IS NOT NULL
+		  AND district != ''
+		ORDER BY city ASC, district ASC
+	`)
+	if err != nil {
+		return nil, fmt.Errorf("ilçe listesi sorgusu başarısız: %w", err)
+	}
+	defer rows.Close()
+
+	list := []CityDistrict{}
+	for rows.Next() {
+		var cd CityDistrict
+		if err := rows.Scan(&cd.City, &cd.District); err != nil {
+			return nil, err
+		}
+		list = append(list, cd)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("ilçe listesi taranması başarısız: %w", err)
+	}
+	return list, nil
+}
+
 // CityVenueCount — şehir bazlı onaylı mekan sayımı (admin paneli haritası).
 type CityVenueCount struct {
 	City  string `json:"city"`
