@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:itimat/core/models/venue.dart';
 import 'package:itimat/features/guide/providers/guide_provider.dart';
 
 // AddVenueNotifier'ın saf state/wizard mantığı — konum ya da API gerektirmeyen
@@ -206,6 +207,113 @@ void main() {
       expect(state().currentStep, 3);
       notifier().goToStep(-1); // aralık dışı → değişmez
       expect(state().currentStep, 3);
+    });
+  });
+
+  group('Duplicate kapısı — aynı mekan ikinci kez eklenemez', () {
+    // Rehber, zaten kayıtlı bir mekanın linkini yapıştırdığında akış LİNK
+    // ADIMINDA durmalı. Aksi halde hata ancak son adımda, gönderim sırasında
+    // backend'in 409'uyla görünüyor ve tüm sihirbaz boşa dolduruluyor.
+    const dup = Venue(
+      id: 'venue-1',
+      name: 'Mantıcım Hacer',
+      city: 'Aydın',
+      latitude: 37.85,
+      longitude: 27.81,
+      status: 'approved',
+      addedBy: 'user-1',
+    );
+
+    test('duplicate varken ilerlenemez', () {
+      notifier().setCoordinates(latitude: 37.85, longitude: 27.81);
+      expect(state().canProceedStep0, isTrue, reason: 'ön koşul');
+
+      notifier().setDuplicate(dup);
+
+      expect(state().canProceedStep0, isFalse);
+    });
+
+    test('duplicate kontrolü sürerken ilerlenemez', () {
+      // Cevap gelmeden "Devam"a basılabilseydi engel atlanırdı.
+      notifier().setCoordinates(latitude: 37.85, longitude: 27.81);
+      notifier().setCheckingDuplicate(true);
+
+      expect(state().canProceedStep0, isFalse);
+    });
+
+    test('duplicate temizlenince yeniden ilerlenebilir', () {
+      notifier().setCoordinates(latitude: 37.85, longitude: 27.81);
+      notifier().setDuplicate(dup);
+
+      notifier().clearDuplicate();
+
+      expect(state().canProceedStep0, isTrue);
+    });
+
+    test('reset duplicate durumunu da temizler', () {
+      notifier().setCoordinates(latitude: 37.85, longitude: 27.81);
+      notifier().setDuplicate(dup);
+
+      notifier().reset();
+
+      expect(state().duplicateVenue, isNull);
+      expect(state().isCheckingDuplicate, isFalse);
+    });
+  });
+
+  group('clearLinkResult — link temizlenince mekan verisi de gitmeli', () {
+    const dup2 = Venue(
+      id: 'venue-1',
+      name: 'Mantıcım Hacer',
+      city: 'Aydın',
+      latitude: 37.85,
+      longitude: 27.81,
+      status: 'approved',
+      addedBy: 'user-1',
+    );
+
+    test('koordinat ve mekan bilgisi silinir, ilerlenemez', () {
+      // Rehber duplicate uyarısı aldıktan sonra linki siliyor. Önceden yalnızca
+      // uyarı kalkıyor, koordinat state'te kalıyordu; canProceedStep0 sadece
+      // koordinata baktığı için "Devam" yeniden açılıyor ve ESKİ mekanla
+      // ilerlenebiliyordu.
+      notifier().setCoordinates(latitude: 37.85, longitude: 27.81);
+      notifier().setName('Mantıcım Hacer');
+      notifier().setCity('Aydın');
+      notifier().setDuplicate(dup2);
+
+      notifier().clearLinkResult();
+
+      expect(state().latitude, isNull);
+      expect(state().longitude, isNull);
+      expect(state().name, '');
+      expect(state().city, '');
+      expect(state().duplicateVenue, isNull);
+      expect(state().canProceedStep0, isFalse);
+    });
+
+    test('linke bağlı olmayan seçimler korunur', () {
+      // Kriter/mutfak/not kullanıcının elle girdiği veriler; link değişti diye
+      // silinmeleri gereksiz veri kaybı olur.
+      notifier().toggleCriteria(7);
+      notifier().toggleCategory(3);
+      notifier().setNotes('kapalı mekan');
+      notifier().setCoordinates(latitude: 37.85, longitude: 27.81);
+
+      notifier().clearLinkResult();
+
+      expect(state().selectedCriteriaIds, contains(7));
+      expect(state().selectedCategoryIds, contains(3));
+      expect(state().notes, 'kapalı mekan');
+    });
+
+    test('bulunulan adım korunur', () {
+      notifier().goToStep(0);
+      notifier().setCoordinates(latitude: 37.85, longitude: 27.81);
+
+      notifier().clearLinkResult();
+
+      expect(state().currentStep, 0);
     });
   });
 

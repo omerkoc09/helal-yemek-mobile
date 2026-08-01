@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/api/api_endpoints.dart';
@@ -44,6 +45,10 @@ class AddVenueState {
   final bool cityAllowed;
   final String? guideCity; // Rehberin çalışma şehri (uyumsuzlukta mesajda kullanılır)
 
+  /// Aynı place_id ile kayıtlı mevcut mekan. Doluysa akış link adımında durur.
+  final Venue? duplicateVenue;
+  final bool isCheckingDuplicate;
+
   const AddVenueState({
     this.isLoading = false,
     this.error,
@@ -67,6 +72,8 @@ class AddVenueState {
     this.excludedProducts = const [],
     this.cityAllowed = true,
     this.guideCity,
+    this.duplicateVenue,
+    this.isCheckingDuplicate = false,
   });
 
   AddVenueState copyWith({
@@ -92,6 +99,8 @@ class AddVenueState {
     List<String>? excludedProducts,
     bool? cityAllowed,
     String? guideCity,
+    Object? duplicateVenue = _unset,
+    bool? isCheckingDuplicate,
   }) {
     return AddVenueState(
       isLoading: isLoading ?? this.isLoading,
@@ -118,11 +127,22 @@ class AddVenueState {
       excludedProducts: excludedProducts ?? this.excludedProducts,
       cityAllowed: cityAllowed ?? this.cityAllowed,
       guideCity: guideCity ?? this.guideCity,
+      duplicateVenue: identical(duplicateVenue, _unset)
+          ? this.duplicateVenue
+          : duplicateVenue as Venue?,
+      isCheckingDuplicate: isCheckingDuplicate ?? this.isCheckingDuplicate,
     );
   }
 
   // Adım 0 = Link adımı: linkten koordinat parse edilmiş olmalı.
-  bool get canProceedStep0 => latitude != null && longitude != null;
+  // Mekan zaten kayıtlıysa akış burada durur — duplicate'in son adımda değil,
+  // tespit edildiği anda engellenmesi isteniyor. Kontrol sürerken de bekletilir
+  // ki cevap gelmeden "Devam"a basılıp engel atlanmasın.
+  bool get canProceedStep0 =>
+      latitude != null &&
+      longitude != null &&
+      duplicateVenue == null &&
+      !isCheckingDuplicate;
   // Adım 1 = Detay doğrulama: ad + il + ilçe + koordinat zorunlu
   // Şehir kısıtı: mekan rehberin şehrinde değilse ilerlenemez.
   bool get canProceedStep1 =>
@@ -163,8 +183,13 @@ class AddVenueNotifier extends Notifier<AddVenueState> {
     state = state.copyWith(district: district);
   }
 
+  /// Koordinatı doğrudan yazar ve place_id'yi geçersiz kılar.
+  ///
+  /// Mekan ekleme akışında ARTIK KULLANILMIYOR: konum her zaman Google Maps
+  /// linkinden, place_id ile birlikte gelir. Elle konum seçme yolu kaldırıldı
+  /// çünkü place_id'yi düşürmek duplicate kontrolünü ve Places eşleşmesini
+  /// bozuyor, aynı mekanın ikinci kez eklenmesine kapı aralıyordu.
   void setCoordinates({required double latitude, required double longitude}) {
-    // Koordinat manuel değişince place_id geçersiz olur
     state = state.copyWith(latitude: latitude, longitude: longitude, googlePlaceId: null);
   }
 
@@ -196,8 +221,9 @@ class AddVenueNotifier extends Notifier<AddVenueState> {
         name: nameFromUrl.isNotEmpty ? nameFromUrl : state.name,
         isParsingLink: false,
       );
-      // Koordinatlarla arka planda şehir/ilçe bilgilerini çek
-      fetchPlaceDetails(
+      // Şehir/ilçe/foto VE çözülmüş place_id burada gelir. Beklenmezse
+      // duplicate kontrolü henüz ChIJ'ye çevrilmemiş ID ile çalışır ve boşa çıkar.
+      await fetchPlaceDetails(
         placeId: coords.placeId,
         latitude: coords.latitude,
         longitude: coords.longitude,
@@ -240,6 +266,10 @@ class AddVenueNotifier extends Notifier<AddVenueState> {
         queryParameters: queryParams,
       );
       final data = response.data as Map<String, dynamic>;
+      // Backend hex (0x...) veya eksik place_id'yi Places API ile gerçek ChIJ
+      // formatına çözer. Bunu state'e yazmazsak duplicate kontrolü (ChIJ şartı
+      // arayan) hiç çalışmaz ve mekan ancak gönderim anında 409 ile reddedilir.
+      final resolvedPlaceId = (data['place_id'] as String? ?? '').trim();
       final fetchedName = (data['name'] as String? ?? '').trim();
       final fetchedCity = (data['city'] as String? ?? '').trim();
       final fetchedDistrict = (data['district'] as String? ?? '').trim();
@@ -250,6 +280,11 @@ class AddVenueNotifier extends Notifier<AddVenueState> {
       // Şehir kısıtı: backend mekanın şehri rehberin şehriyle uyumlu mu döner.
       final cityAllowed = data['city_allowed'] as bool? ?? true;
       final guideCity = data['guide_city'] as String?;
+      // Preview her linkte çağrıldığı için duplicate bilgisi de buradan gelir.
+      // Ayrı check-duplicate çağrısı başarısız olsa bile engel çalışır.
+      final existingVenue = data['existing_venue'] as Map<String, dynamic>?;
+      final duplicate =
+          existingVenue != null ? Venue.fromJson(existingVenue) : null;
 
       final resolvedCity = fetchedCity.isNotEmpty ? fetchedCity : state.city;
       final candidateDistrict =
@@ -272,6 +307,10 @@ class AddVenueNotifier extends Notifier<AddVenueState> {
             : (fetchedName.isNotEmpty ? fetchedName : state.name),
         city: resolvedCity,
         district: resolvedDistrict,
+        googlePlaceId: resolvedPlaceId.startsWith('ChIJ')
+            ? resolvedPlaceId
+            : state.googlePlaceId,
+        duplicateVenue: duplicate,
         googlePhotoUrls: fetchedPhotoUrls,
         selectedPhotoUrl: fetchedPhotoUrls.isNotEmpty ? fetchedPhotoUrls.first : null,
         isLoadingPlaceDetails: false,
@@ -391,8 +430,10 @@ class AddVenueNotifier extends Notifier<AddVenueState> {
     }
   }
 
-  /// Ekleme öncesi duplicate kontrolü. Mekan varsa Venue, yoksa null döner.
+  /// Ekleme öncesi duplicate kontrolü. Sonucu state'e yazar: mekan zaten
+  /// kayıtlıysa `duplicateVenue` dolar ve `canProceedStep0` akışı kilitler.
   Future<Venue?> checkDuplicate(String placeId) async {
+    state = state.copyWith(isCheckingDuplicate: true);
     final api = ref.read(apiClientProvider);
     try {
       final res = await api.get(
@@ -400,14 +441,58 @@ class AddVenueNotifier extends Notifier<AddVenueState> {
         queryParameters: {'google_place_id': placeId},
       );
       final data = res.data as Map<String, dynamic>;
-      if (data['exists'] == true && data['venue'] != null) {
-        return Venue.fromJson(data['venue'] as Map<String, dynamic>);
-      }
+      final dup = data['exists'] == true && data['venue'] != null
+          ? Venue.fromJson(data['venue'] as Map<String, dynamic>)
+          : null;
+      state = state.copyWith(
+        duplicateVenue: dup,
+        isCheckingDuplicate: false,
+      );
+      return dup;
+    } catch (e) {
+      // Kontrol başarısızsa akış bloklanmaz; duplicate'i backend zaten
+      // gönderim sırasında reddediyor. Ama hatayı sessizce yutmak, "engel neden
+      // çalışmadı" sorusunu görünmez kılıyor — en azından logla.
+      debugPrint('[DUP] check-duplicate BASARISIZ: $e');
+      state = state.copyWith(
+        duplicateVenue: null,
+        isCheckingDuplicate: false,
+      );
       return null;
-    } catch (_) {
-      return null; // kontrol başarısızsa akışı bloklama
     }
   }
+
+  /// Yeni bir link girildiğinde önceki duplicate sonucunu temizler.
+  void clearDuplicate() => state = state.copyWith(duplicateVenue: null);
+
+  /// Linkten türeyen TÜM sonucu sıfırlar: koordinat, mekan bilgileri, fotoğraflar
+  /// ve duplicate uyarısı.
+  ///
+  /// Yalnızca duplicate'i temizlemek yetmiyor: `canProceedStep0` sadece koordinata
+  /// baktığı için, uyarı kalkınca rehber ESKİ mekanın verisiyle ilerleyebiliyordu.
+  /// Link alanı boşaltıldığında ekranda mekan bilgisi kalması da yanıltıcıydı.
+  /// Kullanıcının elle girdiği alanlar (kriter, mutfak, not) korunur — onlar
+  /// linke bağlı değil.
+  void clearLinkResult() {
+    state = AddVenueState(
+      currentStep: state.currentStep,
+      selectedCriteriaIds: state.selectedCriteriaIds,
+      selectedCategoryIds: state.selectedCategoryIds,
+      foodHalalMode: state.foodHalalMode,
+      excludedProducts: state.excludedProducts,
+      notes: state.notes,
+      guideCity: state.guideCity,
+    );
+  }
+
+  /// Duplicate sonucunu doğrudan yazar (ağ çağrısı olmadan; testler ve
+  /// checkDuplicate tarafından kullanılır).
+  void setDuplicate(Venue? venue) =>
+      state = state.copyWith(duplicateVenue: venue);
+
+  /// Duplicate kontrolünün sürüp sürmediğini işaretler.
+  void setCheckingDuplicate(bool value) =>
+      state = state.copyWith(isCheckingDuplicate: value);
 
   void reset() => state = const AddVenueState();
 }

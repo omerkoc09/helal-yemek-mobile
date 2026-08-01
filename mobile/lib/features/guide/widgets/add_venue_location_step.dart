@@ -3,10 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/api/media_url.dart';
-import '../../../core/auth/auth_provider.dart';
 import '../../../core/models/venue.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../shared/widgets/authed_network_image.dart';
 import '../providers/guide_provider.dart';
 
 class AddVenueLocationStep extends ConsumerStatefulWidget {
@@ -19,24 +18,6 @@ class AddVenueLocationStep extends ConsumerStatefulWidget {
 
 class _AddVenueLocationStepState extends ConsumerState<AddVenueLocationStep> {
   final _linkController = TextEditingController();
-  Venue? _duplicateVenue;
-
-  /// Places fotoğraf proxy'si yetki istiyor (guide/admin) ve Image.network
-  /// varsayılan olarak Authorization başlığı göndermez. Token bir kez okunup
-  /// tüm önizleme görselleri için kullanılıyor.
-  String? _authToken;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadAuthToken();
-  }
-
-  Future<void> _loadAuthToken() async {
-    final token = await ref.read(tokenStorageProvider).getAccessToken();
-    if (!mounted) return;
-    setState(() => _authToken = token);
-  }
 
   @override
   void dispose() {
@@ -97,16 +78,14 @@ class _AddVenueLocationStepState extends ConsumerState<AddVenueLocationStep> {
             ),
           ],
 
-          // Başarı / preview kartı
-          if (hasCoords) ...[
+          // Duplicate varsa başarı kartı yerine engel kartı gösterilir:
+          // mekan zaten kayıtlıyken foto seçtirmek yanıltıcı olur.
+          if (state.duplicateVenue != null) ...[
+            const SizedBox(height: 20),
+            _buildDuplicateCard(state.duplicateVenue!),
+          ] else if (hasCoords) ...[
             const SizedBox(height: 20),
             _buildSuccessCard(state),
-          ],
-
-          // Duplicate uyarı kartı
-          if (_duplicateVenue != null) ...[
-            const SizedBox(height: 16),
-            _buildDuplicateCard(_duplicateVenue!),
           ],
 
           const SizedBox(height: 24),
@@ -205,15 +184,26 @@ class _AddVenueLocationStepState extends ConsumerState<AddVenueLocationStep> {
                         children: [
                           ClipRRect(
                             borderRadius: BorderRadius.circular(8),
-                            child: Image.network(
-                              resolveMediaUrl(url),
-                              fit: BoxFit.cover,
-                              headers: requiresAuthHeader(url) &&
-                                      _authToken != null
-                                  ? {'Authorization': 'Bearer $_authToken'}
-                                  : null,
-                              errorBuilder: (context, error, _) =>
-                                  const SizedBox.shrink(),
+                            child: AuthedNetworkImage(
+                              url: url,
+                              loadingBuilder: (context) => _photoPlaceholder(
+                                const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                ),
+                              ),
+                              // Hatayı gizlemek yerine göster: boş kutu
+                              // "fotoğraf yok" gibi okunuyordu.
+                              errorBuilder: (context) => _photoPlaceholder(
+                                const Icon(
+                                  Icons.broken_image_outlined,
+                                  size: 22,
+                                  color: AppTheme.textSecondary,
+                                ),
+                              ),
                             ),
                           ),
                           if (isSelected)
@@ -287,6 +277,14 @@ class _AddVenueLocationStepState extends ConsumerState<AddVenueLocationStep> {
     );
   }
 
+  /// Fotoğraf küçük görselinin yükleme / hata durumundaki yer tutucusu.
+  Widget _photoPlaceholder(Widget child) {
+    return Container(
+      color: AppTheme.textSecondary.withValues(alpha: 0.08),
+      child: Center(child: child),
+    );
+  }
+
   Widget _infoRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
@@ -325,13 +323,15 @@ class _AddVenueLocationStepState extends ConsumerState<AddVenueLocationStep> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Row(
+            Row(
               children: [
-                Icon(Icons.warning_amber, color: Colors.orange),
-                SizedBox(width: 8),
-                Text(
-                  'Bu mekan zaten eklenmiş',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                Icon(Icons.block, color: Colors.orange.shade800),
+                const SizedBox(width: 8),
+                const Expanded(
+                  child: Text(
+                    'Bu mekan zaten eklenmiş',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                 ),
               ],
             ),
@@ -343,6 +343,12 @@ class _AddVenueLocationStepState extends ConsumerState<AddVenueLocationStep> {
                 style: const TextStyle(color: Colors.black54),
               ),
             const SizedBox(height: 8),
+            Text(
+              'Aynı mekan ikinci kez eklenemez. Mevcut kaydı inceleyebilir '
+              'veya farklı bir mekanın linkini yapıştırabilirsiniz.',
+              style: TextStyle(fontSize: 12, color: Colors.orange.shade900),
+            ),
+            const SizedBox(height: 10),
             Row(
               children: [
                 ElevatedButton(
@@ -351,8 +357,8 @@ class _AddVenueLocationStepState extends ConsumerState<AddVenueLocationStep> {
                 ),
                 const SizedBox(width: 8),
                 TextButton(
-                  onPressed: () => setState(() => _duplicateVenue = null),
-                  child: const Text('Vazgeç'),
+                  onPressed: _clearLink,
+                  child: const Text('Başka Mekan Ekle'),
                 ),
               ],
             ),
@@ -362,12 +368,25 @@ class _AddVenueLocationStepState extends ConsumerState<AddVenueLocationStep> {
     );
   }
 
+  /// Link alanını ve linkten gelen tüm sonucu sıfırlar — rehber başka bir
+  /// mekanın linkini yapıştırabilsin diye.
+  void _clearLink() {
+    _linkController.clear();
+    ref.read(addVenueProvider.notifier).clearLinkResult();
+  }
+
   void _onLinkChanged(String link) {
-    if (link.trim().isEmpty) return;
-    // Link değişince önceki duplicate uyarısını temizle
-    if (_duplicateVenue != null) {
-      setState(() => _duplicateVenue = null);
+    final notifier = ref.read(addVenueProvider.notifier);
+    // Link boşaltıldıysa önceki mekanın verisi tamamen gitmeli; yalnızca
+    // duplicate uyarısını kaldırmak, eski koordinatla ilerlemeye izin veriyordu.
+    if (link.trim().isEmpty) {
+      notifier.clearLinkResult();
+      return;
     }
+    // Link değiştiği anda önceki mekanın sonucu geçersizdir. Yalnızca duplicate
+    // uyarısını kaldırmak yetmiyordu: link bozuksa parse başarısız oluyor ama
+    // eski koordinat state'te kalıp "Devam"ı açık bırakıyordu.
+    notifier.clearLinkResult();
     _parseLinkAndCheckDuplicate(link);
   }
 
@@ -375,12 +394,11 @@ class _AddVenueLocationStepState extends ConsumerState<AddVenueLocationStep> {
     final notifier = ref.read(addVenueProvider.notifier);
     final success = await notifier.parseMapsLink(link);
     if (!success) return;
+    // Duplicate bilgisi place-preview yanıtında da geliyor (fetchPlaceDetails
+    // içinde state'e yazılır); bu çağrı ek güvence.
     final placeId = ref.read(addVenueProvider).googlePlaceId;
     if (placeId == null || !placeId.startsWith('ChIJ')) return;
-    final dup = await notifier.checkDuplicate(placeId);
-    if (mounted && dup != null) {
-      setState(() => _duplicateVenue = dup);
-    }
+    await notifier.checkDuplicate(placeId);
   }
 
   Future<void> _pasteFromClipboard() async {

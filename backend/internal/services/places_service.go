@@ -29,6 +29,14 @@ func NewPlacesService(apiKey string) *PlacesService {
 	}
 }
 
+// NewPlacesServiceWithBaseURL — baseURL'i ezerek servis oluşturur.
+// Yalnızca testlerde, Google yerine httptest.Server'a yönlendirmek için.
+func NewPlacesServiceWithBaseURL(apiKey, baseURL string) *PlacesService {
+	s := NewPlacesService(apiKey)
+	s.baseURL = baseURL
+	return s
+}
+
 // findPlaceResponse — Google Find Place API yanıtı.
 type findPlaceResponse struct {
 	Candidates []struct {

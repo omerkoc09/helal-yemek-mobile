@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 
 import 'api_endpoints.dart';
 import 'api_error.dart';
@@ -22,10 +23,24 @@ class ApiClient {
       ),
     );
 
-    _dio.interceptors.addAll([
+    _dio.interceptors.add(
       _AuthInterceptor(tokenStorage: _tokenStorage, dio: _dio),
-      LogInterceptor(requestBody: true, responseBody: true),
-    ]);
+    );
+    // Log yalnızca debug'da: üretimde istek/yanıt gövdelerini yazdırmak hem
+    // gereksiz maliyet hem de token/kişisel veri sızdırma riski.
+    if (kDebugMode) {
+      _dio.interceptors.add(
+        LogInterceptor(
+          requestBody: true,
+          // Binary yanıtlar (ResponseType.bytes — ör. fotoğraf proxy'si)
+          // ASLA gövde olarak loglanmamalı: LogInterceptor gövdeyi metne
+          // çevirmeye çalışır ve yüz KB'lık JPEG'de istek transport
+          // seviyesinde "DioException [unknown]" ile düşer.
+          responseBody: false,
+        ),
+      );
+      _dio.interceptors.add(_JsonResponseLogInterceptor());
+    }
   }
 
   Dio get dio => _dio;
@@ -64,6 +79,28 @@ class ApiClient {
         data: formData,
         options: Options(contentType: 'multipart/form-data'),
       );
+}
+
+/// Yanıt gövdesini yalnızca metin/JSON olduğunda loglar.
+///
+/// LogInterceptor'ın `responseBody` seçeneği ayrım yapmaz ve binary indirmelerde
+/// (fotoğraf proxy'si) isteği düşürür. Debug görünürlüğünü kaybetmemek için
+/// gövde logu bu interceptor'a taşındı.
+class _JsonResponseLogInterceptor extends Interceptor {
+  /// Log'u okunur tutmak için üst sınır.
+  static const _maxChars = 1000;
+
+  @override
+  void onResponse(Response response, ResponseInterceptorHandler handler) {
+    if (response.requestOptions.responseType == ResponseType.json) {
+      final body = response.data.toString();
+      debugPrint(
+        '[API] ${response.statusCode} ${response.requestOptions.path} '
+        '${body.length > _maxChars ? '${body.substring(0, _maxChars)}…' : body}',
+      );
+    }
+    handler.next(response);
+  }
 }
 
 class _AuthInterceptor extends Interceptor {

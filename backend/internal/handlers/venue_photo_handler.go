@@ -1,12 +1,26 @@
 package handlers
 
 import (
+	"context"
 	"errors"
+	"io"
 	"log"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/omerkoc/itimat-mobile/internal/models"
 	"github.com/omerkoc/itimat-mobile/internal/repository"
+)
+
+const (
+	// photoFetchTimeout — Google'dan fotoğrafı indirmek için üst sınır.
+	// İstek Fiber'ın context'ine bağlanamaz (handler dönünce iptal olur),
+	// bu yüzden kendi zaman aşımını taşır.
+	photoFetchTimeout = 10 * time.Second
+
+	// maxPhotoBytes — bellekte tutulacak azami görsel boyutu. Places
+	// fotoğrafları birkaç yüz KB; sınır kötü niyetli/bozuk yanıtlara karşı.
+	maxPhotoBytes = 10 << 20 // 10 MB
 )
 
 // UploadPhoto godoc
@@ -118,12 +132,28 @@ func (h *VenueHandler) PlacePhotoProxy(c *fiber.Ctx) error {
 		width = maxPhotoWidth
 	}
 
-	body, contentType, err := h.placesService.FetchPhoto(c.Context(), ref, width)
+	// Fiber'ın request context'i handler dönünce geri dönüştürülür; arka plandaki
+	// Google isteği bu context'e bağlı olduğu için stream'i handler'dan SONRA
+	// yazdırmak (SendStream) bağlantıyı ortada kestiriyordu. Üstelik
+	// `defer body.Close()` gövdeyi daha okunmadan kapatıyordu. İstemci bu yüzden
+	// HTTP status'ü olmayan, yarıda kesilmiş bir yanıt alıyordu.
+	// Çözüm: görseli handler içinde tamamen oku, tam gövde olarak gönder.
+	// Fotoğraflar birkaç yüz KB olduğundan bellekte tutmak güvenli.
+	ctx, cancel := context.WithTimeout(context.Background(), photoFetchTimeout)
+	defer cancel()
+
+	body, contentType, err := h.placesService.FetchPhoto(ctx, ref, width)
 	if err != nil {
 		log.Printf("[VENUE] places fotoğrafı alınamadı: %v", err)
 		return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"error": "fotoğraf alınamadı"})
 	}
 	defer body.Close()
+
+	data, err := io.ReadAll(io.LimitReader(body, maxPhotoBytes))
+	if err != nil {
+		log.Printf("[VENUE] places fotoğrafı okunamadı: %v", err)
+		return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"error": "fotoğraf alınamadı"})
+	}
 
 	if contentType == "" {
 		contentType = "image/jpeg"
@@ -134,5 +164,5 @@ func (h *VenueHandler) PlacePhotoProxy(c *fiber.Ctx) error {
 	// tutulmasın (uç yetkiye bağlı).
 	c.Set(fiber.HeaderCacheControl, "private, max-age=86400")
 
-	return c.SendStream(body)
+	return c.Send(data)
 }

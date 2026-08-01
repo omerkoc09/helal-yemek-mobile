@@ -121,8 +121,15 @@ func (r *VenueRepo) FindByID(ctx context.Context, id string) (*models.Venue, err
 // FindByGooglePlaceID — verilen Google Place ID'ye sahip aktif mekanı döndürür.
 // Erken duplicate kontrolü için kullanılır. Bulunmazsa ErrNotFound.
 func (r *VenueRepo) FindByGooglePlaceID(ctx context.Context, placeID string) (*models.Venue, error) {
+	// Koordinatlar da seçiliyor: istemcinin Venue modelinde latitude/longitude
+	// zorunlu alanlar; eksik gönderilirse duplicate yanıtı parse edilemiyor.
+	// Koordinatlar PostGIS geography sütununda; istemcinin Venue modelinde
+	// latitude/longitude zorunlu alanlar, eksik gönderilirse duplicate yanıtı
+	// parse edilemiyor.
 	query := `
 		SELECT v.id, v.name, v.city, v.status,
+		       ST_Y(v.location::geometry) AS latitude,
+		       ST_X(v.location::geometry) AS longitude,
 		       v.added_by, v.confirmation_count
 		FROM venues v
 		WHERE v.google_place_id = $1 AND v.deleted_at IS NULL
@@ -131,6 +138,7 @@ func (r *VenueRepo) FindByGooglePlaceID(ctx context.Context, placeID string) (*m
 	v := &models.Venue{}
 	err := r.db.QueryRow(ctx, query, placeID).Scan(
 		&v.ID, &v.Name, &v.City, &v.Status,
+		&v.Latitude, &v.Longitude,
 		&v.AddedBy, &v.ConfirmationCount,
 	)
 	if err != nil {

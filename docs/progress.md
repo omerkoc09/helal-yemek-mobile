@@ -1355,3 +1355,44 @@ gezintisinde kirli çalışma ağacı üretiyorlardı).
 
 **Commit'ler:** `834d88e` (auth TR+palet), `9a25d02` (koordinat girdisi) → `b076596` ile
 **revert edildi**, `132f40d` (.DS_Store). Sonrasında "Şifremi Unuttum" butonu geri getirildi.
+
+## Mekan Ekleme Akışı: Beş Düzeltme (2026-08-01)
+
+**Tasarım:** `docs/superpowers/specs/2026-08-01-mekan-ekleme-duzeltmeleri-design.md`
+
+Adım göstergesi, fotoğraf yükleme, duplicate engeli, konum gösterimi ve manuel konum
+seçimi. Ortak tema: **konum ve kimlik her zaman Google Maps linkinden (`place_id`) gelir**;
+bu kimliği düşüren veya doğrulamayı geciktiren yollar kapatıldı.
+
+### Kök nedenler (hepsi ölçülerek bulundu)
+
+| Sorun | Görünen belirti | Gerçek kök neden |
+|-------|-----------------|------------------|
+| **Fotoğraf (backend)** | `DioException [unknown]: null` | `SendStream` gövdeyi handler döndükten SONRA okur; `defer body.Close()` onu önce kapatıyor, Fiber context'i de yukarı akış isteğini iptal ediyordu |
+| **Fotoğraf (mobil)** | Görsel hiç gelmiyor | `Image.network` Dio'yu kullanmaz → auth interceptor'ın (taze token + 401'de yenileme) tamamen dışında kalıyordu |
+| **Duplicate** | Hata ancak son adımda (409) | Google linkleri `place_id`'yi **hex** taşır, `ChIJ` nadir → istemci kontrolü hiç çağırmıyordu. Ayrıca duplicate yanıtı zorunlu alanları (`latitude`/`longitude`/`added_by`) içermediği için `Venue.fromJson` patlıyor, hata `catch (_)` ile yutuluyordu |
+| **Link temizleme** | Uyarıdan sonra yine ilerlenebiliyor | `clearDuplicate()` yalnızca uyarıyı siliyor; koordinat state'te kalıyor ve `canProceedStep0` sadece koordinata bakıyordu |
+
+### Ürün kararı: "Konumu Değiştir" kaldırıldı
+
+Manuel konum seçimi `googlePlaceId`'yi null'a çekiyordu — yani **duplicate engelini
+atlatmanın yolu**: engellenen rehber konumu biraz oynatıp aynı mekanı ikinci kez
+ekleyebilirdi. place_id ayrıca Places eşleşmesi, fotoğraf ve şehir kısıtı için de gerekli.
+`full_map_picker.dart` silindi; `_buildLocationPickerCard` zaten ölü koddu (adım 1
+koordinatsız geçilemiyor).
+
+### Dersler
+
+1. **Bir teşhisi doğrulamadan "düzeltildi" demek pahalıya mal oluyor.** Fotoğraf sorununda
+   önce logger'ı suçladım; testi eski koda karşı çalıştırınca hipotez çürüdü. Asıl neden
+   handler'ın stream davranışıydı. Bundan sonra kritik testler **eski koda karşı** çalıştırılıp
+   gerçekten kırıldıkları doğrulandı (foto stream'i ve `clearLinkResult` için yapıldı).
+2. **Unit testler şema hatasını yakalamıyor.** `FindByGooglePlaceID`'ye `v.latitude` yazdım;
+   oysa koordinatlar PostGIS `geography(Point)` içinde. Tüm testler geçiyordu çünkü gerçek
+   DB'ye gitmiyorlar. Sorgu değişiklikleri `psql` ile gerçek veritabanına karşı doğrulanmalı.
+3. **Sessizce yutulan hata (`catch (_)`) sorunu görünmez kılıyor.** Duplicate kontrolü
+   aylardır patlıyor olabilirdi ve kimse fark etmezdi; log eklenince tek denemede çıktı.
+
+**Doğrulama:** mobil **213 PASS** (208'den; duplicate kapısı + `clearLinkResult` testleri
+eklendi), `flutter analyze` hata/uyarı yok, backend tüm paketler geçiyor, `FindByGooglePlaceID`
+sorgusu gerçek DB'de doğrulandı.

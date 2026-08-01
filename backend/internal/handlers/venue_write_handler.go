@@ -33,6 +33,34 @@ func (h *VenueHandler) cityAllowanceFor(c *fiber.Ctx, venueCity string) (bool, *
 	return allowed, guideCity
 }
 
+// existingVenueFor — verilen place_id'ye ait mekan zaten kayıtlıysa özetini döner.
+//
+// Neden preview yanıtında: istemci link adımında ayrı bir check-duplicate çağrısı
+// da yapıyor, ama o çağrı başarısız olursa akış sessizce devam ediyor ve rehber
+// hatayı ancak son adımda (409) görüyordu. Preview zaten her linkte çağrıldığı
+// için duplicate bilgisini buraya da koymak engeli tek çağrıya bağımlı olmaktan
+// çıkarır. Bulunamazsa nil döner — JSON'da null olur.
+func (h *VenueHandler) existingVenueFor(c *fiber.Ctx, placeID string) fiber.Map {
+	if placeID == "" {
+		return nil
+	}
+	venue, err := h.venueRepo.FindByGooglePlaceID(c.Context(), placeID)
+	if err != nil || venue == nil {
+		return nil
+	}
+	return fiber.Map{
+		"id":                 venue.ID,
+		"name":               venue.Name,
+		"city":               venue.City,
+		"latitude":           venue.Latitude,
+		"longitude":          venue.Longitude,
+		"status":             venue.Status,
+		"added_by":           venue.AddedBy,
+		"confirmation_count": venue.ConfirmationCount,
+		"badge":              venue.Badge,
+	}
+}
+
 // Create godoc
 // POST /api/v1/venues  (Guide + Admin)
 func (h *VenueHandler) Create(c *fiber.Ctx) error {

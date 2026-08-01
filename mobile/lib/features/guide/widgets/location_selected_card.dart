@@ -1,21 +1,27 @@
 import 'package:flutter/material.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import '../../../core/theme/app_theme.dart';
 
+/// Mekanın konumunu salt gösterim olarak sunar.
+///
+/// Konum her zaman Google Maps linkinden (place_id ile) gelir; elle değiştirme
+/// yolu bilinçli olarak yok. Manuel düzenleme place_id'yi geçersiz kılıyor,
+/// bu da duplicate kontrolünü ve Places eşleşmesini bozuyordu.
 class LocationSelectedCard extends StatelessWidget {
   final double latitude;
   final double longitude;
-  final VoidCallback onEdit;
 
   const LocationSelectedCard({
     super.key,
     required this.latitude,
     required this.longitude,
-    required this.onEdit,
   });
 
   @override
   Widget build(BuildContext context) {
+    final position = LatLng(latitude, longitude);
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -39,26 +45,70 @@ class LocationSelectedCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          Text(
-            'Enlem: ${latitude.toStringAsFixed(6)}\nBoylam: ${longitude.toStringAsFixed(6)}',
-            style: const TextStyle(
-              fontSize: 12,
-              color: AppTheme.textSecondary,
-              height: 1.5,
-            ),
-          ),
           const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: onEdit,
-              icon: const Icon(Icons.edit_location_alt_outlined, size: 18),
-              label: const Text('Konumu Değiştir'),
+          // Ham enlem/boylam yerine önizleme haritası: rehber konumun doğru
+          // yere düştüğünü sayılardan değil, haritadan teyit edebiliyor.
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: SizedBox(
+              height: 140,
+              child: _MiniMap(position: position),
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Salt görüntülemelik önizleme haritası. Etkileşim kapalı — konum değişikliği
+/// yalnızca "Konumu Değiştir" akışından yapılır, harita kazara kaydırılamaz.
+class _MiniMap extends StatefulWidget {
+  final LatLng position;
+
+  const _MiniMap({required this.position});
+
+  @override
+  State<_MiniMap> createState() => _MiniMapState();
+}
+
+class _MiniMapState extends State<_MiniMap> {
+  GoogleMapController? _controller;
+
+  @override
+  void didUpdateWidget(_MiniMap oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Konum "Konumu Değiştir" ile güncellenince kamerayı yeni noktaya taşı.
+    if (widget.position != oldWidget.position) {
+      _controller?.moveCamera(CameraUpdate.newLatLng(widget.position));
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GoogleMap(
+      initialCameraPosition: CameraPosition(target: widget.position, zoom: 16),
+      onMapCreated: (controller) => _controller = controller,
+      markers: {
+        Marker(
+          markerId: const MarkerId('venue'),
+          position: widget.position,
+        ),
+      },
+      zoomControlsEnabled: false,
+      mapToolbarEnabled: false,
+      myLocationButtonEnabled: false,
+      compassEnabled: false,
+      scrollGesturesEnabled: false,
+      zoomGesturesEnabled: false,
+      rotateGesturesEnabled: false,
+      tiltGesturesEnabled: false,
     );
   }
 }

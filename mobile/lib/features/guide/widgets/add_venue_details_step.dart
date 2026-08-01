@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import '../../../core/data/turkey_locations.dart';
 import '../../../core/theme/app_theme.dart';
 import '../providers/guide_provider.dart';
-import 'full_map_picker.dart';
 import 'location_selected_card.dart';
 
 class AddVenueDetailsStep extends ConsumerStatefulWidget {
@@ -36,7 +34,6 @@ class _AddVenueDetailsStepState extends ConsumerState<AddVenueDetailsStep> {
   Widget build(BuildContext context) {
     final state = ref.watch(addVenueProvider);
     final notifier = ref.read(addVenueProvider.notifier);
-    final hasCoordinates = state.latitude != null && state.longitude != null;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
@@ -100,62 +97,14 @@ class _AddVenueDetailsStepState extends ConsumerState<AddVenueDetailsStep> {
           ),
           const SizedBox(height: 8),
 
-          if (hasCoordinates)
-            LocationSelectedCard(
-              latitude: state.latitude!,
-              longitude: state.longitude!,
-              onEdit: _openFullMapPicker,
-            )
-          else
-            _buildLocationPickerCard(),
+          // Konum her zaman Google Maps linkinden gelir; 1. adım koordinat
+          // olmadan geçilemediği için burada koordinatsız durum oluşmaz.
+          LocationSelectedCard(
+            latitude: state.latitude!,
+            longitude: state.longitude!,
+          ),
 
           const SizedBox(height: 24),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLocationPickerCard() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppTheme.textSecondary.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: AppTheme.textSecondary.withValues(alpha: 0.15),
-        ),
-      ),
-      child: Column(
-        children: [
-          const Icon(Icons.touch_app_outlined,
-              size: 32, color: AppTheme.textSecondary),
-          const SizedBox(height: 8),
-          const Text(
-            'Haritada konumu işaretleyin',
-            style: TextStyle(
-              color: AppTheme.textSecondary,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            'Koordinatlar üzerinden konum belirlenir.',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: AppTheme.textSecondary,
-              fontSize: 11,
-              height: 1.4,
-            ),
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: _openFullMapPicker,
-              icon: const Icon(Icons.map_outlined),
-              label: const Text('Haritada Seç'),
-            ),
-          ),
         ],
       ),
     );
@@ -191,25 +140,4 @@ class _AddVenueDetailsStepState extends ConsumerState<AddVenueDetailsStep> {
     );
   }
 
-  void _openFullMapPicker() {
-    final state = ref.read(addVenueProvider);
-    final initial = state.latitude != null && state.longitude != null
-        ? LatLng(state.latitude!, state.longitude!)
-        : null;
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        fullscreenDialog: true,
-        builder: (context) => FullMapPicker(
-          initialLocation: initial,
-          onLocationSelected: (position) {
-            ref.read(addVenueProvider.notifier).setCoordinates(
-                  latitude: position.latitude,
-                  longitude: position.longitude,
-                );
-            Navigator.pop(context);
-          },
-        ),
-      ),
-    );
-  }
 }

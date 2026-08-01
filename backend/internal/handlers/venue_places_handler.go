@@ -26,14 +26,16 @@ func (h *VenueHandler) PlacePreview(c *fiber.Ctx) error {
 		}
 		photoURLs := h.placesService.BuildPhotoURLs(components.PhotoReferences, 800)
 		allowed, guideCity := h.cityAllowanceFor(c, components.City)
+		existing := h.existingVenueFor(c, placeID)
 		return c.JSON(fiber.Map{
-			"place_id":     placeID,
-			"name":         components.Name,
-			"city":         components.City,
-			"district":     components.District,
-			"photo_urls":   photoURLs,
-			"city_allowed": allowed,
-			"guide_city":   guideCity,
+			"place_id":       placeID,
+			"name":           components.Name,
+			"city":           components.City,
+			"district":       components.District,
+			"photo_urls":     photoURLs,
+			"city_allowed":   allowed,
+			"guide_city":     guideCity,
+			"existing_venue": existing,
 		})
 	}
 
@@ -71,14 +73,16 @@ func (h *VenueHandler) PlacePreview(c *fiber.Ctx) error {
 
 	photoURLs := h.placesService.BuildPhotoURLs(components.PhotoReferences, 800)
 	allowed, guideCity := h.cityAllowanceFor(c, components.City)
+	existing := h.existingVenueFor(c, resolved)
 	return c.JSON(fiber.Map{
-		"place_id":     resolved,
-		"name":         components.Name,
-		"city":         components.City,
-		"district":     components.District,
-		"photo_urls":   photoURLs,
-		"city_allowed": allowed,
-		"guide_city":   guideCity,
+		"place_id":       resolved,
+		"name":           components.Name,
+		"city":           components.City,
+		"district":       components.District,
+		"photo_urls":     photoURLs,
+		"city_allowed":   allowed,
+		"guide_city":     guideCity,
+		"existing_venue": existing,
 	})
 }
 

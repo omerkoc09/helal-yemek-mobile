@@ -197,10 +197,16 @@ func (h *VenueHandler) CheckDuplicate(c *fiber.Ctx) error {
 
 	return c.JSON(fiber.Map{
 		"exists": true,
+		// latitude/longitude/added_by istemcinin Venue modelinde zorunlu;
+		// eksik gönderilirse yanıt parse edilemez ve duplicate sessizce kaçar.
 		"venue": fiber.Map{
 			"id":                 venue.ID,
 			"name":               venue.Name,
 			"city":               venue.City,
+			"latitude":           venue.Latitude,
+			"longitude":          venue.Longitude,
+			"status":             venue.Status,
+			"added_by":           venue.AddedBy,
 			"confirmation_count": venue.ConfirmationCount,
 			"badge":              venue.Badge,
 		},

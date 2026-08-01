@@ -96,6 +96,10 @@ itimat-mobile-backend/
 | PUT | `/api/v1/venues/:id` | Mekan güncelleme | ✅ | Owner/Admin |
 | POST | `/api/v1/venues/:id/photos` | Fotoğraf yükleme | ✅ | Guide+ |
 | DELETE | `/api/v1/venues/:id/photos/:photoId` | Fotoğraf silme | ✅ | Owner/Admin |
+| GET | `/api/v1/venues/place-preview` | Mekan ekleme önizlemesi: `?place_id=ChIJ...` veya `?lat=&lng=&name=`. Hex/eksik place_id'yi Places API ile gerçek `ChIJ`'ye çözer; ad/şehir/ilçe/fotoğraf, `city_allowed` ve **`existing_venue`** (mekan zaten kayıtlıysa özeti) döner | ✅ | Guide+ |
+| POST | `/api/v1/venues/preview-location` | Google Maps linkini parse edip koordinat + place_id + mekan bilgilerini döndürür (kısa linkleri sunucuda çözer) | ✅ | Guide+ |
+| GET | `/api/v1/venues/check-duplicate` | `?google_place_id=` ile erken duplicate kontrolü. `place-preview`'daki `existing_venue` ile aynı veriyi verir (ek güvence) | ✅ | Guide+ |
+| GET | `/api/v1/places/photo` | Google Places fotoğraf proxy'si (`?ref=&w=`). API anahtarı sunucuda kalsın diye; görseli tam gövde olarak döner | ✅ | Guide+ |
 
 ### Review & Social Endpoints
 | Method | Path | Açıklama | Auth | Role |
