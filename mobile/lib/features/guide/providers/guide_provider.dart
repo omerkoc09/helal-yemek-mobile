@@ -13,6 +13,11 @@ import '../../../core/utils/google_maps_parser.dart';
 // `value ?? this.value` deseni null geçişini yutar.
 const Object _unset = Object();
 
+/// Mekan başına seçilebilecek azami Google fotoğrafı. Backend'deki
+/// `maxGooglePhotosPerVenue` ile aynı olmalı — sınır bilinçli küçük
+/// (Places içeriğini depolama ToS gri alanı; yüzey dar tutuluyor).
+const int maxSelectablePhotos = 3;
+
 // ─── Add Venue State ───
 
 class AddVenueState {
@@ -32,7 +37,9 @@ class AddVenueState {
   final double? longitude;
   final String? googlePlaceId; // Linkten parse edilen place_id
   final List<String> googlePhotoUrls; // Google Places API'den gelen fotoğraf seçenekleri
-  final String? selectedPhotoUrl; // Rehberin seçtiği fotoğraf URL'si
+  /// Rehberin seçtiği fotoğraflar (seçim sırasında; İLKİ kapak olur).
+  /// Üst sınır [maxSelectablePhotos].
+  final List<String> selectedPhotoUrls;
   final List<int> selectedCriteriaIds;
   final String? notes;
 
@@ -64,7 +71,7 @@ class AddVenueState {
     this.longitude,
     this.googlePlaceId,
     this.googlePhotoUrls = const [],
-    this.selectedPhotoUrl,
+    this.selectedPhotoUrls = const [],
     this.selectedCriteriaIds = const [],
     this.notes,
     this.selectedCategoryIds = const [],
@@ -91,7 +98,7 @@ class AddVenueState {
     double? longitude,
     Object? googlePlaceId = _unset,
     List<String>? googlePhotoUrls,
-    String? selectedPhotoUrl,
+    List<String>? selectedPhotoUrls,
     List<int>? selectedCriteriaIds,
     String? notes,
     List<int>? selectedCategoryIds,
@@ -119,7 +126,7 @@ class AddVenueState {
           ? this.googlePlaceId
           : googlePlaceId as String?,
       googlePhotoUrls: googlePhotoUrls ?? this.googlePhotoUrls,
-      selectedPhotoUrl: selectedPhotoUrl ?? this.selectedPhotoUrl,
+      selectedPhotoUrls: selectedPhotoUrls ?? this.selectedPhotoUrls,
       selectedCriteriaIds: selectedCriteriaIds ?? this.selectedCriteriaIds,
       notes: notes ?? this.notes,
       selectedCategoryIds: selectedCategoryIds ?? this.selectedCategoryIds,
@@ -312,7 +319,9 @@ class AddVenueNotifier extends Notifier<AddVenueState> {
             : state.googlePlaceId,
         duplicateVenue: duplicate,
         googlePhotoUrls: fetchedPhotoUrls,
-        selectedPhotoUrl: fetchedPhotoUrls.isNotEmpty ? fetchedPhotoUrls.first : null,
+        // İlk fotoğraf otomatik seçili gelir (kapak); rehber ekler/çıkarır.
+        selectedPhotoUrls:
+            fetchedPhotoUrls.isNotEmpty ? [fetchedPhotoUrls.first] : const [],
         isLoadingPlaceDetails: false,
         cityAllowed: cityAllowed,
         guideCity: guideCity,
@@ -322,7 +331,20 @@ class AddVenueNotifier extends Notifier<AddVenueState> {
     }
   }
 
-  void selectPhoto(String url) => state = state.copyWith(selectedPhotoUrl: url);
+  /// Fotoğraf seçimini açıp kapatır. Seçim sırası korunur; listenin İLKİ kapak
+  /// olur. Sınır dolmuşken yeni seçim sessizce yok sayılmaz — UI geri bildirim
+  /// verebilsin diye false döner.
+  bool togglePhoto(String url) {
+    final urls = List<String>.from(state.selectedPhotoUrls);
+    if (urls.contains(url)) {
+      urls.remove(url);
+    } else {
+      if (urls.length >= maxSelectablePhotos) return false;
+      urls.add(url);
+    }
+    state = state.copyWith(selectedPhotoUrls: urls);
+    return true;
+  }
 
   void toggleCriteria(int criteriaId) {
     final ids = List<int>.from(state.selectedCriteriaIds);
@@ -410,7 +432,8 @@ class AddVenueNotifier extends Notifier<AddVenueState> {
           'latitude': state.latitude,
           'longitude': state.longitude,
           if (state.googlePlaceId != null) 'google_place_id': state.googlePlaceId,
-          if (state.selectedPhotoUrl != null) 'google_photo_url': state.selectedPhotoUrl,
+          if (state.selectedPhotoUrls.isNotEmpty)
+            'google_photo_urls': state.selectedPhotoUrls,
           'criteria_ids': state.selectedCriteriaIds,
           'notes': state.notes?.trim(),
           'food_halal_mode': state.foodHalalMode,

@@ -206,7 +206,7 @@ async function uploadPhoto() {
 
   fd.append('photo', photoFile.value)
 
-  const [error, data] = await ApiService.post<{ url: string }>(
+  const [error, data] = await ApiService.post<{ id: string; url: string }>(
     `venues/${form.value.id}/photos`,
     fd,
   )
@@ -215,9 +215,28 @@ async function uploadPhoto() {
   if (error)
     return ErrorPopup(error)
 
-  // Modaldaki önizlemeyi ve tablodaki satırı güncel tut
-  form.value.photos = data?.url ? [{ url: data.url }] : []
+  // Ekleme politikası: backend artık mevcut fotoğrafları silmiyor, listeye
+  // ekliyor (mekan başına 5 sınırıyla). Modal önizlemesi ve tablo satırı
+  // aynı şekilde güncellenir.
+  if (data?.url)
+    form.value.photos = [...(form.value.photos ?? []), data]
   photoFile.value = null
+  SuccessToast()
+  tableRef.value?.refresh?.()
+}
+
+async function deletePhoto(photo: { id: string; url: string }) {
+  if (!form.value.id || !photo.id)
+    return
+
+  const [error] = await ApiService.delete(
+    `venues/${form.value.id}/photos/${photo.id}`,
+  )
+
+  if (error)
+    return ErrorPopup(error)
+
+  form.value.photos = (form.value.photos ?? []).filter((p: { id?: string }) => p.id !== photo.id)
   SuccessToast()
   tableRef.value?.refresh?.()
 }
@@ -679,17 +698,32 @@ async function onSubmit() {
           />
         </VCol>
         <VCol cols="12">
-          <div class="d-flex align-center gap-3 mb-3">
-            <VImg
-              v-if="form.photos?.length"
-              :src="form.photos[0].url"
-              width="64"
-              height="64"
-              cover
-              class="rounded flex-grow-0"
-            />
+          <!-- Çoklu fotoğraf: ilki kapak; her fotoğraf tekil silinebilir -->
+          <div class="d-flex align-center flex-wrap gap-3 mb-3">
+            <div
+              v-for="photo in form.photos ?? []"
+              :key="photo.id ?? photo.url"
+              class="position-relative"
+            >
+              <VImg
+                :src="photo.url"
+                width="64"
+                height="64"
+                cover
+                class="rounded"
+              />
+              <VBtn
+                icon="tabler-x"
+                size="x-small"
+                variant="flat"
+                color="error"
+                class="position-absolute"
+                style="top: -8px; inset-inline-end: -8px;"
+                @click="deletePhoto(photo)"
+              />
+            </div>
             <VAvatar
-              v-else
+              v-if="!form.photos?.length"
               size="64"
               rounded
               color="grey-lighten-2"
@@ -701,7 +735,7 @@ async function onSubmit() {
             </VAvatar>
             <VFileInput
               v-model="photoFile"
-              label="Kapak Fotoğrafı"
+              label="Fotoğraf Ekle (en fazla 5)"
               accept="image/*"
               prepend-icon="tabler-camera"
               density="compact"

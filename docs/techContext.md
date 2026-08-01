@@ -92,9 +92,9 @@ itimat-mobile-backend/
 | GET | `/api/v1/venues/districts` | Onaylı mekanı olan benzersiz şehir/ilçe çiftleri (arama önerileri için) | - | Public |
 | GET | `/api/v1/venues/by-category/:categoryId` | Kategoriye göre yakın mekanlar | - | Public |
 | GET | `/api/v1/venues/:id` | Mekan detayı | - | Public |
-| POST | `/api/v1/venues` | Mekan ekleme | ✅ | Guide+ |
+| POST | `/api/v1/venues` | Mekan ekleme. `google_photo_urls` (sıralı liste, **ilki kapak**, en fazla 3) ile seçilen Google fotoğrafları indirilip kalıcı depoya yazılır; eski istemcilerin tekil `google_photo_url` alanı da kabul edilir | ✅ | Guide+ |
 | PUT | `/api/v1/venues/:id` | Mekan güncelleme | ✅ | Owner/Admin |
-| POST | `/api/v1/venues/:id/photos` | Fotoğraf yükleme | ✅ | Guide+ |
+| POST | `/api/v1/venues/:id/photos` | Fotoğraf yükleme. Mevcut fotoğrafları **silmez**, listeye ekler (mekan başına en fazla 5; aşılırsa 400). İlk fotoğraf kapak olur | ✅ | Guide+ |
 | DELETE | `/api/v1/venues/:id/photos/:photoId` | Fotoğraf silme | ✅ | Owner/Admin |
 | GET | `/api/v1/venues/place-preview` | Mekan ekleme önizlemesi: `?place_id=ChIJ...` veya `?lat=&lng=&name=`. Hex/eksik place_id'yi Places API ile gerçek `ChIJ`'ye çözer; ad/şehir/ilçe/fotoğraf, `city_allowed` ve **`existing_venue`** (mekan zaten kayıtlıysa özeti) döner | ✅ | Guide+ |
 | POST | `/api/v1/venues/preview-location` | Google Maps linkini parse edip koordinat + place_id + mekan bilgilerini döndürür (kısa linkleri sunucuda çözer) | ✅ | Guide+ |

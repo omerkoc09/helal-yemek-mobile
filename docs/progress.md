@@ -1396,3 +1396,37 @@ koordinatsız geçilemiyor).
 **Doğrulama:** mobil **213 PASS** (208'den; duplicate kapısı + `clearLinkResult` testleri
 eklendi), `flutter analyze` hata/uyarı yok, backend tüm paketler geçiyor, `FindByGooglePlaceID`
 sorgusu gerçek DB'de doğrulandı.
+
+## Çoklu Mekan Fotoğrafı (2026-08-01)
+
+**Tasarım:** `docs/superpowers/specs/2026-08-01-coklu-mekan-fotografi-design.md`
+
+Mekan eklerken tek fotoğraf yerine **en fazla 3** Google fotoğrafı seçilebiliyor; ilk
+seçim kapak (`is_primary`). Mekan başına toplam sınır 5 (Google + elle yükleme).
+
+**Neden yapıldı:** Tek fotoğraf iki işi birden yapamıyordu — dış cephe mekanı *bulmaya*,
+yemek fotoğrafı *ikna etmeye* yarıyor. Altyapı zaten hazırdı: `VenuePhoto` liste,
+`VenuePhotoGallery` kaydırmalı galeri. Tek fotoğrafa zorlayan şey veri modeli değil,
+ekleme akışının tek URL göndermesi ve `UploadPhoto`'nun "yenisi eskiyi siler"
+politikasıydı.
+
+**Asıl kapsam seçim UI'ı değil, upload politikasıydı.** Eski davranış çoklu fotoğrafla
+çelişiyordu: rehber sonradan kendi fotoğrafını yükleyince 3 Google fotoğrafı uçardı.
+Artık ekliyor, silmiyor; sınır kontrolü dosya depoya yazılmadan **önce** yapılıyor ki
+reddedilen istek arkasında sahipsiz dosya bırakmasın.
+
+### Ürün kararı: ToS riski bilinçli kabul edildi
+
+Google Maps Platform şartları Places **içeriğinin** saklanmasını yasaklar (kalıcı
+saklanabilen tek alan `place_id`). Fotoğrafların telifi de üçüncü kişilerde. Ancak bu
+risk tek fotoğrafla **zaten alınmıştı** — `DownloadAndStore` kararın kendisiydi. Çoklu
+fotoğraf riski yaratmıyor, yüzeyini büyütüyor; bu yüzden sınır küçük tutuldu (3).
+Yaptırım ceza değil, API anahtarının kapatılması; küçük ölçekte tespit nadir.
+
+**Ölçek büyürse kalıcı çözüm:** rehberin kendi çektiği fotoğrafa ağırlık vermek. Güven
+modeline de uyuyor (rehber mekanı bizzat ziyaret eden kişi) ve yükleme akışı zaten var —
+mimari değişiklik gerektirmez.
+
+**Doğrulama:** mobil **217 PASS** (213'ten), analyzer 0 hata/uyarı; backend build+vet+test
+temiz (`resolveGooglePhotoURLs` için 6 test: sıra, eski istemci uyumu, üst sınır,
+tekrar/boş ayıklama); admin panel `vue-tsc` çıktısı commit'li sürümle birebir aynı.

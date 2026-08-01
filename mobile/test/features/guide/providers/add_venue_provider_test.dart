@@ -261,6 +261,53 @@ void main() {
     });
   });
 
+  group('Fotoğraf seçimi — çoklu, sıralı, sınırlı', () {
+    test('togglePhoto ekler, tekrar çağırınca çıkarır', () {
+      notifier().togglePhoto('a');
+      notifier().togglePhoto('b');
+      expect(state().selectedPhotoUrls, ['a', 'b']);
+
+      notifier().togglePhoto('a');
+      expect(state().selectedPhotoUrls, ['b']);
+    });
+
+    test('seçim sırası korunur — ilki kapaktır', () {
+      // Kapak ayrı bir alan değil; sözleşme "listenin ilki kapak".
+      // Backend de aynı varsayımla ilk URL'yi IsPrimary yapar.
+      notifier().togglePhoto('b');
+      notifier().togglePhoto('a');
+      expect(state().selectedPhotoUrls.first, 'b');
+
+      // Kapak çıkarılınca sıradaki kapak olur
+      notifier().togglePhoto('b');
+      expect(state().selectedPhotoUrls.first, 'a');
+    });
+
+    test('sınır dolunca yeni seçim reddedilir ve false döner', () {
+      for (var i = 0; i < maxSelectablePhotos; i++) {
+        expect(notifier().togglePhoto('foto-$i'), isTrue);
+      }
+
+      // UI bu false ile "en fazla N" uyarısı gösterir; sessiz yutulursa
+      // rehber seçimin neden işlemediğini anlayamaz.
+      expect(notifier().togglePhoto('fazla'), isFalse);
+      expect(state().selectedPhotoUrls.length, maxSelectablePhotos);
+
+      // Sınır doluyken ÇIKARMA hâlâ çalışmalı
+      expect(notifier().togglePhoto('foto-0'), isTrue);
+      expect(state().selectedPhotoUrls.length, maxSelectablePhotos - 1);
+    });
+
+    test('clearLinkResult fotoğraf seçimini de sıfırlar', () {
+      // Fotoğraflar linkten gelir; link gidince seçim de gitmeli.
+      notifier().togglePhoto('a');
+
+      notifier().clearLinkResult();
+
+      expect(state().selectedPhotoUrls, isEmpty);
+    });
+  });
+
   group('clearLinkResult — link temizlenince mekan verisi de gitmeli', () {
     const dup2 = Venue(
       id: 'venue-1',

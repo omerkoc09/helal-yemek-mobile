@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/models/venue.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../shared/widgets/app_toast.dart';
 import '../../../shared/widgets/authed_network_image.dart';
 import '../providers/guide_provider.dart';
 
@@ -152,7 +153,7 @@ class _AddVenueLocationStepState extends ConsumerState<AddVenueLocationStep> {
           if (state.googlePhotoUrls.isNotEmpty) ...[
             const SizedBox(height: 10),
             const Text(
-              'Fotoğraf seçin:',
+              'Fotoğraf seçin (en fazla $maxSelectablePhotos — ilk seçim kapak olur):',
               style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
             ),
             const SizedBox(height: 6),
@@ -164,10 +165,20 @@ class _AddVenueLocationStepState extends ConsumerState<AddVenueLocationStep> {
                 separatorBuilder: (context, idx) => const SizedBox(width: 8),
                 itemBuilder: (context, index) {
                   final url = state.googlePhotoUrls[index];
-                  final isSelected = state.selectedPhotoUrl == url;
+                  final selectionIndex = state.selectedPhotoUrls.indexOf(url);
+                  final isSelected = selectionIndex >= 0;
+                  final isCover = selectionIndex == 0;
                   return GestureDetector(
-                    onTap: () =>
-                        ref.read(addVenueProvider.notifier).selectPhoto(url),
+                    onTap: () {
+                      final added =
+                          ref.read(addVenueProvider.notifier).togglePhoto(url);
+                      if (!added) {
+                        AppToast.info(
+                          context,
+                          'En fazla $maxSelectablePhotos fotoğraf seçebilirsiniz.',
+                        );
+                      }
+                    },
                     child: Container(
                       width: 90,
                       decoration: BoxDecoration(
@@ -220,6 +231,29 @@ class _AddVenueLocationStepState extends ConsumerState<AddVenueLocationStep> {
                                   Icons.check,
                                   size: 12,
                                   color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          if (isCover)
+                            Positioned(
+                              bottom: 4,
+                              left: 4,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.primary,
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: const Text(
+                                  'Kapak',
+                                  style: TextStyle(
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white,
+                                  ),
                                 ),
                               ),
                             ),

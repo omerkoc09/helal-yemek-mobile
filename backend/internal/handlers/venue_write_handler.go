@@ -61,6 +61,36 @@ func (h *VenueHandler) existingVenueFor(c *fiber.Ctx, placeID string) fiber.Map 
 	}
 }
 
+// resolveGooglePhotoURLs — istekten indirilecek fotoğraf listesini üretir.
+//
+// Yeni istemci `google_photo_urls` (sıralı, İLKİ kapak) gönderir; eski istemcinin
+// tekil `google_photo_url` alanı tek elemanlı listeye çevrilir. Boş değerler
+// ayıklanır, tekrarlananlar atlanır (aynı fotoğraf iki kez indirilmesin) ve
+// liste maxGooglePhotosPerVenue ile sınırlanır.
+func resolveGooglePhotoURLs(urls []string, legacyURL string) []string {
+	if len(urls) == 0 && legacyURL != "" {
+		urls = []string{legacyURL}
+	}
+
+	resolved := make([]string, 0, len(urls))
+	seen := make(map[string]struct{}, len(urls))
+	for _, u := range urls {
+		if u == "" {
+			continue
+		}
+		if _, dup := seen[u]; dup {
+			continue
+		}
+		seen[u] = struct{}{}
+		resolved = append(resolved, u)
+		if len(resolved) == maxGooglePhotosPerVenue {
+			break
+		}
+	}
+
+	return resolved
+}
+
 // Create godoc
 // POST /api/v1/venues  (Guide + Admin)
 func (h *VenueHandler) Create(c *fiber.Ctx) error {
@@ -76,7 +106,8 @@ func (h *VenueHandler) Create(c *fiber.Ctx) error {
 		Latitude         float64  `json:"latitude"`
 		Longitude        float64  `json:"longitude"`
 		GooglePlaceID    *string  `json:"google_place_id"`
-		GooglePhotoURL   string   `json:"google_photo_url"`
+		GooglePhotoURL   string   `json:"google_photo_url"`  // eski istemciler (tek fotoğraf)
+		GooglePhotoURLs  []string `json:"google_photo_urls"` // yeni: çoklu seçim, ilki kapak
 		Notes            *string  `json:"notes"`
 		CriteriaIDs      []int    `json:"criteria_ids"`
 		CategoryIDs      []int    `json:"category_ids"`
@@ -207,25 +238,31 @@ func (h *VenueHandler) Create(c *fiber.Ctx) error {
 		venue.ExcludedProducts = []string{}
 	}
 
+	photoURLs := resolveGooglePhotoURLs(req.GooglePhotoURLs, req.GooglePhotoURL)
+
 	venue.Photos = []models.VenuePhoto{}
-	if req.GooglePhotoURL != "" && h.storageService != nil {
-		storedURL, err := h.storageService.DownloadAndStore(c.Context(), req.GooglePhotoURL)
+	for _, photoURL := range photoURLs {
+		if h.storageService == nil {
+			break
+		}
+		storedURL, err := h.storageService.DownloadAndStore(c.Context(), photoURL)
 		if err != nil {
 			// Hata mekan oluşturmayı engellemiyor (fotoğraf opsiyonel), ama iz
 			// bırakmadan yutulmamalı: SSRF guard'ın reddi de, allowlist'teki bir
 			// boşluk da (ör. Google yeni CDN host'u) buradan görünür.
 			log.Printf("[VENUE] google fotoğrafı alınamadı: %v", err)
+			continue
 		}
-		if err == nil {
-			photo := &models.VenuePhoto{
-				VenueID:    venue.ID,
-				URL:        storedURL,
-				UploadedBy: userID,
-				IsPrimary:  true,
-			}
-			if err := h.venueRepo.AddPhoto(c.Context(), photo); err == nil {
-				venue.Photos = []models.VenuePhoto{*photo}
-			}
+		photo := &models.VenuePhoto{
+			VenueID:    venue.ID,
+			URL:        storedURL,
+			UploadedBy: userID,
+			// Kapak = başarıyla kaydedilen İLK fotoğraf. Seçim sırasındaki ilk
+			// fotoğrafın indirilmesi başarısız olursa kapak sonrakine kayar.
+			IsPrimary: len(venue.Photos) == 0,
+		}
+		if err := h.venueRepo.AddPhoto(c.Context(), photo); err == nil {
+			venue.Photos = append(venue.Photos, *photo)
 		}
 	}
 

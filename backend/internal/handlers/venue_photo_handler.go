@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"time"
@@ -21,6 +22,15 @@ const (
 	// maxPhotoBytes — bellekte tutulacak azami görsel boyutu. Places
 	// fotoğrafları birkaç yüz KB; sınır kötü niyetli/bozuk yanıtlara karşı.
 	maxPhotoBytes = 10 << 20 // 10 MB
+
+	// maxGooglePhotosPerVenue — mekan oluştururken Google'dan indirilecek azami
+	// fotoğraf sayısı. Sınır bilinçli küçük: Places içeriğini depolama zaten
+	// ToS gri alanı; yüzeyi dar tutuyoruz (bkz. 2026-08-01 tasarım kararı).
+	maxGooglePhotosPerVenue = 3
+
+	// maxVenuePhotos — bir mekandaki toplam fotoğraf sınırı (Google + yükleme).
+	// Upload artık mevcutları silmiyor; sınırsız birikmeyi bu engeller.
+	maxVenuePhotos = 5
 )
 
 // UploadPhoto godoc
@@ -45,6 +55,20 @@ func (h *VenueHandler) UploadPhoto(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "photo alanı gereklidir"})
 	}
 
+	// Ekleme politikası: yükleme mevcut fotoğrafları ARTIK silmiyor (eski "tek
+	// fotoğraf" politikası çoklu Google fotoğrafıyla çelişiyordu — tek yükleme
+	// galeriyi yok ederdi). Sınır kontrolü dosya depoya yazılmadan ÖNCE yapılır
+	// ki reddedilen istek arkasında sahipsiz dosya bırakmasın.
+	existing, err := h.venueRepo.GetPhotosByVenueID(c.Context(), venueID)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "fotoğraflar okunamadı"})
+	}
+	if len(existing) >= maxVenuePhotos {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": fmt.Sprintf("bir mekanda en fazla %d fotoğraf olabilir; önce bir fotoğraf silin", maxVenuePhotos),
+		})
+	}
+
 	file, err := fileHeader.Open()
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "dosya açılamadı"})
@@ -56,20 +80,12 @@ func (h *VenueHandler) UploadPhoto(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 	}
 
-	// Tek fotoğraf politikası: yeni fotoğraf yüklenince mevcut fotoğraflar silinir.
-	if existing, err := h.venueRepo.GetPhotosByVenueID(c.Context(), venueID); err == nil {
-		for _, old := range existing {
-			if err := h.venueRepo.DeletePhoto(c.Context(), old.ID, venueID); err == nil {
-				_ = h.storageService.Delete(c.Context(), old.URL)
-			}
-		}
-	}
-
 	photo := &models.VenuePhoto{
 		VenueID:    venueID,
 		URL:        url,
 		UploadedBy: userID,
-		IsPrimary:  true,
+		// Kapak yalnızca mekanın İLK fotoğrafı; sonrakiler galeriye eklenir.
+		IsPrimary: len(existing) == 0,
 	}
 	if err := h.venueRepo.AddPhoto(c.Context(), photo); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "fotoğraf kaydedilemedi"})
