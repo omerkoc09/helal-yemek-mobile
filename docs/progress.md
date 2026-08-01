@@ -1490,3 +1490,24 @@ Yutulan hataların en azından **görünür bir sağlık sinyali** üretmesi ger
 (452 karakterlik ref → 196025 bayt JPEG). `parsePlacePhotoProxyURL` için 6 test
 (göreli/tam URL, varsayılan genişlik, ref'siz adres, Google URL'si, benzer görünen
 yabancı yol). Backend build+vet+test temiz, admin panel `vue-tsc` tabanla aynı.
+
+### Düzeltme sonrası: sunucu yeniden başlatılmamıştı (2026-08-01)
+
+Fotoğraf düzeltmesi commit'lendikten sonra "sorun devam ediyor" raporu geldi. Neden:
+**yeniden başlatma girişimi sessizce başarısız olmuştu** (`address already in use`) ve
+port 3000'de eski süreç çalışmaya devam ediyordu. Sağlık kontrolü 200 döndüğü için
+"yeni kodla ayakta" sonucuna varılmıştı — oysa yanıt eski süreçten geliyordu.
+
+**Ders:** Sürecin ayakta olması, YENİ kodun ayakta olduğu anlamına gelmiyor. Yeniden
+başlatma sonrası, o sürümde yeni eklenen bir davranışla doğrulanmalı (burada: yeni
+uçların 404 yerine 401 dönmesi).
+
+**Uçtan uca doğrulama (yeni süreçle):** Geçici bir rehber kullanıcıyla gerçek akış
+çalıştırıldı — `place-preview`'den alınan göreli proxy adresleriyle mekan oluşturuldu;
+**3 fotoğrafın üçü de kaydedildi**, ilki kapak, dosyalar diske yazıldı ve
+`/static/...` üzerinden servis edildi (194 KB JPEG). Test verisi (mekan, fotoğraflar,
+kullanıcı) sonrasında temizlendi.
+
+**Telafi uygulandı:** Fotoğrafsız kalan 4 mekan (Duman Ödemiş Köfte, Mantıcım Hacer,
+Emilee Cuisine, Etiler Mangal) backfill ucuyla düzeltildi — her birine 3 fotoğraf,
+birer kapak. Artık tüm mekanların fotoğrafı var.
