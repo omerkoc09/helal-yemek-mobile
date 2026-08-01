@@ -1511,3 +1511,28 @@ kullanıcı) sonrasında temizlendi.
 **Telafi uygulandı:** Fotoğrafsız kalan 4 mekan (Duman Ödemiş Köfte, Mantıcım Hacer,
 Emilee Cuisine, Etiler Mangal) backfill ucuyla düzeltildi — her birine 3 fotoğraf,
 birer kapak. Artık tüm mekanların fotoğrafı var.
+
+### Fotoğraf galerisi kaydırılamıyordu (2026-08-01)
+
+Fotoğraflar göründükten sonra galeri sağa/sola kaydırılamıyordu.
+
+**Kök neden:** Detay ekranında galeri bir `Stack`'in altında; üstünde başlığı okunur
+kılan gradyan var. `DecoratedBox` dokunma açısından şeffaf değil — Stack'in üstünde
+durup **tüm dokunmaları yutuyor** ve `PageView`'e ulaşmasını engelliyordu.
+
+**Çözüm:** Gradyan `IgnorePointer` ile sarıldı (yalnızca görsel amaçlı, dokunma
+tüketmemeli). Ayrıca `FlexibleSpaceBar`'a `collapseMode: CollapseMode.none` verildi:
+varsayılan parallax, background'ı dikey kaydırmayla hareket ettirip PageView'in yatay
+jestleriyle çakışıyordu.
+
+**Doğrulama:** 3 widget testi. En kritiği **regresyon testi** — `IgnorePointer` yokken
+galerinin ilk fotoğrafta takılı kaldığını, varken ikinci fotoğrafa geçtiğini kanıtlıyor.
+Yani düzeltmenin gerçekten çözdüğü ölçüldü, varsayılmadı.
+
+**Yol boyunca:** İlk test denemem `pageView.controller?.page` ile ölçüyordu ve üç testin
+üçü de başarısız oldu — `PageView.builder` varsayılan controller kullandığı için o değer
+`null`. Ölçüm, galerinin kendi gösterge noktalarından (aktif nokta indeksi) yapılacak
+şekilde düzeltildi. **Testin kendisi de yanlış olabilir**; üç testin birden düşmesi
+kodu değil ölçümü sorgulamak için sinyaldi.
+
+**Doğrulama:** mobil **220 PASS** (217'den), analyzer 0 hata/uyarı.

@@ -99,20 +99,29 @@ class VenueDetailScreen extends ConsumerWidget {
                       ],
                     ),
                   ),
+                  // collapseMode.none: FlexibleSpaceBar varsayılan olarak
+                  // background'ı parallax ile kaydırır; bu, PageView'in yatay
+                  // jestleriyle çakışıp kaydırmayı tutuksuz yapıyordu.
+                  collapseMode: CollapseMode.none,
                   background: Stack(
                     fit: StackFit.expand,
                     children: [
                       VenuePhotoGallery(photos: venue.photos),
-                      DecoratedBox(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              Colors.transparent,
-                              Colors.black.withValues(alpha: 0.65),
-                            ],
-                            stops: const [0.5, 1.0],
+                      // Gradyan yalnızca başlığı okunur kılmak için var.
+                      // IgnorePointer olmadan Stack'in üstünde durup TÜM
+                      // dokunmaları yutuyor ve galeri sağa/sola kaydırılamıyordu.
+                      IgnorePointer(
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                Colors.transparent,
+                                Colors.black.withValues(alpha: 0.65),
+                              ],
+                              stops: const [0.5, 1.0],
+                            ),
                           ),
                         ),
                       ),
