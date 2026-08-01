@@ -58,13 +58,12 @@ void main() {
     );
   }
 
-  /// Aktif sayfayı gösterge noktalarından okur: dolu (beyaz) nokta hangi
-  /// indeksteyse o sayfa aktiftir. PageView.builder varsayılan controller
+  /// Aktif sayfayı gösterge noktalarından okur: aktif olan tam beyaz ve daha
+  /// geniştir (çubuğa dönüşür). PageView.builder varsayılan controller
   /// kullandığı için `controller.page` null döner; ölçüm buradan yapılmalı.
   int activePage(WidgetTester tester) {
     final dots = tester
-        .widgetList<Container>(find.byType(Container))
-        .where((c) => (c.decoration as BoxDecoration?)?.shape == BoxShape.circle)
+        .widgetList<AnimatedContainer>(find.byType(AnimatedContainer))
         .toList();
     for (var i = 0; i < dots.length; i++) {
       if ((dots[i].decoration as BoxDecoration?)?.color == Colors.white) {
@@ -73,6 +72,37 @@ void main() {
     }
     return -1;
   }
+
+  testWidgets('aktif nokta genişleyerek belirginleşir', (tester) async {
+    // Yalnızca opaklık farkı açık renkli fotoğraflarda seçilemiyordu; aktif
+    // gösterge çubuğa dönüşüyor ve arkasında koyu şerit var.
+    await tester.pumpWidget(
+      MaterialApp(home: Scaffold(body: VenuePhotoGallery(photos: photos))),
+    );
+
+    final dots =
+        tester.widgetList<AnimatedContainer>(find.byType(AnimatedContainer));
+    expect(dots.length, photos.length, reason: 'her fotoğraf için bir gösterge');
+
+    final active = dots.elementAt(0);
+    final passive = dots.elementAt(1);
+    expect(
+      (active.constraints?.maxWidth ?? 0) >
+          (passive.constraints?.maxWidth ?? 0),
+      isTrue,
+      reason: 'aktif gösterge pasiflerden geniş olmalı',
+    );
+  });
+
+  testWidgets('tek fotoğrafta gösterge çizilmez', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(body: VenuePhotoGallery(photos: [photos.first])),
+      ),
+    );
+
+    expect(find.byType(AnimatedContainer), findsNothing);
+  });
 
   testWidgets('tek başına galeri sağa/sola kaydırılır', (tester) async {
     await tester.pumpWidget(

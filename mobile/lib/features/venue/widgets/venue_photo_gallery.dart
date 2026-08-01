@@ -59,25 +59,43 @@ class _VenuePhotoGalleryState extends State<VenuePhotoGallery> {
               );
             },
           ),
+          // Göstergeler mekan adının üstünde durur: en altta bırakılınca
+          // başlık ve koyu gradyan onları yutuyordu.
           if (widget.photos.length > 1)
             Positioned(
-              bottom: 12,
+              bottom: 56,
               left: 0,
               right: 0,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(
-                  widget.photos.length,
-                  (index) => Container(
-                    width: 8,
-                    height: 8,
-                    margin: const EdgeInsets.symmetric(horizontal: 3),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: _currentPage == index
-                          ? Colors.white
-                          : Colors.white.withValues(alpha: 0.5),
-                    ),
+              child: Center(
+                // Koyu şerit: açık renkli fotoğraflarda beyaz noktalar
+                // arka plana karışıp görünmez oluyordu.
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.35),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: List.generate(widget.photos.length, (index) {
+                      final isActive = _currentPage == index;
+                      return AnimatedContainer(
+                        duration: const Duration(milliseconds: 250),
+                        curve: Curves.easeOut,
+                        // Aktif nokta çubuğa dönüşür: yalnızca opaklık farkı
+                        // küçük ekranda zor seçiliyordu.
+                        width: isActive ? 20 : 8,
+                        height: 8,
+                        margin: const EdgeInsets.symmetric(horizontal: 3),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(4),
+                          color: isActive
+                              ? Colors.white
+                              : Colors.white.withValues(alpha: 0.45),
+                        ),
+                      );
+                    }),
                   ),
                 ),
               ),
