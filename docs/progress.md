@@ -1430,3 +1430,25 @@ mimari değişiklik gerektirmez.
 **Doğrulama:** mobil **217 PASS** (213'ten), analyzer 0 hata/uyarı; backend build+vet+test
 temiz (`resolveGooglePhotoURLs` için 6 test: sıra, eski istemci uyumu, üst sınır,
 tekrar/boş ayıklama); admin panel `vue-tsc` çıktısı commit'li sürümle birebir aynı.
+
+### Ek: Kapak fotoğrafı admin panelden değiştirilebiliyor (2026-08-01)
+
+Ekleme sırasında kapak "ilk seçilen" olarak belirleniyordu ama sonradan düzeltilemiyordu.
+`PUT /venues/:id/photos/:photoId/primary` eklendi (**yalnızca admin** — kapak mekanın
+listelerde görünen yüzü ve şu an sadece admin panelinden kullanılıyor).
+
+`SetPrimaryPhoto` tek transaction'da çalışıyor: `is_primary` üzerinde DB kısıtı yok,
+tekilliği uygulama katmanı koruyor; iki UPDATE arasında hata olsa mekan kapaksız ya da
+çift kapaklı kalırdı.
+
+**Yol boyunca bulunan boşluk:** kapak fotoğrafı silindiğinde mekan **kapaksız kalıyordu**
+— `DeletePhoto` yeni kapak atamıyordu. Galeri sıralaması yine bir şey gösterse de
+`is_primary` ile kapak arayan istemciler boş dönerdi. Artık kalanların en eskisi devralıyor.
+
+**Mobil değişiklik gerekmedi:** kartlar `photos.first` kullanıyor, repo sorgusu
+`ORDER BY is_primary DESC, created_at` — kapak değişikliği otomatik yansıyor.
+
+**Doğrulama:** kapak devri ve silme sonrası devir SQL'i gerçek veritabanına karşı
+çalıştırıldı (transaction + ROLLBACK ile, veri değişmeden): kapak değişince tek kapak
+kalıyor, kapak silinince en eski devralıyor. Handler için 2 test; backend build+vet+test
+temiz, mobil 217 PASS, admin panel `vue-tsc` çıktısı tabanla aynı.

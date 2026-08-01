@@ -48,6 +48,63 @@ func (r *VenueRepo) GetPhotosByVenueID(ctx context.Context, venueID string) ([]m
 	return list, rows.Err()
 }
 
+// SetPrimaryPhoto — verilen fotoğrafı mekanın kapağı yapar, diğerlerinin
+// kapak işaretini kaldırır.
+//
+// Tek işlemde (transaction) yapılır: iki UPDATE arasında hata olursa mekan ya
+// kapaksız ya da çift kapaklı kalırdı; `is_primary` üzerinde DB kısıtı yok,
+// tekilliği bu katman korur.
+// Fotoğraf bu mekana ait değilse ErrNotFound döner.
+func (r *VenueRepo) SetPrimaryPhoto(ctx context.Context, photoID, venueID string) error {
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx) //nolint:errcheck // commit sonrası no-op
+
+	result, err := tx.Exec(ctx,
+		`UPDATE venue_photos SET is_primary = true WHERE id = $1 AND venue_id = $2`,
+		photoID, venueID,
+	)
+	if err != nil {
+		return err
+	}
+	if result.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+
+	if _, err := tx.Exec(ctx,
+		`UPDATE venue_photos SET is_primary = false WHERE venue_id = $1 AND id <> $2`,
+		venueID, photoID,
+	); err != nil {
+		return err
+	}
+
+	return tx.Commit(ctx)
+}
+
+// PromoteAnyPhotoToPrimary — mekanda kapak kalmadıysa en eski fotoğrafı kapak yapar.
+//
+// Kapak fotoğrafı silindiğinde mekan kapaksız kalıyordu; galeri sıralaması
+// (`is_primary DESC, created_at`) yine bir şey gösterse de `is_primary` ile
+// kapak arayan istemciler boş dönerdi. Kapak zaten varsa hiçbir şey yapmaz.
+func (r *VenueRepo) PromoteAnyPhotoToPrimary(ctx context.Context, venueID string) error {
+	_, err := r.db.Exec(ctx,
+		`UPDATE venue_photos SET is_primary = true
+		 WHERE id = (
+		     SELECT id FROM venue_photos
+		     WHERE venue_id = $1
+		       AND NOT EXISTS (
+		           SELECT 1 FROM venue_photos WHERE venue_id = $1 AND is_primary
+		       )
+		     ORDER BY created_at
+		     LIMIT 1
+		 )`,
+		venueID,
+	)
+	return err
+}
+
 // DeletePhoto — fotoğrafı veritabanından siler.
 func (r *VenueRepo) DeletePhoto(ctx context.Context, photoID, venueID string) error {
 	result, err := r.db.Exec(ctx,

@@ -276,6 +276,13 @@ func main() {
 		middleware.RequireRole("guide", "admin"),
 		venueHandler.DeletePhoto,
 	)
+	// Kapak değiştirme yalnızca admin: mekanın listelerde görünen yüzünü
+	// belirliyor ve şu an yalnızca admin panelinden kullanılıyor.
+	api.Put("/venues/:id/photos/:photoId/primary",
+		middleware.Auth(cfg.JWTSecret),
+		middleware.RequireRole("admin"),
+		venueHandler.SetPrimaryPhoto,
+	)
 	api.Put("/venues/:id",
 		middleware.Auth(cfg.JWTSecret),
 		middleware.RequireRole("guide", "admin"),

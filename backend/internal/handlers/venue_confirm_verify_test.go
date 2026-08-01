@@ -92,6 +92,8 @@ func (f *fakeVenueStore) SearchByText(context.Context, string, float64, float64)
 func (f *fakeVenueStore) Create(context.Context, *models.Venue) error                 { return nil }
 func (f *fakeVenueStore) AddPhoto(context.Context, *models.VenuePhoto) error          { return nil }
 func (f *fakeVenueStore) DeletePhoto(context.Context, string, string) error           { return nil }
+func (f *fakeVenueStore) SetPrimaryPhoto(context.Context, string, string) error       { return nil }
+func (f *fakeVenueStore) PromoteAnyPhotoToPrimary(context.Context, string) error      { return nil }
 func (f *fakeVenueStore) SetCriteria(context.Context, string, []int) error            { return nil }
 func (f *fakeVenueStore) SetVenueCategories(context.Context, string, []int) error     { return nil }
 func (f *fakeVenueStore) SetFoodHalalMode(context.Context, string, string) error      { return nil }

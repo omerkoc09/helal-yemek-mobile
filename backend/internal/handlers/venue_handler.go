@@ -50,6 +50,8 @@ type venueStore interface {
 	DeletePhoto(ctx context.Context, photoID, venueID string) error
 	FindPhotoByID(ctx context.Context, photoID string) (*models.VenuePhoto, error)
 	GetPhotosByVenueID(ctx context.Context, venueID string) ([]models.VenuePhoto, error)
+	SetPrimaryPhoto(ctx context.Context, photoID, venueID string) error
+	PromoteAnyPhotoToPrimary(ctx context.Context, venueID string) error
 
 	// Kriter ve yemek
 	GetAllCriteria(ctx context.Context) ([]models.TrustCriteria, error)

@@ -195,7 +195,7 @@ async function uploadPhoto() {
   SuccessToast()
 }
 
-async function deletePhoto(photo: { id: string; url: string }) {
+async function deletePhoto(photo: { id: string; url: string; is_primary?: boolean }) {
   if (!form.value.id || !photo.id)
     return
 
@@ -206,7 +206,32 @@ async function deletePhoto(photo: { id: string; url: string }) {
   if (error)
     return ErrorPopup(error)
 
-  form.value.photos = (form.value.photos ?? []).filter((p: { id?: string }) => p.id !== photo.id)
+  const remaining = (form.value.photos ?? []).filter((p: { id?: string }) => p.id !== photo.id)
+
+  // Kapak silindiyse backend kalanların en eskisini kapak yapar; yerel state
+  // de aynı kuralı uygulasın ki arayüz eskimiş kapak göstermesin.
+  if (photo.is_primary && remaining.length)
+    remaining[0].is_primary = true
+
+  form.value.photos = remaining
+  venue.value.photos = form.value.photos
+  SuccessToast()
+}
+
+async function setPrimaryPhoto(photo: { id: string }) {
+  if (!form.value.id || !photo.id)
+    return
+
+  const [error, data] = await ApiService.put<{ id: string; url: string; is_primary: boolean }[]>(
+    `venues/${form.value.id}/photos/${photo.id}/primary`,
+  )
+
+  if (error)
+    return ErrorPopup(error)
+
+  // Backend güncel listeyi (kapak sıralamasıyla) döner; onu kaynak kabul et.
+  if (data)
+    form.value.photos = data
   venue.value.photos = form.value.photos
   SuccessToast()
 }
@@ -590,24 +615,46 @@ onMounted(fetchVenue)
                       <div
                         v-for="photo in form.photos ?? []"
                         :key="photo.id ?? photo.url"
-                        class="position-relative"
+                        class="text-center"
                       >
-                        <VImg
-                          :src="photo.url"
-                          width="64"
-                          height="64"
-                          cover
-                          class="rounded"
-                        />
-                        <VBtn
-                          icon="tabler-x"
+                        <div class="position-relative">
+                          <VImg
+                            :src="photo.url"
+                            width="64"
+                            height="64"
+                            cover
+                            class="rounded"
+                            :class="{ 'border-primary': photo.is_primary }"
+                            :style="photo.is_primary ? 'border: 2px solid rgb(var(--v-theme-primary));' : ''"
+                          />
+                          <VBtn
+                            icon="tabler-x"
+                            size="x-small"
+                            variant="flat"
+                            color="error"
+                            class="position-absolute"
+                            style="top: -8px; inset-inline-end: -8px;"
+                            @click="deletePhoto(photo)"
+                          />
+                        </div>
+                        <!-- Kapak = mekanın listelerde görünen yüzü -->
+                        <VChip
+                          v-if="photo.is_primary"
                           size="x-small"
-                          variant="flat"
-                          color="error"
-                          class="position-absolute"
-                          style="top: -8px; inset-inline-end: -8px;"
-                          @click="deletePhoto(photo)"
-                        />
+                          color="primary"
+                          class="mt-1"
+                        >
+                          Kapak
+                        </VChip>
+                        <VBtn
+                          v-else
+                          size="x-small"
+                          variant="text"
+                          class="mt-1"
+                          @click="setPrimaryPhoto(photo)"
+                        >
+                          Kapak yap
+                        </VBtn>
                       </div>
                       <VAvatar
                         v-if="!form.photos?.length"

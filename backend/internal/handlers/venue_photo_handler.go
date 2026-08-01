@@ -109,10 +109,43 @@ func (h *VenueHandler) DeletePhoto(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "fotoğraf silinemedi"})
 	}
 
+	// Kapak silindiyse mekan kapaksız kalmasın: kalanların en eskisi kapak olur.
+	// Hata mekan/silme akışını bozmamalı, ama sessiz de geçilmemeli.
+	if photo.IsPrimary {
+		if err := h.venueRepo.PromoteAnyPhotoToPrimary(c.Context(), venueID); err != nil {
+			log.Printf("[VENUE] kapak devri başarısız (venue=%s): %v", venueID, err)
+		}
+	}
+
 	// Fiziksel dosyayı da sil
 	_ = h.storageService.Delete(c.Context(), photo.URL)
 
 	return c.SendStatus(fiber.StatusNoContent)
+}
+
+// SetPrimaryPhoto godoc
+// PUT /api/v1/venues/:id/photos/:photoId/primary  (Admin)
+//
+// Mekanın kapak fotoğrafını değiştirir. Kapak, mekanın listelerde ve kartlarda
+// görünen yüzü; ekleme sırasında "ilk seçilen" olarak belirleniyor ama sonradan
+// düzeltilebilmesi gerekiyor.
+func (h *VenueHandler) SetPrimaryPhoto(c *fiber.Ctx) error {
+	venueID := c.Params("id")
+	photoID := c.Params("photoId")
+
+	if err := h.venueRepo.SetPrimaryPhoto(c.Context(), photoID, venueID); err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			// Fotoğraf yok ya da başka mekana ait — ikisi de istemci hatası.
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "fotoğraf bulunamadı"})
+		}
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "kapak fotoğrafı güncellenemedi"})
+	}
+
+	photos, err := h.venueRepo.GetPhotosByVenueID(c.Context(), venueID)
+	if err != nil {
+		return c.SendStatus(fiber.StatusNoContent)
+	}
+	return c.JSON(photos)
 }
 
 // PlacePhotoProxy godoc
