@@ -1452,3 +1452,41 @@ tekilliği uygulama katmanı koruyor; iki UPDATE arasında hata olsa mekan kapak
 çalıştırıldı (transaction + ROLLBACK ile, veri değişmeden): kapak değişince tek kapak
 kalıyor, kapak silinince en eski devralıyor. Handler için 2 test; backend build+vet+test
 temiz, mobil 217 PASS, admin panel `vue-tsc` çıktısı tabanla aynı.
+
+## Bug: Mekan fotoğrafları hiç kaydedilmiyordu (2026-08-01)
+
+**Belirti:** Yeni eklenen mekanın detay sayfasında "Fotoğraf yok". Rehber fotoğraf
+seçmiş olmasına rağmen.
+
+**Kök neden — sessiz kırılma.** Foto proxy'sine geçildiğinde (API anahtarı istemciye
+gitmesin diye) istemciye verilen adres **göreli** hale geldi:
+`/api/v1/places/photo?ref=...`. Rehber bu adresi seçim olarak geri gönderiyor, ama
+`DownloadAndStore`'daki SSRF guard'ı `https` + Google host şartı arıyor ve göreli yolu
+**haklı olarak** reddediyor. Hata `log.Printf` ile yutulduğu (fotoğraf opsiyonel
+sayıldığı) için mekan sessizce fotoğrafsız oluşuyordu.
+
+**Ne kadar sürmüş:** DB sorgusuyla ölçüldü — fotoğrafı olan **son mekan 11 Temmuz**
+tarihli. O tarihten sonra eklenen 3 mekanın hiçbirinde fotoğraf yok. Yani bu turda
+eklenen çoklu fotoğraf özelliği değil, **haftalardır kırık olan** bir akış.
+
+**Çözüm:** `storeVenuePhoto()` — gelen adres kendi proxy'mize aitse
+(`parsePlacePhotoProxyURL`) `photo_reference` çıkarılıp fotoğraf **sunucu tarafında**
+Places'ten indiriliyor. SSRF guard'ı zayıflatmıyor: adres kullanıcıdan gelmiyor, biz
+üretiyoruz. Tam URL gelen durum (eski istemciler, admin panel) eski yoldan devam ediyor.
+
+**Telafi:** Kod düzeltmesi yalnızca yeni mekanları kurtarır. Mevcut 3 fotoğrafsız mekan
+için `POST /venues/:id/photos/backfill` (admin) eklendi — `place_id` üzerinden Google'dan
+yeniden çeker. Admin panelde fotoğrafsız + place_id'si olan mekanlarda
+"Fotoğrafları Google'dan Çek" butonu görünür.
+
+### Ders
+
+**`catch`/`log` ile yutulan hata, özelliği sessizce öldürür.** Bu turda ikinci kez aynı
+desen: duplicate kontrolü de `catch (_)` yüzünden aylarca çalışmıyor olabilirdi. Fotoğraf
+"opsiyonel" diye hata yutuldu, ama sonuç opsiyonel değildi — hiçbir mekanda fotoğraf yoktu.
+Yutulan hataların en azından **görünür bir sağlık sinyali** üretmesi gerekiyor.
+
+**Doğrulama:** proxy adresinden gerçek fotoğrafın indiği uçtan uca test edildi
+(452 karakterlik ref → 196025 bayt JPEG). `parsePlacePhotoProxyURL` için 6 test
+(göreli/tam URL, varsayılan genişlik, ref'siz adres, Google URL'si, benzer görünen
+yabancı yol). Backend build+vet+test temiz, admin panel `vue-tsc` tabanla aynı.

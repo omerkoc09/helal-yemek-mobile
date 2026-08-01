@@ -1,8 +1,13 @@
 package handlers
 
 import (
+	"context"
 	"errors"
+	"fmt"
+	"io"
 	"log"
+	"net/url"
+	"strconv"
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
@@ -89,6 +94,57 @@ func resolveGooglePhotoURLs(urls []string, legacyURL string) []string {
 	}
 
 	return resolved
+}
+
+// storeVenuePhoto — seçilen Google fotoğrafını kalıcı depoya yazar.
+//
+// İstemciye verilen adres GÖRELİ bir proxy yoludur (`/api/v1/places/photo?ref=...`),
+// çünkü API anahtarı istemciye gitmesin diye fotoğraflar sunucu üzerinden geçiriliyor.
+// Bu adres seçim olarak geri geldiğinde doğrudan indirilemez: SSRF guard https + Google
+// host şartı arar ve göreli yolu haklı olarak reddeder. Sonuç: mekan sessizce
+// fotoğrafsız oluşuyordu (proxy'ye geçişten beri, 2026-07-11'den sonra hiçbir mekanda
+// fotoğraf yok).
+//
+// Çözüm: proxy yolundan photo_reference'ı çıkarıp fotoğrafı Places'ten sunucu tarafında
+// indiriyoruz. Guard zayıflatılmıyor — adres kullanıcıdan gelmiyor, biz üretiyoruz.
+// Tam URL gelen durum (eski istemciler, admin panel) eski yoldan devam eder.
+func (h *VenueHandler) storeVenuePhoto(ctx context.Context, photoURL string) (string, error) {
+	ref, width, ok := parsePlacePhotoProxyURL(photoURL)
+	if !ok {
+		return h.storageService.DownloadAndStore(ctx, photoURL)
+	}
+	if h.placesService == nil {
+		return "", fmt.Errorf("places servisi kullanılamıyor")
+	}
+
+	fetchCtx, cancel := context.WithTimeout(context.Background(), photoFetchTimeout)
+	defer cancel()
+
+	body, contentType, err := h.placesService.FetchPhoto(fetchCtx, ref, width)
+	if err != nil {
+		return "", err
+	}
+	defer body.Close()
+
+	return h.storageService.StoreStream(ctx, io.LimitReader(body, maxPhotoBytes), contentType)
+}
+
+// parsePlacePhotoProxyURL — kendi foto proxy adresimizden photo_reference ve genişliği
+// çıkarır. Adres göreli ("/api/v1/places/photo?ref=..&w=..") ya da tam URL olabilir.
+func parsePlacePhotoProxyURL(raw string) (ref string, width int, ok bool) {
+	u, err := url.Parse(raw)
+	if err != nil || !strings.HasSuffix(u.Path, services.PhotoProxyPath) {
+		return "", 0, false
+	}
+	ref = u.Query().Get("ref")
+	if ref == "" {
+		return "", 0, false
+	}
+	width = defaultPhotoWidth
+	if w, err := strconv.Atoi(u.Query().Get("w")); err == nil && w > 0 {
+		width = w
+	}
+	return ref, width, true
 }
 
 // Create godoc
@@ -245,7 +301,7 @@ func (h *VenueHandler) Create(c *fiber.Ctx) error {
 		if h.storageService == nil {
 			break
 		}
-		storedURL, err := h.storageService.DownloadAndStore(c.Context(), photoURL)
+		storedURL, err := h.storeVenuePhoto(c.Context(), photoURL)
 		if err != nil {
 			// Hata mekan oluşturmayı engellemiyor (fotoğraf opsiyonel), ama iz
 			// bırakmadan yutulmamalı: SSRF guard'ın reddi de, allowlist'teki bir

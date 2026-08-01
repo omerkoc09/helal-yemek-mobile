@@ -218,6 +218,30 @@ async function deletePhoto(photo: { id: string; url: string; is_primary?: boolea
   SuccessToast()
 }
 
+const backfilling = ref(false)
+
+// Foto proxy'sine geçiş döneminde eklenen mekanlar fotoğrafsız kaldı (adres
+// SSRF guard'ına takılıyor, hata yutuluyordu). Bu buton onları telafi eder.
+async function backfillPhotos() {
+  if (!form.value.id)
+    return
+
+  backfilling.value = true
+
+  const [error, data] = await ApiService.post<{ added: number; photos: { id: string; url: string; is_primary: boolean }[] }>(
+    `venues/${form.value.id}/photos/backfill`,
+  )
+
+  backfilling.value = false
+  if (error)
+    return ErrorPopup(error)
+
+  if (data?.photos)
+    form.value.photos = data.photos
+  venue.value.photos = form.value.photos
+  SuccessToast()
+}
+
 async function setPrimaryPhoto(photo: { id: string }) {
   if (!form.value.id || !photo.id)
     return
@@ -686,6 +710,18 @@ onMounted(fetchVenue)
                         Yükle
                       </VBtn>
                     </div>
+                    <!-- Fotoğrafsız kalmış eski mekanlar için telafi -->
+                    <VBtn
+                      v-if="!form.photos?.length && form.google_place_id"
+                      :loading="backfilling"
+                      size="small"
+                      variant="tonal"
+                      color="secondary"
+                      prepend-icon="tabler-brand-google"
+                      @click="backfillPhotos"
+                    >
+                      Fotoğrafları Google'dan Çek
+                    </VBtn>
                   </VCol>
                   <VCol cols="12">
                     <VSelect

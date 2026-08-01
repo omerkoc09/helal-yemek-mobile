@@ -97,6 +97,7 @@ itimat-mobile-backend/
 | POST | `/api/v1/venues/:id/photos` | Fotoğraf yükleme. Mevcut fotoğrafları **silmez**, listeye ekler (mekan başına en fazla 5; aşılırsa 400). İlk fotoğraf kapak olur | ✅ | Guide+ |
 | DELETE | `/api/v1/venues/:id/photos/:photoId` | Fotoğraf silme. Silinen kapaksa kalanların **en eskisi** otomatik kapak olur (mekan kapaksız kalmasın) | ✅ | Owner/Admin |
 | PUT | `/api/v1/venues/:id/photos/:photoId/primary` | Kapak fotoğrafını değiştirir; diğerlerinin işareti tek transaction'da kaldırılır. Güncel fotoğraf listesini döner | ✅ | **Admin** |
+| POST | `/api/v1/venues/:id/photos/backfill` | Fotoğrafsız kalmış mekanın fotoğraflarını `place_id` üzerinden Google'dan yeniden çeker (en fazla 3). Mekanda fotoğraf varsa 409 | ✅ | **Admin** |
 | GET | `/api/v1/venues/place-preview` | Mekan ekleme önizlemesi: `?place_id=ChIJ...` veya `?lat=&lng=&name=`. Hex/eksik place_id'yi Places API ile gerçek `ChIJ`'ye çözer; ad/şehir/ilçe/fotoğraf, `city_allowed` ve **`existing_venue`** (mekan zaten kayıtlıysa özeti) döner | ✅ | Guide+ |
 | POST | `/api/v1/venues/preview-location` | Google Maps linkini parse edip koordinat + place_id + mekan bilgilerini döndürür (kısa linkleri sunucuda çözer) | ✅ | Guide+ |
 | GET | `/api/v1/venues/check-duplicate` | `?google_place_id=` ile erken duplicate kontrolü. `place-preview`'daki `existing_venue` ile aynı veriyi verir (ek güvence) | ✅ | Guide+ |

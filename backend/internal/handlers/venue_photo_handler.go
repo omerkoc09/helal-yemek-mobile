@@ -123,6 +123,99 @@ func (h *VenueHandler) DeletePhoto(c *fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
+// BackfillGooglePhotos godoc
+// POST /api/v1/venues/:id/photos/backfill  (Admin)
+//
+// Mekanın Google fotoğraflarını place_id üzerinden yeniden çeker.
+//
+// Neden gerekli: foto proxy'sine geçildiğinde mekan oluşturma akışı sessizce
+// kırılmıştı (göreli proxy adresi SSRF guard'ına takılıyor, hata log'a yazılıp
+// yutuluyordu). Bu dönemde eklenen mekanlar fotoğrafsız kaldı; kod düzeltmesi
+// yalnızca YENİ mekanları kurtarır. Bu uç mevcutları telafi eder.
+//
+// Mekanda fotoğraf varsa dokunmaz (yanlışlıkla çoğaltmayı önler).
+func (h *VenueHandler) BackfillGooglePhotos(c *fiber.Ctx) error {
+	venueID := c.Params("id")
+	userID, err := getUserID(c)
+	if err != nil {
+		return err
+	}
+	if h.placesService == nil || h.storageService == nil {
+		return c.Status(fiber.StatusServiceUnavailable).JSON(fiber.Map{
+			"error": "places veya depolama servisi kullanılamıyor",
+		})
+	}
+
+	venue, err := h.venueRepo.FindByID(c.Context(), venueID)
+	if err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "mekan bulunamadı"})
+	}
+	if venue.GooglePlaceID == nil || *venue.GooglePlaceID == "" {
+		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{
+			"error": "mekanın google place_id'si yok",
+		})
+	}
+
+	existing, err := h.venueRepo.GetPhotosByVenueID(c.Context(), venueID)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "fotoğraflar okunamadı"})
+	}
+	if len(existing) > 0 {
+		return c.Status(fiber.StatusConflict).JSON(fiber.Map{
+			"error": "mekanın zaten fotoğrafı var",
+		})
+	}
+
+	components, err := h.placesService.GetAddressComponents(*venue.GooglePlaceID)
+	if err != nil || components == nil || len(components.PhotoReferences) == 0 {
+		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{
+			"error": "google'da bu mekan için fotoğraf bulunamadı",
+		})
+	}
+
+	refs := components.PhotoReferences
+	if len(refs) > maxGooglePhotosPerVenue {
+		refs = refs[:maxGooglePhotosPerVenue]
+	}
+
+	added := 0
+	for _, ref := range refs {
+		fetchCtx, cancel := context.WithTimeout(context.Background(), photoFetchTimeout)
+		body, contentType, fetchErr := h.placesService.FetchPhoto(fetchCtx, ref, defaultPhotoWidth)
+		if fetchErr != nil {
+			cancel()
+			log.Printf("[VENUE] backfill fotoğraf alınamadı (venue=%s): %v", venueID, fetchErr)
+			continue
+		}
+		storedURL, storeErr := h.storageService.StoreStream(
+			c.Context(), io.LimitReader(body, maxPhotoBytes), contentType,
+		)
+		body.Close()
+		cancel()
+		if storeErr != nil {
+			log.Printf("[VENUE] backfill fotoğraf kaydedilemedi (venue=%s): %v", venueID, storeErr)
+			continue
+		}
+
+		photo := &models.VenuePhoto{
+			VenueID:    venueID,
+			URL:        storedURL,
+			UploadedBy: userID,
+			IsPrimary:  added == 0,
+		}
+		if err := h.venueRepo.AddPhoto(c.Context(), photo); err == nil {
+			added++
+		}
+	}
+
+	if added == 0 {
+		return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"error": "fotoğraf eklenemedi"})
+	}
+
+	photos, _ := h.venueRepo.GetPhotosByVenueID(c.Context(), venueID)
+	return c.JSON(fiber.Map{"added": added, "photos": photos})
+}
+
 // SetPrimaryPhoto godoc
 // PUT /api/v1/venues/:id/photos/:photoId/primary  (Admin)
 //

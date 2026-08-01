@@ -283,6 +283,12 @@ func main() {
 		middleware.RequireRole("admin"),
 		venueHandler.SetPrimaryPhoto,
 	)
+	// Fotoğrafsız kalmış mekanları Google'dan telafi eder (bkz. handler notu).
+	api.Post("/venues/:id/photos/backfill",
+		middleware.Auth(cfg.JWTSecret),
+		middleware.RequireRole("admin"),
+		venueHandler.BackfillGooglePhotos,
+	)
 	api.Put("/venues/:id",
 		middleware.Auth(cfg.JWTSecret),
 		middleware.RequireRole("guide", "admin"),

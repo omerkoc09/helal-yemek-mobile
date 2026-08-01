@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"fmt"
+	"io"
 	"mime/multipart"
 	"net/http"
 	"path/filepath"
@@ -95,6 +96,28 @@ func contentTypeForExt(ext string) string {
 	default:
 		return "image/jpeg"
 	}
+}
+
+// StoreStream — hazır bir okuyucudan gelen görseli depoya yazar ve anahtarını döner.
+//
+// DownloadAndStore'dan farkı: adresi kendisi çözmez. Places fotoğrafları artık
+// istemciye GÖRELİ proxy yolu olarak veriliyor (`/api/v1/places/photo?ref=...`),
+// dolayısıyla o adresten indirme yapılamaz; çağıran photo_reference'ı çözüp
+// gövdeyi buraya verir. SSRF guard'ı atlamaz — indirmeyi sunucu kendisi yapar.
+func (s *StorageService) StoreStream(ctx context.Context, body io.Reader, contentType string) (string, error) {
+	ext := ".jpg"
+	switch {
+	case strings.Contains(contentType, "png"):
+		ext = ".png"
+	case strings.Contains(contentType, "webp"):
+		ext = ".webp"
+	}
+
+	uniqueName := fmt.Sprintf("%s_%d%s", uuid.New().String(), time.Now().UnixMilli(), ext)
+	if err := s.blobs.Put(ctx, uniqueName, body, contentTypeForExt(ext)); err != nil {
+		return "", err
+	}
+	return uniqueName, nil
 }
 
 // DownloadAndStore — uzak bir URL'den fotoğrafı indirir, diske kaydeder ve kendi URL'sini döndürür.
