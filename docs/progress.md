@@ -1,6 +1,7 @@
 # İtimat — Proje İlerleme Durumu
 
-> Son güncelleme: 2026-07-30
+> Son güncelleme: 2026-08-02 — **cross-platform (Android + iOS) yayına hazırlık.** Güncel
+> yol haritası: aşağıdaki "Cross-Platform Yayın Yol Haritası (2026-08-02)" bölümü.
 Mevcut Durum Notu: Proje genel hatlarıyla Faz 5'e (Test & Yayın) geçmiş gibi görünse de, Faz 1-4 arasındaki bazı özelliklerde (MVP çekirdeği) mimari değişiklikler, UX revizyonları ve bug fix'ler yapılmaktadır. Bir modülü düzenlerken, eski kodun kusursuz olduğunu varsayma; refactoring (kod iyileştirme) ve mantık değişiklikleri yapmak serbesttir ve gereklidir.
 ---
 
@@ -43,7 +44,10 @@ add cta button in the bottom navigation (for guides it can be adding new venue f
 
 admin panel üzerinden manuel notification atma
 
-smtp env yi doldur.
+smtp env yi doldur. → **(2026-08-02 durum)** Kod tarafı Resend'e hazır (zarf adresi
+`SMTP_FROM`'dan, host varsayılanı `smtp.resend.com`); `SMTP_USER`/`SMTP_PASSWORD` bilinçli
+boş → Noop devrede. Kalan bloker kod değil: doğrulanmış gönderen **alan adı** gerekiyor
+(domain kararına bağlı — bkz. yol haritası Adım 1).
 
 mekan puanlamasını çeşitlendirme?
 
@@ -70,6 +74,56 @@ hem panelden hangi şehirlerde kaç tane rehber olduğunu görürüz (harita man
 
 
 ## Tamamlanan İşler
+
+### Düzeltme Önerisi Sisteminin Kaldırılması + Admin Panel Sadeleştirme — YENİ
+
+> 2026-08-03'te tamamlandı. Correction (düzeltme önerisi) sistemi tamamen kaldırıldı.
+> Rehber, mekanı öneri gönderip admin onayı beklemek yerine **doğrudan düzenliyor**;
+> dolayısıyla sistem uçtan uca ölü koddu. Doğrulama: mobil ve admin panel dahil hiçbir
+> istemcide tek bir `corrections` referansı yoktu, yerel DB'de `correction_suggestions`
+> tablosu **0 kayıt** içeriyordu.
+
+| Değişiklik | Durum | Detay |
+|------------|-------|-------|
+| Admin panel "Düzeltmeler" sayfası | ✅ silindi | `corrections.vue` + menü girdisi |
+| Admin panel "Audit Log" sayfası | ✅ silindi | `audit-logs.vue` + menü girdisi (kullanılmıyordu) |
+| Backend correction katmanı | ✅ silindi | handler, repo, model, test dosyası |
+| 3 endpoint | ✅ silindi | `POST /venues/:id/corrections`, `GET/PUT /admin/corrections` |
+| `correction_suggestions` tablosu | ✅ düşürüldü | migration `049_drop_correction_suggestions` |
+| `docs/techContext.md` endpoint listesi | ✅ güncellendi | 3 satır çıkarıldı |
+
+**Audit log'a DOKUNULMADI — bilinçli karar.** Sadece *görüntüleyen* admin sayfası
+kaldırıldı; `writeAuditLog` ile yazma tarafı aktif ve yaygın (18 çağrı noktası: mekan
+onay/red/sil/güncelle, kullanıcı CRUD, rehber başvuru kararları, katalog işlemleri).
+Kayıtlar `audit_logs` tablosunda birikmeye devam ediyor, erişim şimdilik yalnızca SQL ile.
+`GET /admin/audit-logs` endpoint'i duruyor ama tüketicisi yok.
+
+Doğrulama: `go build ./...`, `go vet`, `go test ./...` tamamı temiz; migration up/down
+gerçek DB'de çalıştırılarak test edildi (tablo düştü → down ile geri geldi → tekrar düşürüldü).
+
+### Admin Panel: Mekan Raporları Master/Detail — YENİ
+
+> 2026-08-03'te tamamlandı. Rapor sayfası düz tablodan iki sütunlu master/detail
+> düzenine geçti: solda tarihe göre sıralı rapor kartları, sağda seçili raporun
+> ayrıntısı. İki gerçek veri boşluğu kapandı — kullanıcının rapora yazdığı **not**
+> (`description`) hiç gösterilmiyordu, ve bildiren kullanıcıdan yalnızca isim
+> geliyordu. Tasarım: `docs/superpowers/specs/2026-08-03-mekan-raporlari-master-detail-design.md`.
+
+| Değişiklik | Durum | Detay |
+|------------|-------|-------|
+| Rapor notu detayda görünüyor | ✅ | `description` alanı; boşsa "Not eklenmemiş" |
+| Bildiren kullanıcı bilgileri genişletildi | ✅ | `List` sorgusuna `u2.surname`, `u2.phone`, `u2.role` eklendi; migration gerekmedi |
+| Master/detail düzeni | ✅ | `extable` bırakıldı, sayfa listeyi tek seferde çekip kendi düzenini kuruyor |
+| Sebep kodları Türkçeleştirildi | ✅ | Etiketler mobildeki `report_venue_sheet.dart` ile birebir |
+| Çözümleme sonrası seçim korunuyor | ✅ | Liste yenilenince rapor id ile eşleşiyor, admin listenin başına atılmıyor |
+| "Mekana git" aksiyonu | ✅ | `/venues/{id}` admin detay sayfasına yönlendirir |
+
+**Kapsam dışı:** bildiren kullanıcının şehri gösterilmiyor — `users` tablosunda
+gezginler için şehir alanı yok, yalnızca rehberlerde `guide_city` var. Detaydaki
+şehir raporlanan **mekanın** şehri.
+
+Doğrulama: backend `go build` + `go test ./internal/handlers/ -run VenueReport` temiz
+(tüm alt testler PASS), admin panel `vue-tsc --noEmit` ve `vite build` temiz.
 
 ### Ana Sayfa Araması + İlçe Önerileri — YENİ
 
@@ -1058,12 +1112,16 @@ kullanıcıda.
 
 ### 🟡 Faz 4 — Store Yayını `[ ]`
 
-- [ ] iOS code signing + provisioning profile
+> **2026-08-02:** Bu faz artık aktif hedef — detaylı ve güncel sıra için dosya sonundaki
+> "Cross-Platform Yayın Yol Haritası (2026-08-02)" bölümüne bak. Durum bugün doğrulandı:
+> release keystore hâlâ üretilmemiş (`mobile/android/key.properties` yok).
+
+- [ ] iOS code signing + provisioning profile (Apple Developer Program üyeliği dahil)
 - [ ] Android keystore + signing config
 - [ ] App Store Connect / Google Play Console metadata
 - [ ] App ikonu + splash screen
-- [ ] Privacy policy + terms of service sayfaları
-- [ ] Store screenshot'ları
+- [ ] Privacy policy + terms of service sayfaları (hosting/domain'e bağlı)
+- [ ] Store screenshot'ları (Play + App Store ayrı ayrı)
 
 ---
 
@@ -1121,7 +1179,7 @@ kullanıcıda.
 | Faz 1 | Test kapsamı (handlers %39.9, services %29.7, jwt %85.7) | ✅ Kritik yollar kapsandı; 1 güvenlik açığı bulunup düzeltildi (JWT tip ayrımı) |
 | Faz 2 | Prod altyapı (Docker, CI, logging, readiness) | 🔶 Çekirdek tamam — secret/TLS/backup/monitoring hosting kararına bağlı |
 | Faz 3 | S3 depolama + göreli yol + fotoğraf proxy | ✅ Tamamlandı (MinIO ile doğrulandı; Maps anahtarı borcu kapandı) |
-| Faz 4 | Store yayını | ⬜ Başlanmadı |
+| Faz 4 | Store yayını | 🔶 **Aktif hedef (2026-08-02)** — kod hazır, konsol/hesap işleri bekliyor |
 
 *Her bir madde için detaylı implementasyon planları ayrı MD dosyalarında hazırlanacaktır.*
 
@@ -1536,3 +1594,51 @@ Yani düzeltmenin gerçekten çözdüğü ölçüldü, varsayılmadı.
 kodu değil ölçümü sorgulamak için sinyaldi.
 
 **Doğrulama:** mobil **220 PASS** (217'den), analyzer 0 hata/uyarı.
+
+---
+
+## Cross-Platform Yayın Yol Haritası (2026-08-02)
+
+> 2026-07-28 yol haritasının **kod + git doğrulamalı** güncellemesi. Hedef: Android (Play)
+> + iOS (App Store) eş zamanlı yayın. **Kod tarafında yayın blokeri kalmadı** — kalan
+> blokerlerin tamamı hesap/konsol/karar işleri. Ayrıntılı sürüm:
+> `.superpowers/sdd/progress.md` → "CROSS-PLATFORM YAYIN YOL HARİTASI (2026-08-02)".
+
+### 2026-07-28'den bu yana bitenler (özet)
+
+| İş | Tarih | Yayına etkisi |
+|----|-------|---------------|
+| Şifre sıfırlama akışı (uçtan uca, mutasyon-testli) | 2026-07-29 | Adım 4'ün son açık ürün boşluğu kapandı |
+| SMTP Resend hazırlığı (zarf adresi, host varsayılanı) | 2026-07-29 | Tek kalan bloker: doğrulanmış domain (kod değil) |
+| Arama UX (unaccent, ilçe+kategori, öneri akışı, overlay) | 2026-07-29/30 | — |
+| Çoklu mekan fotoğrafı + admin'den kapak değiştirme | 2026-08-01 | — |
+| KRİTİK: fotoğraflar 11 Temmuz'dan beri hiç kaydedilmiyordu → fix + backfill | 2026-08-01 | Release smoke testinde fotoğraf akışı özel olarak test edilmeli |
+| Galeri kaydırma fix'i, mekan ekleme 5 düzeltme, auth logo | 2026-08-01/02 | — |
+
+Doğrulama: mobil **220 PASS**, analyzer 0 hata/uyarı, backend build+vet+test temiz,
+`main == origin/main`, working tree temiz.
+
+### Kalan yol (kritik sıra)
+
+**1. Hosting + domain kararı — HÂLÂ AÇIK, her şeyi blokluyor.** TLS, secret yönetimi,
+DB backup, monitoring, privacy policy sayfaları **ve artık SMTP** (Resend domain
+doğrulatıyor) bu karara bağlı. Karar verilince: prod Postgres+PostGIS, migration'lar,
+deploy + `/ready` doğrulaması, SMTP env doldurma (+ gerçek mail testi — yanlış SMTP
+bilgisi sessizce yutuluyor, "Bilinen tuzak" notuna bak).
+
+**2. Anahtar & kimlik (paralel yürüyebilir).** Release keystore üret + parola yedekle
+(bugün doğrulandı: `key.properties` yok), release SHA-1 → Firebase, Maps anahtarı bölme
+(mobil SDK kısıtlı / backend IP kısıtlı), **iOS: Apple Developer üyeliği + signing +
+provisioning** (iOS projesi yapılandırılmış, imza yok), prod build `--dart-define`.
+
+**3. Store yayını (iki mağaza).** Privacy policy + terms (ikisi için de zorunlu), ikon +
+splash, metadata + TR screenshot'lar (mağaza başına ayrı), Play internal testing (AAB),
+TestFlight → Apple incelemesi (günler sürebilir, takvimde pay bırak), gerçek cihazda
+release smoke testi (Android + iOS; fotoğraf akışına özel dikkat).
+
+**Temizlik:** bayat lokal branch'ler duruyor (feat/mekan-sehir-kisiti, feat/rehber-sehir-baglama
+— origin'leri silinmiş; feat/notification-system, feat/liste-sayfalari-arama-filtre) —
+içerik main'de, teyit edip sil.
+
+**Yayın SONRASI backlog değişmedi:** retry mekanizması, eşzamanlılık kanıt testleri,
+handler bölme, pagination, FCM push, dark mode, mobil WARNING_DAYS eşiğini API'den taşıma.
