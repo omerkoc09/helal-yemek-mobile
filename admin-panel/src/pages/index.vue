@@ -42,7 +42,7 @@ const cards = computed(() => [
   { title: 'Toplam Mekan', value: stats.value.venues, icon: 'tabler-building-store', color: 'primary' },
   { title: 'Bekleyen Mekan', value: stats.value.pending, icon: 'tabler-clock-hour-4', color: 'warning' },
   { title: 'Toplam Kullanıcı', value: stats.value.users, icon: 'tabler-users', color: 'info' },
-  { title: 'Guide Başvurusu', value: stats.value.applications, icon: 'tabler-user-plus', color: 'success' },
+  { title: 'Rehber Başvurusu', value: stats.value.applications, icon: 'tabler-user-plus', color: 'success' },
 ])
 </script>
 
