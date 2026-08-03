@@ -21,15 +21,75 @@ const columns: ITableColumn[] = [
   { key: 'name', name: 'AD', sortable: true },
 ]
 
+// ── Kategori görseli ─────────────────────────────────────────────────────────
+
+const imageFile = ref<File | null>(null)
+const imageUploading = ref(false)
+
+// Seçilen dosyanın önizlemesi; kaydedilmiş görselden önce gösterilir.
+const imagePreview = ref<string | null>(null)
+
+watch(imageFile, file => {
+  if (imagePreview.value)
+    URL.revokeObjectURL(imagePreview.value)
+
+  imagePreview.value = file ? URL.createObjectURL(file) : null
+})
+
+onBeforeUnmount(() => {
+  if (imagePreview.value)
+    URL.revokeObjectURL(imagePreview.value)
+})
+
+// Hata mesajını döndürür (yoksa null) — çağıran taraf nasıl göstereceğine karar verir.
+async function uploadImage(): Promise<string | null> {
+  if (!imageFile.value || !form.value.id)
+    return null
+
+  imageUploading.value = true
+
+  const fd = new FormData()
+
+  fd.append('image', imageFile.value)
+
+  const [error, data] = await ApiService.post<{ image_url: string }>(
+    `admin/food-categories/${form.value.id}/image`,
+    fd,
+  )
+
+  imageUploading.value = false
+  if (error)
+    return error
+
+  form.value.image_url = data?.image_url ?? form.value.image_url
+  imageFile.value = null
+
+  return null
+}
+
+// Düzenleme modalındaki "Yükle" butonu — anında yükler ve sonucu bildirir.
+async function uploadImageNow() {
+  const error = await uploadImage()
+  if (error)
+    return ErrorPopup(error)
+
+  SuccessToast()
+  tableRef.value?.refresh?.()
+}
+
+// ── Kategori CRUD ────────────────────────────────────────────────────────────
+
 function openCreate() {
   isCreate.value = true
   form.value = { name: '' }
+  imageFile.value = null
   tableRef.value?.openCreateModal?.()
 }
 
 function openEdit(row: FoodCategory) {
   isCreate.value = false
   form.value = { ...row }
+  imageFile.value = null
   tableRef.value?.openEditModal?.()
 }
 
@@ -42,6 +102,14 @@ async function onSubmit() {
       return error
 
     form.value.id = data?.id
+
+    // Görsel yalnızca kategori oluştuktan sonra yüklenebilir (endpoint id istiyor).
+    // Yükleme başarısız olsa da kategori korunur; admin düzenlemeden tekrar deneyebilir.
+    if (imageFile.value && form.value.id) {
+      const uploadError = await uploadImage()
+      if (uploadError)
+        ErrorPopup(`Kategori oluşturuldu ancak görsel yüklenemedi: ${uploadError}`)
+    }
 
     return null
   }
@@ -58,36 +126,6 @@ async function onDelete(row: FoodCategory) {
   const [error] = await ApiService.delete(`admin/food-categories/${row.id}`)
   if (error)
     return ErrorPopup(error)
-  SuccessToast()
-  tableRef.value?.refresh?.()
-}
-
-// ── Kategori görseli ─────────────────────────────────────────────────────────
-
-const imageFile = ref<File | null>(null)
-const imageUploading = ref(false)
-
-async function uploadImage() {
-  if (!imageFile.value || !form.value.id)
-    return
-
-  imageUploading.value = true
-
-  const fd = new FormData()
-
-  fd.append('image', imageFile.value)
-
-  const [error, data] = await ApiService.post<{ image_url: string }>(
-    `admin/food-categories/${form.value.id}/image`,
-    fd,
-  )
-
-  imageUploading.value = false
-  if (error)
-    return ErrorPopup(error)
-
-  form.value.image_url = data?.image_url ?? form.value.image_url
-  imageFile.value = null
   SuccessToast()
   tableRef.value?.refresh?.()
 }
@@ -169,52 +207,56 @@ async function uploadImage() {
         class="mb-3"
       />
 
-      <template v-if="!iscreateform">
-        <div class="d-flex align-center gap-3 mb-5">
-          <VImg
-            v-if="form.image_url"
-            :src="form.image_url"
-            width="64"
-            height="64"
-            cover
-            class="rounded flex-grow-0"
+      <div class="d-flex align-center gap-3 mb-5">
+        <VImg
+          v-if="imagePreview || form.image_url"
+          :src="imagePreview || form.image_url"
+          width="64"
+          height="64"
+          cover
+          class="rounded flex-grow-0"
+        />
+        <VAvatar
+          v-else
+          size="64"
+          rounded
+          color="grey-lighten-2"
+        >
+          <VIcon
+            icon="tabler-photo-off"
+            size="24"
           />
-          <VAvatar
-            v-else
-            size="64"
-            rounded
-            color="grey-lighten-2"
-          >
-            <VIcon
-              icon="tabler-photo-off"
-              size="24"
-            />
-          </VAvatar>
-          <VFileInput
-            v-model="imageFile"
-            label="Kategori Görseli"
-            accept="image/*"
-            prepend-icon="tabler-camera"
-            density="compact"
-            hide-details
-            class="flex-grow-1"
-          />
-          <VBtn
-            :loading="imageUploading"
-            :disabled="!imageFile"
-            color="primary"
-            variant="tonal"
-            @click="uploadImage"
-          >
-            Yükle
-          </VBtn>
-        </div>
+        </VAvatar>
+        <VFileInput
+          v-model="imageFile"
+          label="Kategori Görseli"
+          accept="image/*"
+          prepend-icon="tabler-camera"
+          density="compact"
+          hide-details
+          class="flex-grow-1"
+        />
+        <!--
+          Ekleme sırasında kategori henüz oluşmadığı için görsel Kaydet ile
+          birlikte yüklenir; düzenlemede anında yüklenebilir.
+        -->
+        <VBtn
+          v-if="!iscreateform"
+          :loading="imageUploading"
+          :disabled="!imageFile"
+          color="primary"
+          variant="tonal"
+          @click="uploadImageNow"
+        >
+          Yükle
+        </VBtn>
+      </div>
 
-        <VDivider class="mb-4" />
-      </template>
+      <VDivider class="mb-4" />
 
       <VBtn
         type="submit"
+        :loading="imageUploading"
         block
         color="primary"
       >
