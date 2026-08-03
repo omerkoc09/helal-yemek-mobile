@@ -29,7 +29,7 @@ func (r *VenueReportRepo) List(ctx context.Context) ([]models.VenueReport, error
 		`SELECT
 			vr.id, vr.venue_id, v.name, v.city,
 			u1.name, u1.email, v.created_at,
-			vr.user_id, u2.name, u2.email,
+			vr.user_id, u2.name, u2.surname, u2.email, u2.phone, u2.role,
 			vr.reason, vr.description, vr.status, vr.created_at
 		 FROM venue_reports vr
 		 JOIN venues v  ON v.id  = vr.venue_id
@@ -48,7 +48,7 @@ func (r *VenueReportRepo) List(ctx context.Context) ([]models.VenueReport, error
 		if err := rows.Scan(
 			&rp.ID, &rp.VenueID, &rp.VenueName, &rp.VenueCity,
 			&rp.AddedByName, &rp.AddedByEmail, &rp.VenueAddedAt,
-			&rp.UserID, &rp.ReporterName, &rp.ReporterEmail,
+			&rp.UserID, &rp.ReporterName, &rp.ReporterSurname, &rp.ReporterEmail, &rp.ReporterPhone, &rp.ReporterRole,
 			&rp.Reason, &rp.Description, &rp.Status, &rp.CreatedAt,
 		); err != nil {
 			return nil, err
