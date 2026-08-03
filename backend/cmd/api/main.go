@@ -64,7 +64,6 @@ func main() {
 	venueRepo := repository.NewVenueRepo(pool)
 	reviewRepo := repository.NewReviewRepo(pool)
 	favoriteRepo := repository.NewFavoriteRepo(pool)
-	correctionRepo := repository.NewCorrectionRepo(pool)
 	guideRepo := repository.NewGuideRepo(pool)
 	auditRepo := repository.NewAuditRepo(pool)
 	venueReportRepo := repository.NewVenueReportRepo(pool)
@@ -122,7 +121,6 @@ func main() {
 	venueHandler := handlers.NewVenueHandler(venueRepo, userRepo, storageService, placesService, verifLogRepo, directionRepo, cfg.VerificationPeriodDays)
 	reviewHandler := handlers.NewReviewHandler(reviewRepo)
 	favoriteHandler := handlers.NewFavoriteHandler(favoriteRepo)
-	correctionHandler := handlers.NewCorrectionHandler(correctionRepo, auditRepo)
 	guideHandler := handlers.NewGuideHandler(guideRepo, venueRepo)
 	adminHandler := handlers.NewAdminHandler(venueRepo, guideRepo, userRepo, auditRepo, verifLogRepo, reviewRepo, loginRepo, directionRepo, schedulerSvc, storageService, cfg.VerificationPeriodDays)
 	venueReportHandler := handlers.NewVenueReportHandler(venueReportRepo)
@@ -344,13 +342,6 @@ func main() {
 		venueReportHandler.Create,
 	)
 
-	// Correction endpoint'leri (Guide)
-	api.Post("/venues/:id/corrections",
-		middleware.Auth(cfg.JWTSecret),
-		middleware.RequireRole("guide", "admin"),
-		correctionHandler.Create,
-	)
-
 	// Guide endpoint'leri
 	guide := api.Group("/guide", middleware.Auth(cfg.JWTSecret))
 	guide.Post("/apply", guideHandler.Apply)
@@ -382,10 +373,6 @@ func main() {
 	admin.Get("/venues/:id/confirming-guides", adminHandler.GetVenueConfirmingGuides)
 	admin.Post("/scheduler/run", adminHandler.RunSchedulerNow)
 	admin.Put("/venues/:id/reactivate", adminHandler.ReactivateVenue)
-
-	// Corrections
-	admin.Get("/corrections", correctionHandler.ListPending)
-	admin.Put("/corrections/:id", correctionHandler.Review)
 
 	// Guide başvuruları
 	admin.Get("/applications", adminHandler.ListApplications)

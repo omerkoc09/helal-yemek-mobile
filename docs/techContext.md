@@ -119,7 +119,6 @@ itimat-mobile-backend/
 |---|---|---|---|---|
 | POST | `/api/v1/guide/apply` | Guide başvurusu | ✅ | Traveler |
 | GET | `/api/v1/guide/my-venues` | Kendi mekanları | ✅ | Guide+ |
-| POST | `/api/v1/venues/:id/corrections` | Düzeltme önerisi | ✅ | Guide+ |
 
 ### Admin Endpoints
 | Method | Path | Açıklama | Auth | Role |
@@ -130,8 +129,6 @@ itimat-mobile-backend/
 | GET | `/api/v1/admin/applications` | Guide başvuruları | ✅ | Admin |
 | PUT | `/api/v1/admin/applications/:id/approve` | Başvuru onaylama | ✅ | Admin |
 | PUT | `/api/v1/admin/applications/:id/reject` | Başvuru reddetme | ✅ | Admin |
-| GET | `/api/v1/admin/corrections` | Düzeltme önerileri | ✅ | Admin |
-| PUT | `/api/v1/admin/corrections/:id` | Düzeltme işleme | ✅ | Admin |
 | GET | `/api/v1/admin/audit-logs` | Audit log listesi | ✅ | Admin |
 | GET | `/api/v1/admin/users` | Kullanıcı listesi | ✅ | Admin |
 
