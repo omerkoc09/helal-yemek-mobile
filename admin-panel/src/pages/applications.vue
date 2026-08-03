@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import ApiService from '@/services/ApiService'
-import { SuccessToast, WarningPopup, ErrorPopup } from '@/utils/Popup'
+import { ErrorPopup, SuccessToast, WarningPopup } from '@/utils/Popup'
 import type { ITableColumn } from '@/model/table'
 
 definePage({ meta: { role: ['admin'] } })
@@ -20,7 +20,7 @@ async function action(url: string, row: any, confirmText: string) {
   const c = await WarningPopup(confirmText, 'Evet', 'Hayır')
   if (!c.isConfirmed)
     return
-  const [error] = await ApiService.put('admin/applications/' + row.id + url, {})
+  const [error] = await ApiService.put(`admin/applications/${row.id}${url}`, {})
   if (error)
     return ErrorPopup(error)
   SuccessToast()
@@ -29,7 +29,7 @@ async function action(url: string, row: any, confirmText: string) {
 </script>
 
 <template>
-  <extable
+  <Extable
     ref="tableRef"
     api-url="admin/applications"
     :columns="columns"
@@ -39,15 +39,35 @@ async function action(url: string, row: any, confirmText: string) {
     @update:form="v => form = v"
   >
     <template #status="{ row }">
-      <VChip size="small">{{ row.status }}</VChip>
+      <VChip size="small">
+        {{ row.status }}
+      </VChip>
     </template>
     <template #actions="{ row }">
-      <VBtn icon size="small" variant="text" color="success" @click="action('/approve', row, 'Başvuru onaylansın mı?')">
-        <VIcon icon="tabler-check" size="22" />
+      <VBtn
+        icon
+        size="small"
+        variant="text"
+        color="success"
+        @click="action('/approve', row, 'Başvuru onaylansın mı?')"
+      >
+        <VIcon
+          icon="tabler-check"
+          size="22"
+        />
       </VBtn>
-      <VBtn icon size="small" variant="text" color="warning" @click="action('/reject', row, 'Başvuru reddedilsin mi?')">
-        <VIcon icon="tabler-x" size="22" />
+      <VBtn
+        icon
+        size="small"
+        variant="text"
+        color="warning"
+        @click="action('/reject', row, 'Başvuru reddedilsin mi?')"
+      >
+        <VIcon
+          icon="tabler-x"
+          size="22"
+        />
       </VBtn>
     </template>
-  </extable>
+  </Extable>
 </template>

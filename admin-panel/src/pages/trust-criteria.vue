@@ -61,6 +61,7 @@ async function onDelete(row: TrustCriteria) {
     'Evet',
     'Hayır',
   )
+  
   if (!c.isConfirmed)
     return
   const [error] = await ApiService.delete(`admin/trust-criteria/${row.id}`)

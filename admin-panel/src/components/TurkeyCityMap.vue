@@ -16,7 +16,6 @@ const svgWrap = ref<HTMLElement | null>(null)
 // İmleci takip eden HTML tooltip durumu.
 const tooltip = reactive({ show: false, text: '', x: 0, y: 0 })
 
-
 function paint() {
   const root = svgWrap.value?.querySelector('svg')
   if (!root)
@@ -52,6 +51,7 @@ function paint() {
         p.style.stroke = '#ffffff'
         p.style.strokeWidth = '0.5'
       })
+
       // Hover tooltip için veriyi her parçaya işaretle (listener delegasyonu paint dışında).
       g.dataset.tooltip = `${city} — ${count} ${props.unit}`
     })
@@ -66,12 +66,16 @@ function paint() {
         badge = document.createElementNS('http://www.w3.org/2000/svg', 'g')
         badge.setAttribute('data-badge', '1')
         badge.setAttribute('pointer-events', 'none')
+
         const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle')
+
         circle.setAttribute('r', '9')
         circle.setAttribute('fill', 'rgba(255,0, 0, 1)')
         circle.setAttribute('stroke', 'rgba(0,0,0,0.15)')
         circle.setAttribute('stroke-width', '0.5')
+
         const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
+
         text.setAttribute('text-anchor', 'middle')
         text.setAttribute('dominant-baseline', 'central')
         text.setAttribute('font-size', '9')
@@ -80,13 +84,16 @@ function paint() {
         group.appendChild(badge)
       }
       badge.setAttribute('transform', `translate(${c.cx},${c.cy})`)
+
       const badgeText = badge.querySelector('text')!
+
       badgeText.setAttribute('fill', '#ffffff')
       badgeText.textContent = String(count)
     }
     else {
       group.querySelector('g[data-badge="1"]')?.remove()
     }
+
     // eski düz label varsa temizle
     label?.remove()
   }
@@ -104,6 +111,7 @@ function onMove(e: MouseEvent) {
     return
   }
   const rect = wrap.getBoundingClientRect()
+
   tooltip.text = group.dataset.tooltip
   tooltip.x = e.clientX - rect.left
   tooltip.y = e.clientY - rect.top
@@ -125,6 +133,7 @@ const legend = [
   { label: '7–10', count: 7 },
   { label: '11+', count: 11 },
 ]
+
 function legendStyle(count: number) {
   return { backgroundColor: colorForCount(count) }
 }
@@ -152,8 +161,15 @@ const unitLabel = computed(() => props.unit.charAt(0).toLocaleUpperCase('tr-TR')
     </div>
     <div class="d-flex align-center flex-wrap gap-3 mt-4 px-2">
       <span class="text-caption text-medium-emphasis me-2">{{ unitLabel }} sayısı:</span>
-      <div v-for="item in legend" :key="item.label" class="d-flex align-center gap-1">
-        <span class="legend-swatch" :style="legendStyle(item.count)" />
+      <div
+        v-for="item in legend"
+        :key="item.label"
+        class="d-flex align-center gap-1"
+      >
+        <span
+          class="legend-swatch"
+          :style="legendStyle(item.count)"
+        />
         <span class="text-caption">{{ item.label }}</span>
       </div>
     </div>

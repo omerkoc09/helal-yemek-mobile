@@ -235,6 +235,7 @@ const applyClientPaging = () => {
   if (sortColumn.value) {
     const col = sortColumn.value
     const dir = sortOrder.value === 'asc' ? 1 : -1
+
     data.sort((a, b) => {
       const av = a[col]
       const bv = b[col]
@@ -257,12 +258,15 @@ const applyClientPaging = () => {
   pagination.value.totalPage = Math.max(1, Math.ceil(data.length / pagination.value.rowPerPage))
 
   const start = (pagination.value.currentPage - 1) * pagination.value.rowPerPage
+
   rows.value = data.slice(start, start + pagination.value.rowPerPage)
 }
 
 const fetchData = async () => {
   loading.value = true
+
   const [error, resp] = await ApiService.get<any[]>(props.apiUrl)
+
   loading.value = false
   if (error)
     return ErrorPopup(error)
@@ -290,6 +294,7 @@ const onSubmit = async () => {
   formLoading.value = true
   if (props.onSubmit) {
     const error = await props.onSubmit()
+
     formLoading.value = false
     if (error)
       return ErrorPopup(error)
@@ -452,62 +457,62 @@ defineExpose({ refresh, openEditModal, openCreateModal })
         <VTable class="text-no-wrap">
           <!-- 👉 table head -->
           <thead>
-          <tr>
-            <th
-              v-for="(column, i) in columns"
-              :key="i"
-              scope="col"
-              :style="{ 'max-width': column.max_width }"
-              @click="
+            <tr>
+              <th
+                v-for="(column, i) in columns"
+                :key="i"
+                scope="col"
+                :style="{ 'max-width': column.max_width }"
+                @click="
                   sort(
                     column.sortable,
                     column.sortField ? column.sortField : column.key,
                     column.sortFieldType,
                   )
                 "
-            >
-              <div
-                class="d-flex align-center"
-                :class="{ 'justify-end mr-1': i + 1 === columns.length }"
               >
+                <div
+                  class="d-flex align-center"
+                  :class="{ 'justify-end mr-1': i + 1 === columns.length }"
+                >
                   <span
                     style="cursor: pointer"
                     class="text-center"
                   >
                     {{ column.name }}
                   </span>
-                <VIcon
-                  v-if="sortColumn === column.key"
-                  :icon="sortOrder === 'asc' ? 'material-symbols:keyboard-arrow-up-rounded' : 'material-symbols:keyboard-arrow-down-rounded'"
-                />
-              </div>
-            </th>
-          </tr>
+                  <VIcon
+                    v-if="sortColumn === column.key"
+                    :icon="sortOrder === 'asc' ? 'material-symbols:keyboard-arrow-up-rounded' : 'material-symbols:keyboard-arrow-down-rounded'"
+                  />
+                </div>
+              </th>
+            </tr>
           </thead>
 
           <!-- 👉 table body -->
           <tbody>
-          <template
-            v-for="(row, i) in rows"
-            :key="i"
-          >
-            <VHover v-slot="{ isHovering, props: p }">
-              <tr
-                v-bind="p"
-                style="height: 3.75rem;"
-                :class="{ 'bg-grey-100': onRowClick && isHovering }"
-                @click="rowClick(row.id)"
-              >
-                <template
-                  v-for="(column, j) in columns"
-                  :key="j"
+            <template
+              v-for="(row, i) in rows"
+              :key="i"
+            >
+              <VHover v-slot="{ isHovering, props: p }">
+                <tr
+                  v-bind="p"
+                  style="height: 3.75rem;"
+                  :class="{ 'bg-grey-100': onRowClick && isHovering }"
+                  @click="rowClick(row.id)"
                 >
-                  <td
-                    :class="{ 'text-end': j + 1 === columns.length }"
-                    :style="{ 'max-width': column.max_width }"
+                  <template
+                    v-for="(column, j) in columns"
+                    :key="j"
                   >
-                    <span v-if="column.key === 'i'">{{ i + 1 }}</span>
-                    <span v-else-if="column.key === 'actions' && tableActions">
+                    <td
+                      :class="{ 'text-end': j + 1 === columns.length }"
+                      :style="{ 'max-width': column.max_width }"
+                    >
+                      <span v-if="column.key === 'i'">{{ i + 1 }}</span>
+                      <span v-else-if="column.key === 'actions' && tableActions">
                         <slot
                           name="actions"
                           :row="row"
@@ -539,30 +544,30 @@ defineExpose({ refresh, openEditModal, openCreateModal })
                           />
                         </VBtn>
                       </span>
-                    <slot
-                      v-else-if="slots[column.key]"
-                      :name="column.key"
-                      :row="row"
-                    />
-                    <!-- column slot olarak verilmediyse direk row içinden ilgili kolonu span olarak yaz -->
-                    <span v-else>{{ formatCell(column, row[column.key]) }}</span>
-                  </td>
-                </template>
-              </tr>
-            </VHover>
-          </template>
+                      <slot
+                        v-else-if="slots[column.key]"
+                        :name="column.key"
+                        :row="row"
+                      />
+                      <!-- column slot olarak verilmediyse direk row içinden ilgili kolonu span olarak yaz -->
+                      <span v-else>{{ formatCell(column, row[column.key]) }}</span>
+                    </td>
+                  </template>
+                </tr>
+              </VHover>
+            </template>
           </tbody>
 
           <!-- 👉 table footer  -->
           <tfoot v-show="!rows.length">
-          <tr>
-            <td
-              colspan="7"
-              class="text-center"
-            >
-              {{ emptyTableText }}
-            </td>
-          </tr>
+            <tr>
+              <td
+                colspan="7"
+                class="text-center"
+              >
+                {{ emptyTableText }}
+              </td>
+            </tr>
           </tfoot>
         </VTable>
       </VCardText>

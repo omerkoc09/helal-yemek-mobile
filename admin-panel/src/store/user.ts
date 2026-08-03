@@ -41,6 +41,7 @@ export const useUserStore = defineStore('UserStore', {
 
       const redirect = window.location.pathname + window.location.search
       const urlParams = new URLSearchParams()
+
       urlParams.set('redirect', redirect)
       document.location.href = `/auth/login?${urlParams.toString()}`
     },

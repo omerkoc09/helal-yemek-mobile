@@ -5,6 +5,7 @@ import { emailValidator, phoneValidator, requiredValidator } from '@validators'
 import { useUserStore } from '@/store/user'
 
 const loading = ref(false)
+
 const form = ref({
   name: '',
   surname: '',
@@ -15,7 +16,9 @@ const form = ref({
 
 onMounted(async () => {
   loading.value = true
+
   const [err, data] = await ApiService.get<any>('user/me')
+
   loading.value = false
   if (err)
     return ErrorPopup(err)
@@ -24,7 +27,9 @@ onMounted(async () => {
 
 const onSubmit = async () => {
   loading.value = true
+
   const [err] = await ApiService.put('user/me', form.value)
+
   loading.value = false
   if (err)
     return ErrorPopup(err)

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import ApiService from '@/services/ApiService'
-import { SuccessToast, ErrorPopup, WarningPopup } from '@/utils/Popup'
+import { ErrorPopup, SuccessToast, WarningPopup } from '@/utils/Popup'
 import { tarihSaatFormat } from '@/utils/ExDate'
 
 definePage({ meta: { role: ['admin'] } })
@@ -11,8 +11,10 @@ const loading = ref(false)
 
 async function load() {
   loading.value = true
+
   const params = new URLSearchParams({ tab: tab.value })
   const [error, data] = await ApiService.get<{ data: any[] }>('admin/verification-logs', undefined, params)
+
   loading.value = false
   if (error)
     return ErrorPopup(error)
@@ -46,15 +48,33 @@ const headers = [
   <VCard>
     <VCardText class="d-flex justify-space-between align-center">
       <VTabs v-model="tab">
-        <VTab value="verified">Doğrulanmış</VTab>
-        <VTab value="suspended">Askıda</VTab>
-        <VTab value="upcoming">Yaklaşan</VTab>
-        <VTab value="warnings">Uyarılan</VTab>
+        <VTab value="verified">
+          Doğrulanmış
+        </VTab>
+        <VTab value="suspended">
+          Askıda
+        </VTab>
+        <VTab value="upcoming">
+          Yaklaşan
+        </VTab>
+        <VTab value="warnings">
+          Uyarılan
+        </VTab>
       </VTabs>
-      <VBtn color="primary" prepend-icon="tabler-player-play" @click="runScheduler">Scheduler Çalıştır</VBtn>
+      <VBtn
+        color="primary"
+        prepend-icon="tabler-player-play"
+        @click="runScheduler"
+      >
+        Scheduler Çalıştır
+      </VBtn>
     </VCardText>
     <VCardText>
-      <VDataTable :headers="headers" :items="rows" :loading="loading">
+      <VDataTable
+        :headers="headers"
+        :items="rows"
+        :loading="loading"
+      >
         <template #item.created_at="{ item }">
           {{ item.created_at ? tarihSaatFormat(item.created_at) : '-' }}
         </template>

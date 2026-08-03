@@ -23,7 +23,9 @@ const onSubmit = async () => {
   if (!valid)
     return
   loading.value = true
+
   const [error, resp] = await ApiService.post<{ access_token: string; refresh_token: string }>('auth/login', form.value)
+
   loading.value = false
   if (error)
     return ErrorPopup(error)

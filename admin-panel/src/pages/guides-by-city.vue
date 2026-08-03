@@ -20,6 +20,7 @@ const counts = computed<Record<string, number>>(() => {
 
 onMounted(async () => {
   const [error, data] = await ApiService.get<CityCount[]>('admin/guides/by-city')
+
   loading.value = false
   if (error)
     return ErrorPopup(error)
@@ -32,15 +33,27 @@ onMounted(async () => {
     <VCol cols="12">
       <VCard title="Türkiye Rehber Yoğunluğu">
         <VCardText>
-          <VProgressLinear v-if="loading" indeterminate color="primary" />
-          <TurkeyCityMap v-else :counts="counts" unit="rehber" />
+          <VProgressLinear
+            v-if="loading"
+            indeterminate
+            color="primary"
+          />
+          <TurkeyCityMap
+            v-else
+            :counts="counts"
+            unit="rehber"
+          />
         </VCardText>
       </VCard>
     </VCol>
 
     <VCol cols="12">
       <VCard title="Şehir Bazlı Rehber Sayısı">
-        <VProgressLinear v-if="loading" indeterminate color="primary" />
+        <VProgressLinear
+          v-if="loading"
+          indeterminate
+          color="primary"
+        />
         <VTable v-else>
           <thead>
             <tr>
@@ -49,7 +62,10 @@ onMounted(async () => {
             </tr>
           </thead>
           <tbody>
-            <tr v-for="r in rows" :key="r.city">
+            <tr
+              v-for="r in rows"
+              :key="r.city"
+            >
               <td>{{ r.city }}</td>
               <td>{{ r.count }}</td>
             </tr>

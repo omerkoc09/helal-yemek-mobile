@@ -14,12 +14,16 @@ const topVenues = ref([] as { venue_id: string; name: string; city: string; coun
 let loadSeq = 0
 async function load() {
   const seq = ++loadSeq
+
   loading.value = true
+
   const [error, data] = await ApiService.get(`admin/stats/activity?days=${days.value}`)
-  if (seq !== loadSeq) return
+  if (seq !== loadSeq)
+    return
   if (error) {
     ErrorPopup(error)
     loading.value = false
+
     return
   }
   today.value = data.today
@@ -85,24 +89,52 @@ const cards = computed(() => [
   <div>
     <!-- Filtre -->
     <div class="d-flex justify-end mb-6">
-      <VBtnToggle v-model="days" mandatory divided variant="outlined" density="compact">
-        <VBtn :value="7">7 Gün</VBtn>
-        <VBtn :value="30">30 Gün</VBtn>
-        <VBtn :value="90">90 Gün</VBtn>
+      <VBtnToggle
+        v-model="days"
+        mandatory
+        divided
+        variant="outlined"
+        density="compact"
+      >
+        <VBtn :value="7">
+          7 Gün
+        </VBtn>
+        <VBtn :value="30">
+          30 Gün
+        </VBtn>
+        <VBtn :value="90">
+          90 Gün
+        </VBtn>
       </VBtnToggle>
     </div>
 
     <!-- Bugünün Özeti -->
     <VRow class="mb-6">
-      <VCol v-for="c in cards" :key="c.title" cols="12" sm="4">
+      <VCol
+        v-for="c in cards"
+        :key="c.title"
+        cols="12"
+        sm="4"
+      >
         <VCard>
           <VCardText class="d-flex align-center gap-4">
-            <VAvatar :color="c.color" variant="tonal" size="48">
-              <VIcon :icon="c.icon" size="28" />
+            <VAvatar
+              :color="c.color"
+              variant="tonal"
+              size="48"
+            >
+              <VIcon
+                :icon="c.icon"
+                size="28"
+              />
             </VAvatar>
             <div>
-              <div class="text-h5">{{ loading ? '...' : c.value }}</div>
-              <div class="text-body-2 text-disabled">{{ c.title }} (bugün)</div>
+              <div class="text-h5">
+                {{ loading ? '...' : c.value }}
+              </div>
+              <div class="text-body-2 text-disabled">
+                {{ c.title }} (bugün)
+              </div>
             </div>
           </VCardText>
         </VCard>
@@ -111,7 +143,10 @@ const cards = computed(() => [
 
     <!-- Trend Grafikleri -->
     <VRow>
-      <VCol cols="12" md="4">
+      <VCol
+        cols="12"
+        md="4"
+      >
         <VCard title="Günlük Yeni Kullanıcı">
           <VCardText>
             <BarChart
@@ -124,7 +159,10 @@ const cards = computed(() => [
         </VCard>
       </VCol>
 
-      <VCol cols="12" md="4">
+      <VCol
+        cols="12"
+        md="4"
+      >
         <VCard title="Günlük Yeni Mekan">
           <VCardText>
             <BarChart
@@ -137,7 +175,10 @@ const cards = computed(() => [
         </VCard>
       </VCol>
 
-      <VCol cols="12" md="4">
+      <VCol
+        cols="12"
+        md="4"
+      >
         <VCard title="Günlük Aktif Kullanıcı">
           <VCardText>
             <BarChart
@@ -153,7 +194,10 @@ const cards = computed(() => [
 
     <!-- Yol Tarifi: trend + en çok alınan mekanlar -->
     <VRow class="mt-2">
-      <VCol cols="12" md="6">
+      <VCol
+        cols="12"
+        md="6"
+      >
         <VCard title="Günlük Yol Tarifi">
           <VCardText>
             <BarChart
@@ -166,11 +210,22 @@ const cards = computed(() => [
         </VCard>
       </VCol>
 
-      <VCol cols="12" md="6">
+      <VCol
+        cols="12"
+        md="6"
+      >
         <VCard title="En Çok Yol Tarifi Alınan Mekanlar">
           <VCardText>
-            <div v-if="loading" class="text-disabled">...</div>
-            <div v-else-if="topVenues.length === 0" class="text-disabled">
+            <div
+              v-if="loading"
+              class="text-disabled"
+            >
+              ...
+            </div>
+            <div
+              v-else-if="topVenues.length === 0"
+              class="text-disabled"
+            >
               Bu dönemde yol tarifi kaydı yok.
             </div>
             <VList v-else>
@@ -181,7 +236,12 @@ const cards = computed(() => [
                 :subtitle="v.city"
               >
                 <template #append>
-                  <VChip color="warning" size="small">{{ v.count }}</VChip>
+                  <VChip
+                    color="warning"
+                    size="small"
+                  >
+                    {{ v.count }}
+                  </VChip>
                 </template>
               </VListItem>
             </VList>
