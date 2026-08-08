@@ -1,0 +1,12 @@
+# Gerçek secret'lar ASLA commit edilmez — yalnızca sunucuda bulunur.
+# Şablon (.env.production.example) commit edilir, doldurulmuş hâli edilmez.
+.env.production
+.env.production.*
+!.env.production.example
+
+# Yedekleme scriptinin yerel çıktıları
+backups/
+*.sql.gz
+
+# rclone kimlik bilgileri
+rclone.conf

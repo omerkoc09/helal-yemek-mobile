@@ -1,0 +1,80 @@
+# İtimat — Caddy reverse proxy yapılandırması.
+#
+# Domain env'den gelir ({$DOMAIN}), bu yüzden dosya domain değişse bile
+# düzenlenmez. TLS sertifikaları Let's Encrypt'ten otomatik alınır/yenilenir —
+# elle sertifika yönetimi yok.
+#
+# DNS gereksinimi (deploy/README.md'de ayrıntılı):
+#   api.<domain>    A  -> sunucu IP
+#   admin.<domain>  A  -> sunucu IP
+{
+	# Sertifika süresi dolmadan uyarı maili buraya gelir.
+	email {$ACME_EMAIL}
+}
+
+# ── API ───────────────────────────────────────────────────────────────────────
+# Mobil uygulama ve admin paneli buraya konuşur. /static (yerel disk modunda
+# fotoğraflar) da backend tarafından servis edildiği için ayrı kural gerekmez.
+api.{$DOMAIN} {
+	encode gzip
+
+	# X-Forwarded-* başlıkları Caddy tarafından zaten otomatik eklenir;
+	# elle tanımlamak gereksiz (caddy validate bunu uyarı olarak bildiriyor).
+	reverse_proxy api:8080
+
+	# Fotoğraf yüklemeleri 10 MB'a kadar (backend BodyLimit ile aynı).
+	# Caddy'nin varsayılanı daha düşük olsaydı yükleme sessizce kırılırdı.
+	request_body {
+		max_size 10MB
+	}
+
+	header {
+		# Tarayıcıyı HTTPS'e kilitler (mobil istemciyi etkilemez).
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		# Sunucu yazılımını ifşa etme.
+		-Server
+	}
+
+	log {
+		output file /data/access-api.log {
+			roll_size 10MB
+			roll_keep 5
+		}
+		format json
+	}
+}
+
+# ── Admin paneli ──────────────────────────────────────────────────────────────
+# Vue SPA'nın build çıktısı (admin-panel/dist) statik olarak servis edilir.
+admin.{$DOMAIN} {
+	encode gzip
+	root * /srv/admin
+
+	# SPA fallback: /venues gibi istemci tarafı rotalar sunucuda dosya olarak
+	# yok; bulunamayan yollar index.html'e düşmezse doğrudan 404 alınır ve
+	# panelde sayfa yenilemesi kırılır.
+	try_files {path} /index.html
+	file_server
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		-Server
+	}
+
+	# Hash'li asset'ler (app.a1b2c3.js) uzun süre cache'lenebilir; index.html
+	# cache'lenirse yeni sürüm kullanıcıya hiç ulaşmaz.
+	@hashed path_regexp \.[0-9a-f]{8,}\.(js|css|woff2?|png|jpg|svg)$
+	header @hashed Cache-Control "public, max-age=31536000, immutable"
+	header /index.html Cache-Control "no-cache"
+
+	log {
+		output file /data/access-admin.log {
+			roll_size 10MB
+			roll_keep 5
+		}
+		format json
+	}
+}

@@ -1,0 +1,121 @@
+# İtimat — üretim compose dosyası.
+#
+# Geliştirme compose'u (backend/docker-compose.yml) BUNDAN AYRIDIR ve öyle kalmalı:
+# orada portlar dışa açık ve şifreler sabit, çünkü amaç yerelde kolay kurulum.
+# Burada tam tersi geçerli — dışarıya yalnızca Caddy'nin 80/443 portları bakar.
+#
+# Kullanım:
+#   cd deploy
+#   cp .env.production.example .env.production   # doldur
+#   docker compose -f docker-compose.prod.yml --env-file .env.production up -d
+#
+# Ayrıntılı kurulum: deploy/README.md
+
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    # Port BİLEREK dışa açılmadı: veritabanına yalnızca compose ağı içinden
+    # erişilir. Dışarıdan psql gerekiyorsa SSH tüneli kullanılmalı
+    # (README "Veritabanına elle bağlanma"), portu açmak değil.
+    healthcheck:
+      # -q: sağlıklıyken çıktı üretme, log'u kirletmesin.
+      test: ["CMD-SHELL", "pg_isready -q -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      # DB ilk açılışta initdb + PostGIS kurulumu yaptığı için yavaş başlar.
+      # start_period boyunca başarısız denemeler "unhealthy" saymaz.
+      start_period: 30s
+
+  api:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        # Yalnız "başladı" değil, "sağlıklı" bekleniyor. Aksi halde api
+        # migration'ları DB hazır olmadan koşmayı deneyip fail-fast yapardı.
+        condition: service_healthy
+    environment:
+      # DB adresi compose ağındaki servis adıyla çözülür; sslmode=disable
+      # güvenli çünkü trafik container ağından çıkmıyor.
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?sslmode=disable
+      JWT_SECRET: ${JWT_SECRET}
+      PORT: "8080"
+
+      # CORS: admin panelinin gerçek origin'i. "*" DEĞİL — prod'da daraltılıyor.
+      CORS_ALLOW_ORIGINS: https://admin.${DOMAIN}
+
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_MAPS_API_KEY: ${GOOGLE_MAPS_API_KEY}
+
+      # Depolama — R2/S3. S3_ENDPOINT doluyken yerel disk kullanılmaz.
+      STORAGE_BUCKET: ${S3_BUCKET}
+      S3_ENDPOINT: ${S3_ENDPOINT}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY}
+      S3_SECRET_KEY: ${S3_SECRET_KEY}
+      S3_REGION: ${S3_REGION:-auto}
+      S3_USE_SSL: "true"
+      S3_PUBLIC_BASE: ${S3_PUBLIC_BASE}
+
+      SMTP_HOST: ${SMTP_HOST:-smtp.resend.com}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      SMTP_FROM: ${SMTP_FROM}
+
+      VERIFICATION_PERIOD_DAYS: ${VERIFICATION_PERIOD_DAYS:-180}
+      VERIFICATION_WARNING_DAYS: ${VERIFICATION_WARNING_DAYS:-14}
+      SCHEDULER_RUN_HOUR: ${SCHEDULER_RUN_HOUR:-2}
+
+      LOG_FORMAT: json
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      TZ: Europe/Istanbul
+    # Port yayınlanmıyor: dış dünyaya yalnızca Caddy üzerinden çıkılır.
+    expose:
+      - "8080"
+    healthcheck:
+      # /health bilerek DB'ye dokunmaz (liveness). Geçici bir DB kesintisinde
+      # container'ın yeniden başlatılıp durumu kötüleştirmesini istemiyoruz.
+      # 127.0.0.1 BİLEREK kullanıldı, "localhost" değil: alpine'daki BusyBox
+      # wget localhost'u önce IPv6 (::1) olarak çözüyor, uygulama ise
+      # 0.0.0.0:8080'de (IPv4) dinliyor → bağlantı reddediliyor ve container
+      # sonsuza dek "unhealthy" kalıyor. Yerel denemede bu şekilde yakalandı.
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Admin panelinin build çıktısı (admin-panel/dist). Salt okunur bağlanır.
+      - ../admin-panel/dist:/srv/admin:ro
+      # Sertifikalar ve ACME durumu. Bu volume KAYBOLURSA Let's Encrypt'ten
+      # sertifika yeniden istenir; haftalık limitlere takılmamak için kalıcı.
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:
