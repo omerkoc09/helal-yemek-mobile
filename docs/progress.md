@@ -1662,3 +1662,53 @@ doc'una "tüm medya gösterimleri buradan geçmeli" notu eklendi.
 
 **Doğrulama:** Aynı göreli adresin hem `localhost` hem LAN IP üzerinden 200 döndüğü
 ölçüldü (56 KB JPEG). Mobil 223 test, analyzer temiz; backend build+vet+test temiz.
+
+---
+
+## Üretim Altyapısı — Adım 1 Kod Tarafı (2026-08-02)
+
+**Commit:** e9ed4d3 · **Klasör:** `deploy/` · **Ayrıntılı kurulum:** `deploy/README.md`
+
+Hosting kararı verildi ve kod/config tarafı tamamlandı. Seçim: **Hetzner CX22 VPS +
+docker-compose + Cloudflare R2 + Resend + Caddy.** Postgres managed değil, VPS içinde
+container — PostGIS eklentisi sorunsuz çalışıyor, aylık +0 EUR, karşılığında yedekleme
+sorumluluğu bizde (script yazıldı ve geri yüklenebilirliği kanıtlandı).
+
+Her şey **domain'den bağımsız** yazıldı: değerler `.env.production`'dan gelir, domain
+alınınca yalnızca doldurulur, hiçbir dosya düzenlenmez.
+
+| Dosya | İçerik |
+|-------|--------|
+| `docker-compose.prod.yml` | db (PostGIS) + api + Caddy. **DB ve API portları dışa açılmaz**, dışarıya yalnızca 80/443 bakar. `api`, db healthcheck'i geçmeden başlamaz. Geliştirme compose'u (`backend/docker-compose.yml`) bilerek ayrı bırakıldı. |
+| `Caddyfile` | `api.<domain>` → backend, `admin.<domain>` → panelin `dist/`i. Otomatik TLS (Let's Encrypt), SPA fallback, HSTS/nosniff/DENY başlıkları, hash'li asset'lere `immutable` cache + `index.html`'e `no-cache`. |
+| `.env.production.example` | Her satırda değerin nereden alınacağı yazılı. **CORS artık `*` değil**, panelin gerçek origin'ine daraltıldı — backlog'daki "prod CORS daraltma" maddesi de böylece kapandı. |
+| `backup.sh` / `restore.sh` | `pg_dump` → gzip → R2, 7 günlük rotasyon. Yedek bozuksa veya içi boşsa script **hata verir ve dosyayı siler** — sessizce "başarılı" demez. |
+| `README.md` | Sıfırdan kuruluma kadar adımlar, güncelleme prosedürü, bilinen tuzaklar tablosu. |
+
+### Doğrulama — sunucuya çıkmadan yerelde
+
+Compose gerçekten ayağa kaldırıldı: imaj derlendi, **22 tablo migrate oldu**, PostGIS 3.4
+aktif, `/ready` → `{"database":"ok"}`, public API sorgu döndürdü, korumalı uç **401** verdi.
+Caddy `validate` uyarısız geçti; SPA fallback ve güvenlik başlıkları HTTPS üzerinden test
+edildi. **Yedek → veriyi sil → geri yükle** döngüsü çalıştırıldı: silinen kayıt geri geldi,
+API restore sonrası sağlıklı kaldı.
+
+### Bulunan iki gerçek hata (sunucuda keşfedilseydi pahalıydı)
+
+1. **Healthcheck kırıktı.** `localhost` alpine'da önce IPv6'ya (`::1`) çözülüyor, uygulama
+   ise IPv4'te (`0.0.0.0:8080`) dinliyor → bağlantı reddediliyordu. Container sonsuza dek
+   "unhealthy" kalır, `depends_on` zinciri kilitlenirdi. `127.0.0.1` ile düzeltildi.
+2. **Yedekleme scripti hiç çalışmıyordu.** Env dosyası `source` edilince `SMTP_FROM`
+   içindeki `<` karakteri shell yönlendirmesi sanılıp script satır 74'te patlıyordu.
+   Scriptler artık dosyayı source etmiyor; ihtiyaç duydukları anahtarları ayrıştırarak
+   okuyor. Şablonda da değer tırnaklandı.
+
+**Ders (yol haritasındaki önceki dersin devamı):** İkisi de yalnızca *çalıştırınca* görülen
+hatalardı — kod okumakla bulunamazdı. "Deploy dosyası yazıldı" ile "deploy çalışıyor"
+arasındaki farkı yerel bir prova kapatıyor.
+
+### Kullanıcıya kalan (konsol işleri)
+
+Domain + VPS + R2 + Resend hesapları, `.env.production`'ın doldurulması, admin panelin
+derlenmesi, ilk `compose up`, yedek cron'u ve geri yükleme provası. Adım adım:
+`deploy/README.md`.
