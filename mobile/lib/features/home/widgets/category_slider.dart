@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/api/media_url.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../food_discovery/providers/food_discovery_provider.dart';
 import '../../guide/providers/guide_provider.dart';
@@ -138,7 +139,7 @@ class _CategoryCard extends ConsumerWidget {
     if (imageUrl == null || imageUrl.isEmpty) return assetFallback();
 
     return Image.network(
-      imageUrl,
+      resolveMediaUrl(imageUrl),
       fit: BoxFit.cover,
       errorBuilder: (_, _, _) => assetFallback(),
     );

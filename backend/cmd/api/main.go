@@ -102,8 +102,16 @@ func main() {
 		storageService = services.NewStorageServiceWithBackend(s3Store)
 		log.Printf("depolama: S3 (bucket=%s)", cfg.StorageBucket)
 	} else {
+		// STORAGE_URL boşsa fotoğraf adresleri GÖRELİ üretilir ("/static/...").
+		// İstemci bunu kendi API adresine göre çözer (resolveMediaUrl), böylece
+		// geliştirmede LAN IP'si her değiştiğinde .env güncellemek gerekmez.
+		// Prod'da STORAGE_URL doluysa davranış değişmez: mutlak URL üretilir.
 		storageService = services.NewStorageService("./uploads", cfg.StorageURL+"/static")
-		log.Println("depolama: yerel disk (./uploads) — prod'da volume veya S3 gerekir")
+		if cfg.StorageURL == "" {
+			log.Println("depolama: yerel disk (./uploads), göreli adres — istemci kendi API host'una göre çözer")
+		} else {
+			log.Printf("depolama: yerel disk (./uploads), taban adres %s — prod'da volume veya S3 gerekir", cfg.StorageURL)
+		}
 	}
 
 	// Fotoğraf ve kategori görselleri DB'de anahtar olarak saklanır; tam URL

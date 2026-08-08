@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/api/media_url.dart';
 import '../../../core/models/venue.dart';
 import '../../../core/theme/app_theme.dart';
 
@@ -49,7 +50,7 @@ class _VenuePhotoGalleryState extends State<VenuePhotoGallery> {
             onPageChanged: (index) => setState(() => _currentPage = index),
             itemBuilder: (context, index) {
               return Image.network(
-                widget.photos[index].url,
+                resolveMediaUrl(widget.photos[index].url),
                 fit: BoxFit.cover,
                 width: double.infinity,
                 errorBuilder: (_, _, _) => const Center(

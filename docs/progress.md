@@ -1642,3 +1642,23 @@ içerik main'de, teyit edip sil.
 
 **Yayın SONRASI backlog değişmedi:** retry mekanizması, eşzamanlılık kanıt testleri,
 handler bölme, pagination, FCM push, dark mode, mobil WARNING_DAYS eşiğini API'den taşıma.
+
+### LAN IP bağımlılığı kaldırıldı: göreli medya adresleri (2026-08-08)
+
+Geliştirmede makinenin LAN IP'si her değiştiğinde (DHCP yenilenmesi, ağ değişimi)
+`STORAGE_URL` elle güncelleniyordu — üç oturumda üç kez tekrarlandı.
+
+**Çözüm:** `STORAGE_URL` boşsa fotoğraf adresleri **göreli** üretiliyor (`/static/...`).
+İstemci bunları `resolveMediaUrl` ile kendi API host'una göre çözüyor; hangi adresten
+bağlanılırsa fotoğraf da oradan geliyor. Prod'da `STORAGE_URL` doluysa davranış
+değişmiyor (mutlak URL). Aynı desen Places foto proxy'sinde zaten kullanılıyordu.
+
+**Yol boyunca bulunan risk:** `resolveMediaUrl` yalnızca `AuthedNetworkImage` tarafından
+kullanılıyordu; mekan fotoğraflarını gösteren **5 widget** URL'yi doğrudan
+`Image.network`'e veriyordu. Göreli adrese geçiş bunları kırardı. Beşi de
+(`venue_card`, `venue_horizontal_card`, `venue_photo_gallery`, `venue_bottom_sheet`,
+`category_slider`) `resolveMediaUrl`'den geçecek şekilde düzeltildi ve fonksiyonun
+doc'una "tüm medya gösterimleri buradan geçmeli" notu eklendi.
+
+**Doğrulama:** Aynı göreli adresin hem `localhost` hem LAN IP üzerinden 200 döndüğü
+ölçüldü (56 KB JPEG). Mobil 223 test, analyzer temiz; backend build+vet+test temiz.

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/api/media_url.dart';
 import '../../../core/models/venue.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/star_rating_widget.dart';
@@ -52,7 +53,7 @@ class VenueHorizontalCard extends ConsumerWidget {
                     width: double.infinity,
                     child: venue.photos.isNotEmpty
                         ? Image.network(
-                            venue.photos.first.url,
+                            resolveMediaUrl(venue.photos.first.url),
                             fit: BoxFit.cover,
                             errorBuilder: (_, _, _) => _placeholder(),
                           )

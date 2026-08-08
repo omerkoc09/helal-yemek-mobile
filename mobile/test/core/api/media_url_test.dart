@@ -27,6 +27,17 @@ void main() {
       );
     });
 
+    test('göreli /static yolu API adresiyle birleştirilir', () {
+      // STORAGE_URL boşken yerel disk fotoğrafları da göreli geliyor. Bu sayede
+      // geliştirmede LAN IP'si değiştiğinde hiçbir yapılandırma güncellemesi
+      // gerekmiyor — adres istemcinin bağlandığı host'a göre çözülüyor.
+      final origin = Uri.parse(ApiEndpoints.baseUrl).origin;
+      expect(
+        resolveMediaUrl('/static/foto.jpg'),
+        '$origin/static/foto.jpg',
+      );
+    });
+
     test('sonuç geçerli mutlak URL olur', () {
       final resolved = resolveMediaUrl('/api/v1/places/photo?ref=x');
       final uri = Uri.parse(resolved);
