@@ -20,6 +20,25 @@ val keystoreProperties = Properties().apply {
 }
 val hasReleaseKeystore = keystorePropertiesFile.exists()
 
+// Maps SDK anahtarı android/maps.properties'ten okunur (gitignore'lı, key.properties
+// ile aynı desen). Manifest'e manifestPlaceholders üzerinden enjekte edilir.
+//
+// NEDEN: anahtar önce manifest'e gömülüydü ve git'e commit edilmişti. Mobil SDK
+// anahtarının APK içinde bulunması kaçınılmazdır (Google'ın koruma önerisi de
+// gizlemek değil, paket adı + SHA-1 ile KISITLAMAKTIR); asıl sorun anahtarın
+// kaynak kodda durup backend anahtarıyla aynı olmasıydı. Artık platform başına
+// ayrı, kısıtlanmış anahtar kullanılıyor.
+//
+// Dosya yoksa build KIRILMAZ: boş değer yazılır, harita boş görünür ama derleme
+// ve testler çalışmaya devam eder (CI ve yeni geliştirici ortamları için).
+val mapsPropertiesFile = rootProject.file("maps.properties")
+val mapsProperties = Properties().apply {
+    if (mapsPropertiesFile.exists()) {
+        load(FileInputStream(mapsPropertiesFile))
+    }
+}
+val mapsApiKey = mapsProperties.getProperty("mapsApiKey") ?: ""
+
 android {
     namespace = "com.itimat.itimat"
     compileSdk = flutter.compileSdkVersion
@@ -43,6 +62,9 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+
+        // AndroidManifest.xml içindeki ${MAPS_API_KEY} bununla değiştirilir.
+        manifestPlaceholders["MAPS_API_KEY"] = mapsApiKey
     }
 
     signingConfigs {

@@ -8,8 +8,19 @@ import GoogleMaps
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
-    // Maps Platform API key from Google Cloud Console (same key as Android)
-    GMSServices.provideAPIKey("AIzaSyDLcaEnxPW7-LKl5ojnfug2t3rSZmE3yQk")
+    // Maps SDK anahtarı Info.plist üzerinden gelir; değeri ios/Flutter/Maps.xcconfig
+    // besler (gitignore'lı). Anahtar önce burada hardcoded'dı ve git'e commit
+    // edilmişti — artık kaynak kodda durmuyor ve Android'den AYRI, bundle ID ile
+    // kısıtlanmış bir anahtar kullanılıyor.
+    //
+    // Anahtar yoksa (yapılandırmasız klon) uygulama ÇÖKMEZ: harita boş görünür,
+    // geri kalan akışlar çalışmaya devam eder.
+    if let mapsKey = Bundle.main.object(forInfoDictionaryKey: "MapsApiKey") as? String,
+       !mapsKey.isEmpty {
+      GMSServices.provideAPIKey(mapsKey)
+    } else {
+      NSLog("[İtimat] UYARI: Maps anahtarı yok — ios/Flutter/Maps.xcconfig doldurulmalı. Harita boş görünecek.")
+    }
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 

@@ -1,0 +1,11 @@
+# Google Maps SDK anahtarı (Android). BU DOSYAYI maps.properties OLARAK KOPYALA.
+#
+#   cp maps.properties.example maps.properties
+#
+# Cloud Console > Credentials'tan üretilen ANDROID anahtarı.
+# Kısıtlama: Application restrictions > Android apps
+#   Paket adı: com.itimat.itimat
+#   SHA-1    : release keystore'un parmak izi (+ Play App Signing SHA-1'i)
+#
+# Bu anahtar iOS ve backend anahtarlarından AYRI olmalıdır.
+mapsApiKey=

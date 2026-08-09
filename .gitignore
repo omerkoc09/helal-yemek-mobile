@@ -23,3 +23,8 @@ backend/uploads/
 
 # macOS
 .DS_Store
+
+# Maps SDK anahtarları — platform başına ayrı, kısıtlanmış anahtarlar.
+# Şablonlar (*.example) commit edilir, doldurulmuş hâlleri EDİLMEZ.
+mobile/android/maps.properties
+mobile/ios/Flutter/Maps.xcconfig

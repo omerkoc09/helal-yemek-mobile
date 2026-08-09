@@ -1,0 +1,7 @@
+// Google Maps SDK anahtarı (iOS). BU DOSYA GITIGNORE'LUDUR.
+//
+// Kurulum: Maps.xcconfig.example dosyasını Maps.xcconfig olarak kopyalayıp
+// Cloud Console'dan aldığın iOS anahtarını yaz.
+//
+// Anahtar Cloud Console'da bundle ID (com.itimat.itimat) ile kısıtlanmalıdır.
+MAPS_API_KEY = 

@@ -36,10 +36,12 @@
         </activity>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
-        <!-- Google Maps: value = Maps Platform API key from Google Cloud Console -->
+        <!-- Google Maps SDK anahtarı. Değer android/maps.properties'ten gelir
+             (gitignore'lı); build.gradle.kts manifestPlaceholders ile enjekte eder.
+             Anahtar Cloud Console'da paket adı + release SHA-1 ile kısıtlanmalıdır. -->
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="AIzaSyDLcaEnxPW7-LKl5ojnfug2t3rSZmE3yQk" />
+            android:value="${MAPS_API_KEY}" />
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
