@@ -1712,3 +1712,113 @@ arasındaki farkı yerel bir prova kapatıyor.
 Domain + VPS + R2 + Resend hesapları, `.env.production`'ın doldurulması, admin panelin
 derlenmesi, ilk `compose up`, yedek cron'u ve geri yükleme provası. Adım adım:
 `deploy/README.md`.
+
+---
+
+## Yayın Adım 2 — Anahtar & Kimlik İşleri (2026-08-09)
+
+**Commit'ler:** 427e989 (Maps bölme) · 0881063 (keystore scripti) · 8717e91 (iOS Sign-In fix)
+
+Adım 2'nin dört maddesi tamamlandı; kalan tek iş Apple Developer üyeliği (hesap işi).
+Bu turda **üç ayrı gizli kırılma** yakalandı — üçü de yalnızca ölçerek bulunabilirdi,
+kod okuyarak değil.
+
+### 2.1 Android release keystore ✅
+
+`mobile/android/create-keystore.sh` yazıldı: parolayı yalnızca kullanıcı girer (`read -s`,
+iki kez doğrulanır), script parolayı hiçbir yere loglamaz. Mevcut keystore varsa **üzerine
+yazmayı reddeder** — üzerine yazmak imzayı değiştirir ve Play güncellemelerini kalıcı olarak
+kırardı.
+
+Üretilen anahtar ölçülerek doğrulandı: `PrivateKeyEntry`, RSA 2048, SHA256withRSA,
+**2053'e kadar geçerli** (Play'in 2033 şartını karşılıyor). `gradlew signingReport` ile
+release variant'ın gerçekten bu keystore'a bağlandığı kanıtlandı (`Config: release`,
+debug'a düşmüyor). Keystore + `key.properties` gitignore korumalı, sızıntı yok.
+
+| Parmak izi | Değer |
+|---|---|
+| Release SHA-1 | `7D:27:A6:83:71:32:FD:BC:E0:E7:BC:F8:EA:DB:B6:AD:3C:60:4B:45` |
+| Release SHA-256 | `8A:27:B6:1C:31:3A:56:B0:5A:CB:55:96:E3:27:19:09:AD:1A:C5:FC:0B:73:EC:0B:B1:48:CD:B9:FC:E9:00:CF` |
+| Debug SHA-1 | `11:87:C1:D4:9C:BF:37:B8:37:50:CD:80:20:2C:F4:81:01:8E:03:F9` |
+
+> ⚠️ Keystore dosyası + parolası kullanıcının parola yöneticisinde saklanmalı. Kayıp =
+> uygulamayı Play'de bir daha güncelleyememek.
+
+### 2.2 Firebase — paket adı uyumsuzluğu ✅
+
+**Bulgu (bloker):** `google-services.json` eski projeye aitti — içinde yalnızca `com.caizmi`
+ve `com.caizmi.caiz_mi` kayıtlıydı, oysa uygulamanın paket adı `com.itimat.itimat`.
+Android release build'i **hiç alınamıyordu** (`No matching client found for package name`).
+Aynı uyumsuzluk iOS'ta da vardı (`GoogleService-Info.plist` → `BUNDLE_ID: com.caizmi`).
+
+Çözüm: Firebase projesine (`caizmi-e078b`) her iki platform için `com.itimat.itimat`
+kaydı eklendi, üç parmak izi girildi, config dosyaları yenilendi. `processDebugGoogleServices`
+artık başarılı; `com.itimat.itimat` için iki Android OAuth istemcisi (release + debug)
+üretildiği ve web client ID'nin backend `.env`'iyle birebir eşleştiği doğrulandı.
+
+> Not: SHA-256'nın `google-services.json`'da görünmemesi normaldir — o dosya yalnızca OAuth
+> istemcisi üreten SHA-1'leri taşır.
+
+**Sonradan gerekecek:** Play Console'a ilk yüklemeden sonra Play App Signing kendi SHA-1'ini
+üretir; **o da Firebase'e eklenmeli**, yoksa Play'den inen sürümde Google girişi çalışmaz
+(debug'da çalıştığı için gözden kaçar).
+
+### 2.3 iOS Google Sign-In — sessiz kırılma ✅ (commit 8717e91)
+
+Yeni `GoogleService-Info.plist` gelince `Info.plist`'teki iki değer eski uygulama kaydında
+kalmıştı: `GIDClientID` ve Google giriş dönüşünü sağlayan `CFBundleURLSchemes`
+(`REVERSED_CLIENT_ID`). Bu hâliyle **giriş ekranı açılır ama uygulamaya geri dönemezdi** —
+TestFlight'a kadar fark edilmeyecek türden bir hata.
+
+İkisi de plist'ten senkronlandı; zincirin tamamı doğrulandı: bundle ID ✓,
+`GIDClientID`=`CLIENT_ID` ✓, URL scheme=`REVERSED_CLIENT_ID` ✓,
+`GIDServerClientID`=web client ✓, backend `GOOGLE_CLIENT_ID` ✓.
+
+### 2.4 Maps anahtarı bölme ✅ (commit 427e989)
+
+**Bulgu:** Anahtar hem `AndroidManifest.xml`'e hem `AppDelegate.swift`'e hardcoded'dı,
+**ikisi aynı anahtardı ve git'e commit edilmişti** — üstelik backend'in Places çağrıları da
+aynı anahtarı kullanıyordu. Yani APK'dan çıkarılan anahtarla Places kotası harcanabilirdi.
+
+Mobil SDK anahtarının pakette bulunması kaçınılmazdır; Google'ın önerdiği koruma gizlemek
+değil **kısıtlamaktır**. Artık her platform kendi kısıtlı anahtarını kullanıyor:
+
+| Anahtar | Kısıtlama | API |
+|---|---|---|
+| Android SDK | paket `com.itimat.itimat` + release & debug SHA-1 | Maps SDK for Android |
+| iOS SDK | bundle `com.itimat.itimat` | Maps SDK for iOS |
+| Backend Places | IP (VPS) — **hosting kurulunca eklenecek** | Places API |
+
+Kod tarafı: Android `maps.properties` → `manifestPlaceholders` → manifest;
+iOS `Flutter/Maps.xcconfig` → `Info.plist` → `AppDelegate`. İkisi de gitignore'lu,
+şablonları (`*.example`) commit'li. **Dosya yoksa build kırılmaz** (`key.properties` ile aynı
+desen): Android boş değer yazar, iOS uyarı loglayıp çöker yerine devam eder.
+
+**Doğrulama (canlı API çağrılarıyla):**
+- Backend anahtarı → Places `status: OK` (gerçek sonuç döndü)
+- Android anahtarı → Places **`REQUEST_DENIED`** ✓
+- iOS anahtarı → Places **`REQUEST_DENIED`** ✓
+- Yeni Android anahtarının birleşmiş manifest'e enjekte edildiği gerçek Gradle build'iyle
+  görüldü; üç anahtarın da takip edilen hiçbir dosyada bulunmadığı `git grep` ile ölçüldü.
+
+**Kullanılmadığı kanıtlanan API'ler:** `Places API (New)` ve `Maps JavaScript API` kodda hiç
+çağrılmıyor (`places.googleapis.com`, `X-Goog-FieldMask`, `google.maps.` araması boş; admin
+panelin haritası kendi SVG'si). Yeni anahtarlara eklenmedi.
+
+> **Teknik borç:** Backend legacy Places API kullanıyor (`/maps/api/place/...`). Google yeni
+> projelerde legacy kaydı almıyor; mevcut projeler çalışmaya devam ediyor. Yayını bloklamaz,
+> ileride modernizasyon işi olarak durur.
+
+### Kalan
+
+- [ ] **Apple Developer Program üyeliği** + code signing (kritik yoldaki en uzun bekleme)
+- [ ] Eski ortak Maps anahtarını Cloud Console'dan sil (yenileri doğrulandı, sıra onda)
+- [ ] Backend anahtarına IP kısıtı (VPS alınınca)
+- [ ] Prod build `--dart-define=API_BASE_URL=...` (backend deploy'unu bekliyor)
+
+### Ders
+
+Bu turdaki üç bulgunun (Firebase paket uyumsuzluğu, iOS URL scheme, ortak Maps anahtarı)
+**hiçbiri** kod okuyarak görünmüyordu; üçü de yapılandırma dosyalarını karşılaştırarak ve
+gerçek API çağrısı yaparak bulundu. Yayın öncesi konfigürasyon işlerinde "dosya yerinde"
+ile "zincir çalışıyor" arasındaki fark, ölçmekle kapanıyor.
