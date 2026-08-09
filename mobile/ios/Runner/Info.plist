@@ -72,7 +72,7 @@
 	</array>
 	<!-- Google Sign-In: iOS OAuth Client ID (GoogleService-Info.plist → CLIENT_ID) -->
 	<key>GIDClientID</key>
-	<string>500559335180-fo1d23d3ut1h1ldu6p5bh9bt1m0g623b.apps.googleusercontent.com</string>
+	<string>500559335180-93u8j4mvtm1thojlfuheh0mh3gmr84ee.apps.googleusercontent.com</string>
 	<!-- Google Sign-In: REVERSED_CLIENT_ID değerini GoogleService-Info.plist'ten al -->
 	<key>CFBundleURLTypes</key>
 	<array>
@@ -81,7 +81,7 @@
 			<string>Editor</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>com.googleusercontent.apps.500559335180-fo1d23d3ut1h1ldu6p5bh9bt1m0g623b</string>
+				<string>com.googleusercontent.apps.500559335180-93u8j4mvtm1thojlfuheh0mh3gmr84ee</string>
 			</array>
 		</dict>
 	</array>
