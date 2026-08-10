@@ -1822,3 +1822,57 @@ Bu turdaki üç bulgunun (Firebase paket uyumsuzluğu, iOS URL scheme, ortak Map
 **hiçbiri** kod okuyarak görünmüyordu; üçü de yapılandırma dosyalarını karşılaştırarak ve
 gerçek API çağrısı yaparak bulundu. Yayın öncesi konfigürasyon işlerinde "dosya yerinde"
 ile "zincir çalışıyor" arasındaki fark, ölçmekle kapanıyor.
+
+## Hesap Silme (2026-08-11)
+
+Mağaza yayını için zorunlu: App Store Guideline 5.1.1(v) ve Google Play, hesap
+**oluşturmaya** izin veren uygulamanın **silmeye** de izin vermesini şart koşuyor.
+Bu madde yaygın bir red sebebi.
+
+### Neden gerçek DELETE değil — anonimleştirme
+
+Şema incelemesi kararı belirledi: `users`'a **15 foreign key** var ve **8'i
+`NO ACTION` + `NOT NULL`** (`venues.added_by`, `venue_photos.uploaded_by`,
+`reviews.user_id`, `venue_confirmations`, `venue_reports`, `guide_applications`,
+`venue_verification_logs`, `audit_logs`). Düz `DELETE` FK ihlaliyle düşerdi.
+
+Ürün kararı da aynı yönü gösterdi: mekanlar ve doğrulamalar **topluluk verisi** —
+bir rehber ayrıldı diye kaybolmaları veri bütünlüğünü bozar. Kişisel veri silinir,
+katkı anonim kalır. KVKK ve mağaza politikaları bunu kabul ediyor.
+
+**Kararlar:** yorumlar kalır, yazar "Silinmiş Kullanıcı" görünür (puan ortalamaları
+bozulmasın); geri alma süresi yok, silme anında kalıcı.
+
+### Uygulama
+
+- **Migration 050:** `users.deleted_at` + e-posta UNIQUE kısıtı **kısmi index**'e
+  çevrildi (`WHERE deleted_at IS NULL`). Böylece silinen kullanıcı aynı e-postayla
+  yeniden kaydolabiliyor.
+- **`AnonymizeUser`:** tek UPDATE — e-posta yer tutucu (`deleted-<id>@deleted.local`,
+  NOT NULL olduğu için null yapılamaz), ad "Silinmiş Kullanıcı", diğer kişisel alanlar
+  null, `is_active=false`, `deleted_at=now()`. CASCADE'li tablolar (favoriler,
+  bildirimler, oturum kayıtları, token'lar) FK ile zaten siliniyor.
+- **Sorgu filtreleri:** `FindByEmail`, `FindByID`, `FindByProviderID`, `EmailExists`,
+  `List` → `deleted_at IS NULL`. Bu olmadan silinen kullanıcı giriş yapmaya devam ederdi.
+- **`DELETE /api/v1/auth/me`:** kimlik token'dan alınır, gövdeden ID kabul edilmez.
+- **Son admin koruması:** tek admin kaldıysa 403 — aksi halde sistem yönetimsiz kalır.
+- **Mobil:** profilde "Hesabımı Sil" + **iki aşamalı onay** (Apple kazara silmeye karşı
+  net uyarı bekliyor). İlk diyalog neyin silinip neyin kalacağını açıkça listeler.
+
+### Yol boyunca bulunan
+
+`is_active` alanı okunuyordu ama **giriş akışında hiç kontrol edilmiyordu** — yalnızca
+admin panelden set ediliyordu. Anonimleştirmeyi buna dayandırsak silinen kullanıcı
+normal giriş yapmaya devam ederdi; bu yüzden filtre `deleted_at` üzerinden kuruldu.
+
+**Doğrulama:** Migration up **ve down** gerçek DB'ye karşı test edildi (transaction +
+ROLLBACK). Anonimleştirme gerçek FK verisiyle denendi: mekan/fotoğraf/yorum korundu,
+kişisel veri temizlendi. Canlı uçtan uca akış: kayıt → silme (204) → eski token 404 →
+eski şifreyle giriş reddi → **aynı e-postayla yeniden kayıt başarılı**. Backend 8 yeni
+test (4 servis + 4 handler), mobil 223 test, analyzer temiz.
+
+### Kalan yayın engelleri
+
+Hesap silme tamamlandı. **Gizlilik politikası, KVKK aydınlatma metni ve kullanım
+şartları hâlâ yok** — metinler hazırlanıp bir adreste yayınlandığında profile
+linklenmesi gerekiyor (mağaza listesinde gizlilik politikası URL'si zorunlu alan).

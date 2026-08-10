@@ -41,7 +41,7 @@ func (r *UserRepo) FindByEmail(ctx context.Context, email string) (*models.User,
 	u := &models.User{}
 	query := `
 		SELECT id, email, password_hash, name, surname, phone, avatar_url, role, provider, provider_id, is_active, created_at, updated_at
-		FROM users WHERE email = $1`
+		FROM users WHERE email = $1 AND deleted_at IS NULL`
 	err := r.db.QueryRow(ctx, query, email).Scan(
 		&u.ID, &u.Email, &u.PasswordHash, &u.Name, &u.Surname, &u.Phone, &u.AvatarURL,
 		&u.Role, &u.Provider, &u.ProviderID, &u.IsActive, &u.CreatedAt, &u.UpdatedAt,
@@ -56,7 +56,7 @@ func (r *UserRepo) FindByProviderID(ctx context.Context, provider, providerID st
 	u := &models.User{}
 	query := `
 		SELECT id, email, password_hash, name, surname, phone, avatar_url, role, provider, provider_id, is_active, created_at, updated_at
-		FROM users WHERE provider = $1 AND provider_id = $2`
+		FROM users WHERE provider = $1 AND provider_id = $2 AND deleted_at IS NULL`
 	err := r.db.QueryRow(ctx, query, provider, providerID).Scan(
 		&u.ID, &u.Email, &u.PasswordHash, &u.Name, &u.Surname, &u.Phone, &u.AvatarURL,
 		&u.Role, &u.Provider, &u.ProviderID, &u.IsActive, &u.CreatedAt, &u.UpdatedAt,
@@ -71,7 +71,7 @@ func (r *UserRepo) FindByID(ctx context.Context, id string) (*models.User, error
 	u := &models.User{}
 	query := `
 		SELECT id, email, password_hash, name, surname, phone, avatar_url, role, provider, provider_id, is_active, guide_city, created_at, updated_at
-		FROM users WHERE id = $1`
+		FROM users WHERE id = $1 AND deleted_at IS NULL`
 	err := r.db.QueryRow(ctx, query, id).Scan(
 		&u.ID, &u.Email, &u.PasswordHash, &u.Name, &u.Surname, &u.Phone, &u.AvatarURL,
 		&u.Role, &u.Provider, &u.ProviderID, &u.IsActive, &u.GuideCity, &u.CreatedAt, &u.UpdatedAt,
@@ -84,7 +84,12 @@ func (r *UserRepo) FindByID(ctx context.Context, id string) (*models.User, error
 
 func (r *UserRepo) EmailExists(ctx context.Context, email string) (bool, error) {
 	var exists bool
-	err := r.db.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM users WHERE email = $1)`, email).Scan(&exists)
+	// Silinmiş hesabın e-postası "kullanımda" sayılmamalı: kullanıcı aynı adresle
+	// yeniden kaydolabilmeli (kısmi unique index de buna izin veriyor).
+	err := r.db.QueryRow(ctx,
+		`SELECT EXISTS(SELECT 1 FROM users WHERE email = $1 AND deleted_at IS NULL)`,
+		email,
+	).Scan(&exists)
 	if err != nil {
 		return false, fmt.Errorf("email kontrol hatası: %w", err)
 	}
@@ -156,12 +161,62 @@ func (r *UserRepo) Delete(ctx context.Context, id string) error {
 	return nil
 }
 
+// AnonymizeUser — hesabı siler: kişisel veriyi temizler, katkıyı anonim bırakır.
+//
+// Neden gerçek DELETE değil: users'a 15 foreign key var ve 8'i NO ACTION + NOT NULL
+// (venues.added_by, venue_photos.uploaded_by, reviews.user_id, venue_confirmations,
+// venue_reports, guide_applications, venue_verification_logs, audit_logs). Silme FK
+// ihlaliyle düşerdi. Ayrıca mekanlar ve doğrulamalar topluluk verisi — bir rehber
+// ayrıldı diye kaybolmaları veri bütünlüğünü bozardı.
+//
+// Kişisel alanlar temizlenir; e-posta benzersiz bir yer tutucuyla değiştirilir
+// (NOT NULL olduğu için null yapılamaz). CASCADE'li tablolar (favoriler, bildirimler,
+// oturum kayıtları, şifre token'ları) FK tarafından zaten silinir.
+//
+// Geri alınamaz: silme anında kalıcıdır (ürün kararı).
+func (r *UserRepo) AnonymizeUser(ctx context.Context, id string) error {
+	// Tek UPDATE: kısmi de olsa temizlenmiş bir kayıt bırakmamak için.
+	result, err := r.db.Exec(ctx, `
+		UPDATE users SET
+			email         = 'deleted-' || id || '@deleted.local',
+			password_hash = '',
+			name          = 'Silinmiş Kullanıcı',
+			surname       = NULL,
+			phone         = NULL,
+			avatar_url    = NULL,
+			provider_id   = NULL,
+			guide_city    = NULL,
+			is_active     = false,
+			deleted_at    = NOW(),
+			updated_at    = NOW()
+		WHERE id = $1 AND deleted_at IS NULL`, id)
+	if err != nil {
+		return fmt.Errorf("hesap anonimleştirme başarısız: %w", err)
+	}
+	if result.RowsAffected() == 0 {
+		// Kayıt yok ya da zaten silinmiş — ikisi de çağıran için "bulunamadı".
+		return ErrNotFound
+	}
+	return nil
+}
+
+// CountActiveAdmins — silinmemiş ve aktif admin sayısı.
+// Son adminin kendi hesabını silip sistemi yönetimsiz bırakmasını engellemek için.
+func (r *UserRepo) CountActiveAdmins(ctx context.Context) (int, error) {
+	var count int
+	err := r.db.QueryRow(ctx,
+		`SELECT count(*) FROM users WHERE role = 'admin' AND is_active AND deleted_at IS NULL`,
+	).Scan(&count)
+	return count, err
+}
+
 // List — tüm kullanıcıları döndürür (admin kullanımı).
 func (r *UserRepo) List(ctx context.Context) ([]models.User, error) {
 	rows, err := r.db.Query(ctx,
 		`SELECT u.id, u.email, u.name, u.surname, u.phone, u.avatar_url, u.role,
 		        u.provider, u.is_active, u.created_at, u.updated_at
 		 FROM users u
+		 WHERE u.deleted_at IS NULL
 		 ORDER BY u.created_at DESC`,
 	)
 	if err != nil {

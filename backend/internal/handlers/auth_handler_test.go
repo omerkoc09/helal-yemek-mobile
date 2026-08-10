@@ -13,6 +13,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 
 	"github.com/omerkoc/itimat-mobile/internal/models"
+	"github.com/omerkoc/itimat-mobile/internal/repository"
 	"github.com/omerkoc/itimat-mobile/internal/services"
 	jwtpkg "github.com/omerkoc/itimat-mobile/pkg/jwt"
 )
@@ -33,8 +34,9 @@ type fakeAuthService struct {
 	gotToken    string
 	gotUserID   string
 
-	resetErr error
-	gotCode  string
+	resetErr  error
+	deleteErr error
+	gotCode   string
 }
 
 func (f *fakeAuthService) Register(_ context.Context, email, password, name, surname, phone string) (*jwtpkg.TokenPair, error) {
@@ -86,6 +88,11 @@ func (f *fakeAuthService) ResetPassword(_ context.Context, email, code, newPassw
 	return f.resetErr
 }
 
+func (f *fakeAuthService) DeleteAccount(_ context.Context, userID string) error {
+	f.gotUserID = userID
+	return f.deleteErr
+}
+
 // --- test helpers ---
 
 func setupAuthApp(svc AuthServiceInterface, userID string) *fiber.App {
@@ -103,6 +110,7 @@ func setupAuthApp(svc AuthServiceInterface, userID string) *fiber.App {
 	app.Post("/auth/refresh", h.Refresh)
 	app.Get("/auth/me", h.Me)
 	app.Put("/auth/profile", h.UpdateProfile)
+	app.Delete("/auth/me", h.DeleteAccount)
 	return app
 }
 
@@ -477,6 +485,53 @@ func TestResetPasswordHandler(t *testing.T) {
 		resp, _ := post(t, newApp(&fakeAuthService{}), `{bozuk`)
 		if resp.StatusCode != http.StatusBadRequest {
 			t.Fatalf("beklenen 400, gelen %d", resp.StatusCode)
+		}
+	})
+}
+
+func TestAuthDeleteAccount(t *testing.T) {
+	t.Run("başarılı silmede 204 döner", func(t *testing.T) {
+		svc := &fakeAuthService{}
+		app := setupAuthApp(svc, "user-42")
+
+		resp := doJSON(t, app, http.MethodDelete, "/auth/me", "")
+		if resp.StatusCode != fiber.StatusNoContent {
+			t.Fatalf("beklenen 204, alınan %d", resp.StatusCode)
+		}
+		// Kimlik token'dan alınmalı; gövdeden ID kabul edilirse kullanıcı
+		// başkasının hesabını silebilirdi.
+		if svc.gotUserID != "user-42" {
+			t.Fatalf("beklenen user-42, alınan %q", svc.gotUserID)
+		}
+	})
+
+	t.Run("son admin engellenir: 403", func(t *testing.T) {
+		svc := &fakeAuthService{deleteErr: services.ErrLastAdmin}
+		app := setupAuthApp(svc, "admin-1")
+
+		resp := doJSON(t, app, http.MethodDelete, "/auth/me", "")
+		if resp.StatusCode != fiber.StatusForbidden {
+			t.Fatalf("beklenen 403, alınan %d", resp.StatusCode)
+		}
+	})
+
+	t.Run("kullanıcı yoksa 404", func(t *testing.T) {
+		svc := &fakeAuthService{deleteErr: repository.ErrNotFound}
+		app := setupAuthApp(svc, "yok")
+
+		resp := doJSON(t, app, http.MethodDelete, "/auth/me", "")
+		if resp.StatusCode != fiber.StatusNotFound {
+			t.Fatalf("beklenen 404, alınan %d", resp.StatusCode)
+		}
+	})
+
+	t.Run("beklenmeyen hatada 500", func(t *testing.T) {
+		svc := &fakeAuthService{deleteErr: errors.New("db")}
+		app := setupAuthApp(svc, "u1")
+
+		resp := doJSON(t, app, http.MethodDelete, "/auth/me", "")
+		if resp.StatusCode != fiber.StatusInternalServerError {
+			t.Fatalf("beklenen 500, alınan %d", resp.StatusCode)
 		}
 	})
 }

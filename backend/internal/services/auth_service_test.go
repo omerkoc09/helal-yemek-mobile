@@ -35,10 +35,24 @@ type fakeAuthUserStore struct {
 	updateErr         error
 	updatePasswordErr error
 
+	anonymizeErr  error
+	adminCount    int
+	adminCountErr error
+
 	gotCreated        *models.User
 	gotFindEmail      string
 	gotPasswordUserID string
 	gotPasswordHash   string
+	gotAnonymizedID   string
+}
+
+func (f *fakeAuthUserStore) AnonymizeUser(_ context.Context, id string) error {
+	f.gotAnonymizedID = id
+	return f.anonymizeErr
+}
+
+func (f *fakeAuthUserStore) CountActiveAdmins(context.Context) (int, error) {
+	return f.adminCount, f.adminCountErr
 }
 
 func (f *fakeAuthUserStore) EmailExists(context.Context, string) (bool, error) {
@@ -1144,6 +1158,58 @@ func TestAuthServiceResetPassword(t *testing.T) {
 			ResetPassword(context.Background(), "yok@b.com", validCode, "yeniSifre123")
 		if err == nil {
 			t.Fatal("olmayan kullanıcı için sıfırlama yapıldı")
+		}
+	})
+}
+
+// --- DeleteAccount ---
+
+func TestDeleteAccount(t *testing.T) {
+	t.Run("normal kullanıcı anonimleştirilir", func(t *testing.T) {
+		store := &fakeAuthUserStore{
+			byID: &models.User{ID: "u1", Role: models.RoleTraveler},
+		}
+		if err := newTestAuthService(store).DeleteAccount(context.Background(), "u1"); err != nil {
+			t.Fatalf("beklenmeyen hata: %v", err)
+		}
+		if store.gotAnonymizedID != "u1" {
+			t.Fatalf("anonimleştirme çağrılmadı, gelen: %q", store.gotAnonymizedID)
+		}
+	})
+
+	t.Run("son admin kendini silemez", func(t *testing.T) {
+		// Aksi halde sistem yönetimsiz kalır: admin paneline kimse giremez.
+		store := &fakeAuthUserStore{
+			byID:       &models.User{ID: "a1", Role: models.RoleAdmin},
+			adminCount: 1,
+		}
+		err := newTestAuthService(store).DeleteAccount(context.Background(), "a1")
+		if !errors.Is(err, ErrLastAdmin) {
+			t.Fatalf("beklenen ErrLastAdmin, gelen: %v", err)
+		}
+		if store.gotAnonymizedID != "" {
+			t.Fatal("engellenmesi gereken silme yine de yapıldı")
+		}
+	})
+
+	t.Run("başka admin varsa admin silinebilir", func(t *testing.T) {
+		store := &fakeAuthUserStore{
+			byID:       &models.User{ID: "a1", Role: models.RoleAdmin},
+			adminCount: 2,
+		}
+		if err := newTestAuthService(store).DeleteAccount(context.Background(), "a1"); err != nil {
+			t.Fatalf("beklenmeyen hata: %v", err)
+		}
+		if store.gotAnonymizedID != "a1" {
+			t.Fatal("admin silinemedi")
+		}
+	})
+
+	t.Run("kullanıcı yoksa hata döner", func(t *testing.T) {
+		store := &fakeAuthUserStore{byIDErr: repository.ErrNotFound}
+		err := newTestAuthService(store).DeleteAccount(context.Background(), "yok")
+		if !errors.Is(err, repository.ErrNotFound) {
+			t.Fatalf("beklenen ErrNotFound, gelen: %v", err)
 		}
 	})
 }

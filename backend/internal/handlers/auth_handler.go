@@ -7,6 +7,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/omerkoc/itimat-mobile/internal/models"
+	"github.com/omerkoc/itimat-mobile/internal/repository"
 	"github.com/omerkoc/itimat-mobile/internal/services"
 	jwtpkg "github.com/omerkoc/itimat-mobile/pkg/jwt"
 )
@@ -21,6 +22,7 @@ type AuthServiceInterface interface {
 	UpdateProfile(ctx context.Context, userID string, name, surname, phone *string) (*models.User, error)
 	RequestPasswordReset(ctx context.Context, email string) error
 	ResetPassword(ctx context.Context, email, code, newPassword string) error
+	DeleteAccount(ctx context.Context, userID string) error
 }
 
 type AuthHandler struct {
@@ -122,6 +124,36 @@ func (h *AuthHandler) Me(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "kullanıcı bulunamadı"})
 	}
 	return c.JSON(user)
+}
+
+// DeleteAccount godoc
+// DELETE /api/v1/auth/me
+//
+// Kullanıcının kendi hesabını silmesi. App Store Guideline 5.1.1(v) ve Google Play,
+// hesap oluşturmaya izin veren uygulamaların silmeye de izin vermesini zorunlu tutuyor.
+//
+// Silme anonimleştirmedir: kişisel veri temizlenir, topluluk katkısı (mekan,
+// doğrulama, yorum) anonim kalır. Geri alınamaz.
+func (h *AuthHandler) DeleteAccount(c *fiber.Ctx) error {
+	userID, err := getUserID(c)
+	if err != nil {
+		return err
+	}
+
+	if err := h.authService.DeleteAccount(c.Context(), userID); err != nil {
+		if errors.Is(err, services.ErrLastAdmin) {
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+				"error": "Sistemdeki son admin hesabı silinemez. Önce başka bir admin atayın.",
+			})
+		}
+		if errors.Is(err, repository.ErrNotFound) {
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "kullanıcı bulunamadı"})
+		}
+		log.Printf("[AUTH] hesap silinemedi (user=%s): %v", userID, err)
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "hesap silinemedi"})
+	}
+
+	return c.SendStatus(fiber.StatusNoContent)
 }
 
 // UpdateProfile godoc

@@ -82,6 +82,7 @@ itimat-mobile-backend/
 | POST | `/api/v1/auth/google` | Google OAuth | - | Public |
 | POST | `/api/v1/auth/refresh` | Token yenileme | ✅ | Any |
 | GET | `/api/v1/auth/me` | Kullanıcı profili | ✅ | Any |
+| DELETE | `/api/v1/auth/me` | **Hesap silme** (App Store 5.1.1(v) + Google Play zorunluluğu). Anonimleştirme: kişisel veri temizlenir, mekan/yorum/doğrulama anonim kalır. Kimlik token'dan alınır (gövdeden ID kabul edilmez). Son admin engellenir (403). Geri alınamaz | ✅ | Any |
 | POST | `/api/v1/auth/forgot-password` | Şifre sıfırlama kodu talebi | - | Public |
 | POST | `/api/v1/auth/reset-password` | Kod ile yeni şifre belirleme | - | Public |
 

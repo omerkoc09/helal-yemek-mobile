@@ -25,6 +25,8 @@ type authUserStore interface {
 	FindByID(ctx context.Context, id string) (*models.User, error)
 	Update(ctx context.Context, id string, name, surname, phone, email *string, role *models.Role, isActive *bool, guideCity *string) error
 	UpdatePassword(ctx context.Context, id, hashedPassword string) error
+	AnonymizeUser(ctx context.Context, id string) error
+	CountActiveAdmins(ctx context.Context) (int, error)
 }
 
 // loginRecorder — giriş kaydını arka planda yazar.
@@ -255,6 +257,35 @@ func (s *AuthService) UpdateProfile(ctx context.Context, userID string, name, su
 		return nil, err
 	}
 	return s.userRepo.FindByID(ctx, userID)
+}
+
+// ErrLastAdmin — sistemdeki son admin kendi hesabını silmeye çalıştı.
+var ErrLastAdmin = errors.New("sistemdeki son admin hesabı silinemez")
+
+// DeleteAccount — kullanıcının kendi hesabını siler (anonimleştirir).
+//
+// Kişisel veri temizlenir; mekanlar, doğrulamalar ve yorumlar anonim olarak kalır
+// (topluluk verisi — ayrılan bir rehber yüzünden kaybolmamalı). Geri alınamaz.
+//
+// Son admin engellenir: aksi halde sistem yönetimsiz kalır ve admin paneline
+// hiç kimse giremez.
+func (s *AuthService) DeleteAccount(ctx context.Context, userID string) error {
+	user, err := s.userRepo.FindByID(ctx, userID)
+	if err != nil {
+		return err
+	}
+
+	if user.Role == models.RoleAdmin {
+		count, err := s.userRepo.CountActiveAdmins(ctx)
+		if err != nil {
+			return err
+		}
+		if count <= 1 {
+			return ErrLastAdmin
+		}
+	}
+
+	return s.userRepo.AnonymizeUser(ctx, userID)
 }
 
 // RequestPasswordReset — şifre sıfırlama kodu üretip e-posta ile gönderir.

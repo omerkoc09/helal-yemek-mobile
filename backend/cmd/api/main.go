@@ -223,6 +223,9 @@ func main() {
 	auth.Post("/refresh", authHandler.Refresh)
 	auth.Get("/me", middleware.Auth(cfg.JWTSecret), authHandler.Me)
 	auth.Put("/profile", middleware.Auth(cfg.JWTSecret), authHandler.UpdateProfile)
+	// Hesap silme (mağaza zorunluluğu): kullanıcı yalnızca KENDİ hesabını siler,
+	// kimlik token'dan alınır — gövdeden ID kabul edilmez.
+	auth.Delete("/me", middleware.Auth(cfg.JWTSecret), authHandler.DeleteAccount)
 
 	// Venue endpoint'leri (public)
 	api.Get("/venues", venueHandler.List)

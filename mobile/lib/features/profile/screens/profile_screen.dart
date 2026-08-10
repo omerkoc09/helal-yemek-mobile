@@ -6,6 +6,7 @@ import '../../../core/auth/auth_provider.dart';
 import '../../../core/models/user.dart';
 import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../shared/widgets/app_toast.dart';
 import '../providers/profile_provider.dart';
 import '../../guide/screens/guide_apply_screen.dart';
 
@@ -101,9 +102,95 @@ class ProfileScreen extends ConsumerWidget {
               padding: const EdgeInsets.symmetric(vertical: 14),
             ),
           ),
+
+          const SizedBox(height: 24),
+          // Hesap silme — App Store Guideline 5.1.1(v) ve Google Play zorunluluğu.
+          // Çıkıştan görsel olarak ayrılıyor: yıkıcı ve geri alınamaz bir işlem,
+          // yanlışlıkla basılmaması için düz metin buton olarak veriliyor.
+          Center(
+            child: TextButton(
+              onPressed: () => _confirmDeleteAccount(context, ref),
+              child: Text(
+                'Hesabımı Sil',
+                style: TextStyle(
+                  color: AppTheme.textSecondary,
+                  fontSize: 13,
+                  decoration: TextDecoration.underline,
+                  decorationColor: AppTheme.textSecondary.withValues(alpha: 0.5),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
         ],
       ),
     );
+  }
+
+  /// İki aşamalı onay: silme geri alınamıyor, tek dokunuşla tetiklenmemeli.
+  Future<void> _confirmDeleteAccount(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Hesabınızı silmek istiyor musunuz?'),
+        content: const Text(
+          'Bu işlem geri alınamaz.\n\n'
+          '• Adınız, e-postanız ve telefonunuz kalıcı olarak silinir\n'
+          '• Favorileriniz ve bildirimleriniz silinir\n'
+          '• Eklediğiniz mekanlar ve yorumlarınız toplulukta kalır, '
+          'ancak adınız görünmez',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Vazgeç'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text(
+              'Devam',
+              style: TextStyle(color: AppTheme.error),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+
+    // İkinci aşama: son uyarı.
+    final finalConfirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Son onay'),
+        content: const Text(
+          'Hesabınız kalıcı olarak silinecek. Emin misiniz?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Vazgeç'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text(
+              'Hesabımı Sil',
+              style: TextStyle(color: AppTheme.error),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (finalConfirm != true || !context.mounted) return;
+
+    final error = await ref.read(authProvider.notifier).deleteAccount();
+    if (!context.mounted) return;
+
+    if (error != null) {
+      AppToast.error(context, error);
+      return;
+    }
+    // Başarılı: authProvider oturumu kapattı, router girişe yönlendirir.
+    AppToast.success(context, 'Hesabınız silindi.');
   }
 }
 

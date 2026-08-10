@@ -3,6 +3,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 
 import '../api/api_client.dart';
 import '../api/api_endpoints.dart';
+import '../api/api_error.dart';
 import '../models/user.dart';
 import 'token_storage.dart';
 
@@ -185,6 +186,26 @@ class AuthNotifier extends Notifier<AuthState> {
   Future<void> logout() async {
     await _tokenStorage.clearTokens();
     state = const AuthState(status: AuthStatus.unauthenticated);
+  }
+
+  /// Hesabı kalıcı olarak siler ve oturumu kapatır.
+  ///
+  /// Sunucuda anonimleştirme uygulanır: kişisel veri temizlenir, kullanıcının
+  /// eklediği mekanlar ve yorumlar anonim olarak kalır. Geri alınamaz.
+  ///
+  /// Hata mesajı döner; null ise silme başarılıdır.
+  Future<String?> deleteAccount() async {
+    try {
+      await _apiClient.delete(ApiEndpoints.me);
+      // Token'lar sunucudaki hesap gittiği için her durumda temizlenmeli.
+      await logout();
+      return null;
+    } catch (e) {
+      // Interceptor DioException'ı ApiError'a çeviriyor. Son admin engeli (403)
+      // gibi sunucudan gelen anlamlı mesajlar kullanıcıya gösterilmeli.
+      if (e is ApiError && e.message.isNotEmpty) return e.message;
+      return 'Hesap silinemedi. Lütfen tekrar deneyin.';
+    }
   }
 
   void updateUser(User user) {
