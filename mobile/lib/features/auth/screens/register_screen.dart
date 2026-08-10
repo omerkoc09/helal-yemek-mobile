@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/auth/auth_provider.dart';
+import '../../../core/config/legal_links.dart';
 import '../../../core/theme/app_theme.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
@@ -22,6 +24,16 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
 
+  /// Kullanım şartları + gizlilik politikası onayı.
+  /// Üyelik sözleşmesinin kurulması için gerekli; onaysız kayıt yapılamaz.
+  bool _termsAccepted = false;
+
+  /// KVKK açık rızası — AYRI tutuluyor.
+  /// Açık rıza, sözleşmenin ifası için zorunlu olan işlemeden bağımsız ve
+  /// özgür iradeye dayalı olmalıdır; tek kutuda birleştirmek rızayı sakatlar.
+  /// Bu yüzden isteğe bağlıdır ve kaydı engellemez.
+  bool _kvkkConsent = false;
+
   @override
   void dispose() {
     _nameController.dispose();
@@ -34,6 +46,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
   void _handleRegister() {
     if (!_formKey.currentState!.validate()) return;
+    // Buton zaten kapalı; bu kontrol ikinci savunma hattı.
+    if (!_termsAccepted) return;
     ref.read(authProvider.notifier).register(
           name: _nameController.text.trim(),
           surname: _surnameController.text.trim(),
@@ -251,6 +265,46 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   ),
                   const SizedBox(height: 24),
 
+                  // Yasal onaylar — kayıt butonundan ÖNCE, kullanıcı neye
+                  // katıldığını görmeden hesap açmasın.
+                  _ConsentCheckbox(
+                    value: _termsAccepted,
+                    onChanged: (v) => setState(() => _termsAccepted = v),
+                    child: Wrap(
+                      children: [
+                        const Text('Okudum, onaylıyorum: ',
+                            style: TextStyle(fontSize: 13)),
+                        _LegalLink(
+                          text: 'Kullanım Şartları',
+                          url: LegalLinks.termsOfService,
+                        ),
+                        const Text(' ve ', style: TextStyle(fontSize: 13)),
+                        _LegalLink(
+                          text: 'Gizlilik Politikası',
+                          url: LegalLinks.privacyPolicy,
+                        ),
+                      ],
+                    ),
+                  ),
+                  _ConsentCheckbox(
+                    value: _kvkkConsent,
+                    onChanged: (v) => setState(() => _kvkkConsent = v),
+                    child: Wrap(
+                      children: [
+                        _LegalLink(
+                          text: 'KVKK Aydınlatma Metni',
+                          url: LegalLinks.kvkkNotice,
+                        ),
+                        const Text(
+                          "'ni okudum; kişisel verilerimin işlenmesine "
+                          'açık rıza veriyorum. (İsteğe bağlı)',
+                          style: TextStyle(fontSize: 13),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
                   // Error message
                   if (authState.error != null)
                     Padding(
@@ -269,7 +323,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     width: double.infinity,
                     height: 52,
                     child: ElevatedButton(
-                      onPressed: authState.isLoading ? null : _handleRegister,
+                      // Şartlar onaylanmadan kayıt yapılamaz.
+                      onPressed: (authState.isLoading || !_termsAccepted)
+                          ? null
+                          : _handleRegister,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppTheme.primary,
                         foregroundColor: Colors.white,
@@ -325,10 +382,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   const SizedBox(height: 24),
 
                   // Social buttons
+                  // Google ile kayıt da bir hesap açma yolu: şart onayı
+                  // olmadan buradan da geçilememeli.
                   _SocialButton(
                     label: 'Google',
                     icon: Icons.g_mobiledata,
-                    onTap: authState.isLoading
+                    onTap: (authState.isLoading || !_termsAccepted)
                         ? null
                         : () =>
                             ref.read(authProvider.notifier).signInWithGoogle(),
@@ -458,6 +517,70 @@ class _SocialButton extends StatelessWidget {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Yasal onay satırı: solda kutu, sağda tıklanabilir metin.
+///
+/// Satırın tamamı tıklanabilir yapılmadı — metin içindeki linkler ayrı hedef;
+/// tüm satır toggle olsaydı linke basmak istemeden onay verilirdi.
+class _ConsentCheckbox extends StatelessWidget {
+  final bool value;
+  final ValueChanged<bool> onChanged;
+  final Widget child;
+
+  const _ConsentCheckbox({
+    required this.value,
+    required this.onChanged,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 32,
+          height: 32,
+          child: Checkbox(
+            value: value,
+            onChanged: (v) => onChanged(v ?? false),
+            activeColor: AppTheme.primary,
+            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(child: Padding(
+          padding: const EdgeInsets.only(top: 6),
+          child: child,
+        )),
+      ],
+    );
+  }
+}
+
+/// Metin içinde harici tarayıcıda açılan yasal doküman linki.
+class _LegalLink extends StatelessWidget {
+  final String text;
+  final String url;
+
+  const _LegalLink({required this.text, required this.url});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication),
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontSize: 13,
+          color: AppTheme.primary,
+          fontWeight: FontWeight.w600,
+          decoration: TextDecoration.underline,
         ),
       ),
     );
