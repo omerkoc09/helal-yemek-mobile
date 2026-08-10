@@ -1926,3 +1926,56 @@ uyumluluğu zorunlu tutmuyor, yalnızca listede uyarı olarak gösteriyor.
 Tablet düzeni (max-width container, kart listelerinin grid'e dönmesi) yayın
 sonrasına bırakıldı. Yeniden ele alma tetikleyicisi: analytics'te iPhone
 uyumluluk modu kullanımının anlamlı seviyeye çıkması veya kullanıcı talebi.
+
+## Yasal Altyapı ve Onay Akışı (2026-08-11)
+
+Hesap silmenin ardından kalan yayın gereklilikleri kapatıldı.
+
+**Yapı kararı — statik, CRUD değil.** Yasal metinler yılda bir-iki kez değişir;
+admin paneli altyapısı (tablo, endpoint, ekran, versiyonlama) faydasını aşardı.
+Belirleyici olan şu: Apple ve Google mağaza listesinde gizlilik politikası için
+bir **URL** istiyor, uygulama içi ekran bu şartı karşılamıyor — metin zaten
+web'de olmak zorunda. Web'de barındırma ayrıca metin değişince mağaza incelemesi
+beklemeyi de ortadan kaldırıyor.
+
+**Metinler** (`docs/legal/`): gizlilik politikası, kullanım şartları, KVKK
+aydınlatma metni. Uydurma değil, uygulamanın **gerçek veri akışına** göre yazıldı
+— şema, platform izinleri ve bağımlılıklar tarandı; somut teknik iddialar koda
+karşı doğrulandı (bcrypt, audit log, konumun saklanmaması).
+
+**Onay akışı** — iki onay bilinçli olarak AYRI:
+
+| Onay | Durum | Gerekçe |
+|---|---|---|
+| Kullanım şartları + gizlilik | Zorunlu | Üyelik sözleşmesinin kurulması |
+| KVKK açık rızası | İsteğe bağlı | Açık rıza özgür iradeye dayanmalı |
+
+KVKK'yı zorunlu tutmak ya da şartlarla aynı kutuya koymak rızayı sakatlar
+("kabul etmezsen hizmet yok" geçerli açık rıza değildir). Kutular önceden
+işaretli gelmiyor. Google ile kayıt butonu da onaya bağlandı — o da bir hesap
+açma yolu, açık kalsaydı kapı atlanabilirdi.
+
+### Yol boyunca yakalananlar
+
+1. **Kendi taslağımda yanıltıcı beyan.** Konumun "yalnızca cihazda işlendiğini"
+   yazmıştım; oysa koordinatlar mesafe hesabı için sunucuya gönderiliyor, sadece
+   kaydedilmiyor. İki metinde de düzeltildi — yanıltıcı gizlilik beyanı kabul
+   edilemez.
+2. **Eski uygulama adı.** Metinlerde "Caiz mi?" ve `caizmi.com` kullanılmıştı.
+   Gerçek ad koddan doğrulandı (Info.plist/AndroidManifest: **İtimat**,
+   bundle `com.itimat.itimat`). Alan adı henüz belirlenmediği için uydurulmadı,
+   yer tutucu bırakıldı.
+3. **Yanlış alarm — `google-services.json`.** Dosyada `com.caizmi` girişlerini
+   görüp eksik sanmıştım; kontrol edince güncel olduğu çıktı (`com.itimat.itimat`
+   kayıtlı, backend ile Web client ID'si birebir aynı). Eski kayıtlar aynı
+   Firebase projesinde yan yana duruyor, zararsız.
+4. **Test kutuya ulaşamıyordu.** Onay testinde `tap()` çalışmıyordu; kod hatası
+   sandım ama ölçünce kutunun 800x600 test ekranının altında (Y=691) kaldığını
+   ve tap'in sessizce ıskaladığını gördüm. `ensureVisible` ile çözüldü — sorun
+   testteydi.
+
+**Kalan yayın açıkları** artık tek yerde: `docs/yayin-oncesi-yapilacaklar.md`
+(A: alan adı, metinlerin yayını, SMTP — bunlar yayını bloklar).
+
+**Doğrulama:** mobil **227 PASS**, analyzer temiz; backend build+vet+test temiz.
+Onay kapısı testleri, kapı kaldırılarak gerçekten kırıldıkları doğrulandı.

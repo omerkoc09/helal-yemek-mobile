@@ -58,6 +58,12 @@ Bu dosya, yapay zekanın **hangi görevde hangi dokümana bakması gerektiğini*
   - `docs/progress.md` oku.
   - Konular: Tamamlanan milestone’lar, önceki sprint notları, önemli kararlar ve geriye dönük değerlendirmeler.
 
+- **Mağaza yayını, kalan açıklar ve yayın blokerleri**
+  - `docs/yayin-oncesi-yapilacaklar.md` oku.
+  - Konular: Alan adı, yasal metinlerin yayını, SMTP, seed hesapları; öncelik
+    sırası (A: bloklar, B: yayından önce, C: sonraya bırakılabilir).
+  - Yasal metinlerin kendisi: `docs/legal/`
+
 ## 3. GÖREV TİPİNE GÖRE ROTA ÖRNEKLERİ
 
 - **“Yeni bir API endpoint tasarla / mevcut endpoint’i değiştir”**
