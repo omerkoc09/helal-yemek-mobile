@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/auth/auth_provider.dart';
+import '../../../core/config/legal_links.dart';
 import '../../../core/models/user.dart';
 import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_theme.dart';
@@ -62,6 +64,14 @@ class ProfileScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 8),
           ],
+
+          const SizedBox(height: 16),
+          const Divider(),
+          const SizedBox(height: 16),
+
+          // Hakkında ve Yasal — gizlilik politikası URL'si mağaza listesinde
+          // zorunlu alan; uygulama içinden de erişilebilir olması bekleniyor.
+          const _LegalSection(),
 
           const SizedBox(height: 16),
           const Divider(),
@@ -411,5 +421,89 @@ class _MenuTile extends StatelessWidget {
         onTap: onTap,
       ),
     );
+  }
+}
+
+/// Hakkında ve Yasal bölümü.
+///
+/// Metinler uygulamaya gömülmüyor, web'de barındırılıyor: mağaza listesi zaten
+/// bir gizlilik politikası URL'si istiyor ve metin değişince uygulama
+/// güncellemesi beklemek gerekmesin.
+class _LegalSection extends StatelessWidget {
+  const _LegalSection();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.only(left: 4, bottom: 8),
+          child: Text(
+            'Hakkında ve Yasal',
+            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+          ),
+        ),
+        _LegalTile(
+          icon: Icons.privacy_tip_outlined,
+          title: 'Gizlilik Politikası',
+          url: LegalLinks.privacyPolicy,
+        ),
+        _LegalTile(
+          icon: Icons.description_outlined,
+          title: 'Kullanım Şartları',
+          url: LegalLinks.termsOfService,
+        ),
+        _LegalTile(
+          icon: Icons.shield_outlined,
+          title: 'KVKK Aydınlatma Metni',
+          url: LegalLinks.kvkkNotice,
+        ),
+        const SizedBox(height: 8),
+        Center(
+          child: Text(
+            'Sürüm $appVersion',
+            style: TextStyle(
+              fontSize: 12,
+              color: AppTheme.textSecondary.withValues(alpha: 0.8),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _LegalTile extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String url;
+
+  const _LegalTile({
+    required this.icon,
+    required this.title,
+    required this.url,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      dense: true,
+      contentPadding: EdgeInsets.zero,
+      leading: Icon(icon, color: AppTheme.textSecondary, size: 20),
+      title: Text(title, style: const TextStyle(fontSize: 14)),
+      trailing: const Icon(Icons.open_in_new, size: 16, color: AppTheme.textSecondary),
+      onTap: () => _openLegalUrl(context, url),
+    );
+  }
+
+  /// Adres açılamazsa sessiz kalmıyoruz: kullanıcı yasal metne ulaşamadığını
+  /// bilmeli (ör. cihazda tarayıcı yok ya da adres henüz yayında değil).
+  Future<void> _openLegalUrl(BuildContext context, String url) async {
+    final uri = Uri.parse(url);
+    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!opened && context.mounted) {
+      AppToast.error(context, 'Sayfa açılamadı: $url');
+    }
   }
 }
