@@ -15,15 +15,19 @@ const String appVersion = '1.0.0';
 ///     kullanıcı her açtığında güncel sürümü görür.
 ///
 /// Derleme sırasında ezilebilir (ör. staging alan adı):
-///   flutter run --dart-define=LEGAL_BASE_URL=https://staging.caizmi.com
+///   flutter run --dart-define=LEGAL_BASE_URL=https://staging.ornek.com
 class LegalLinks {
   LegalLinks._();
 
   static const String _envBaseUrl = String.fromEnvironment('LEGAL_BASE_URL');
 
   /// Yasal sayfaların yayınlandığı kök adres.
+  ///
+  /// TODO(yayın): Alan adı alınınca buradaki varsayılan güncellenmeli.
+  /// `deploy/Caddyfile` de aynı alan adını `{$DOMAIN}` üzerinden kullanıyor;
+  /// ikisi hizalı olmalı. Ayrıntılar: docs/legal/README.md
   static final String baseUrl =
-      _envBaseUrl.isNotEmpty ? _envBaseUrl : 'https://caizmi.com';
+      _envBaseUrl.isNotEmpty ? _envBaseUrl : 'https://itimat.app';
 
   /// Gizlilik politikası — mağaza listesinde de bu adres verilmeli.
   static String get privacyPolicy => '$baseUrl/gizlilik';
@@ -35,5 +39,6 @@ class LegalLinks {
   static String get kvkkNotice => '$baseUrl/kvkk';
 
   /// Destek / iletişim adresi.
-  static const String supportEmail = 'destek@caizmi.com';
+  /// TODO(yayın): Yasal metinlerdeki [DESTEK E-POSTA] ile aynı olmalı.
+  static const String supportEmail = 'destek@itimat.app';
 }

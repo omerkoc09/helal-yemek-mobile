@@ -16,11 +16,11 @@
 **[ŞİRKET ADI]**
 Adres: [ADRES]
 Vergi No: [VERGİ NO]
-E-posta: destek@caizmi.com
+E-posta: [DESTEK E-POSTA]
 
 ## 2. İşlenen Kişisel Veriler
 
-**Caiz mi?** uygulaması kapsamında aşağıdaki veri kategorileri işlenmektedir:
+**İtimat** uygulaması kapsamında aşağıdaki veri kategorileri işlenmektedir:
 
 | Kategori | İşlenen veriler |
 |---|---|
@@ -108,7 +108,7 @@ haklarına sahipsiniz.
 
 Haklarınızı kullanmak için taleplerinizi:
 
-- **E-posta:** destek@caizmi.com
+- **E-posta:** [DESTEK E-POSTA]
 - **Posta:** [ADRES]
 
 adreslerine iletebilirsiniz. Başvurunuzda kimliğinizi tespit edici bilgilerin

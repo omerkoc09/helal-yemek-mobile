@@ -7,11 +7,11 @@
 > ve iletişim adresleri gerçek bilgilerle değiştirilmelidir. Metin yayına
 > alınmadan önce bir hukuk danışmanına okutulmalıdır.
 
-Bu politika, **Caiz mi?** mobil uygulamasını kullandığınızda hangi verilerin
+Bu politika, **İtimat** mobil uygulamasını kullandığınızda hangi verilerin
 işlendiğini, neden işlendiğini ve haklarınızı açıklar.
 
 Veri sorumlusu: **[ŞİRKET ADI]**, [ADRES].
-İletişim: destek@caizmi.com
+İletişim: [DESTEK E-POSTA]
 
 ---
 
@@ -142,7 +142,7 @@ Kişisel verilerinizle ilgili olarak:
 - Kanuna aykırı işleme nedeniyle zarara uğramanız hâlinde zararın giderilmesini
   talep etme
 
-Başvurularınızı **destek@caizmi.com** adresine iletebilirsiniz. Talebiniz en geç
+Başvurularınızı **[DESTEK E-POSTA]** adresine iletebilirsiniz. Talebiniz en geç
 **30 gün** içinde sonuçlandırılır.
 
 ## 8. Veri Güvenliği
@@ -168,4 +168,4 @@ bilgilendirme yapılır. Güncel sürüm her zaman bu sayfada yayınlanır.
 
 **[ŞİRKET ADI]**
 [ADRES]
-E-posta: destek@caizmi.com
+E-posta: [DESTEK E-POSTA]

@@ -8,7 +8,7 @@
 > değiştirilmelidir. Metin yayına alınmadan önce bir hukuk danışmanına
 > okutulmalıdır.
 
-**Caiz mi?** uygulamasını kullanarak bu şartları kabul etmiş olursunuz. Kabul
+**İtimat** uygulamasını kullanarak bu şartları kabul etmiş olursunuz. Kabul
 etmiyorsanız lütfen uygulamayı kullanmayın.
 
 Hizmet sağlayıcı: **[ŞİRKET ADI]**, [ADRES].
@@ -17,7 +17,7 @@ Hizmet sağlayıcı: **[ŞİRKET ADI]**, [ADRES].
 
 ## 1. Hizmetin Tanımı
 
-Caiz mi?, kullanıcıların helal gıda sunan mekanları bulmasına ve bu mekanlar
+İtimat, kullanıcıların helal gıda sunan mekanları bulmasına ve bu mekanlar
 hakkında topluluk katkısıyla bilgi paylaşmasına aracılık eden bir platformdur.
 
 **Önemli:** Platform bir **bilgi paylaşım aracıdır**, dini bir otorite veya helal
@@ -135,4 +135,4 @@ sıfatıyla, tüketici hakem heyetlerine başvurma hakkınız saklıdır.
 
 **[ŞİRKET ADI]**
 [ADRES]
-E-posta: destek@caizmi.com
+E-posta: [DESTEK E-POSTA]

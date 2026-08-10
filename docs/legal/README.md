@@ -19,6 +19,8 @@ doğarsa yeniden değerlendirilebilir.
 **1. Yer tutucuları doldurun.** Üç dosyada da `[KÖŞELİ PARANTEZ]` içinde işaretli:
 
 - `[ŞİRKET ADI]`, `[ADRES]`, `[VERGİ NO]`, `[TİCARET SİCİL NO]`
+- `[DESTEK E-POSTA]` — üç metinde de geçer; `legal_links.dart` içindeki
+  `supportEmail` ile aynı olmalı
 - `[YETKİLİ MAHKEME]` (kullanım şartları, bölüm 11)
 - `[VERBİS KAYIT NO]` — kayıt yükümlülüğünüz varsa
 
@@ -30,12 +32,17 @@ kimliği, saklama süreleri ve VERBİS yükümlülüğü ticari yapınıza bağl
 
 | Dosya | Adres |
 |---|---|
-| `gizlilik-politikasi.md` | `https://caizmi.com/gizlilik` |
-| `kullanim-sartlari.md` | `https://caizmi.com/kullanim-sartlari` |
-| `kvkk-aydinlatma-metni.md` | `https://caizmi.com/kvkk` |
+| `gizlilik-politikasi.md` | `https://<alan-adı>/gizlilik` |
+| `kullanim-sartlari.md` | `https://<alan-adı>/kullanim-sartlari` |
+| `kvkk-aydinlatma-metni.md` | `https://<alan-adı>/kvkk` |
 
-Adresler `mobile/lib/core/config/legal_links.dart` içinde tanımlı. Farklı bir
-alan adı kullanacaksanız orayı güncelleyin ya da derlemede geçin:
+**Alan adı henüz belirlenmedi.** Deploy yapılandırması da `{$DOMAIN}` değişkeni
+üzerinden çalışıyor (`deploy/Caddyfile`). Alan adı alınınca iki yeri hizalayın:
+
+1. `mobile/lib/core/config/legal_links.dart` → `baseUrl` varsayılanı
+2. `deploy/.env` → `DOMAIN`
+
+Derleme sırasında da geçilebilir (varsayılanı ezer):
 
 ```
 flutter build apk --dart-define=LEGAL_BASE_URL=https://ornek.com
