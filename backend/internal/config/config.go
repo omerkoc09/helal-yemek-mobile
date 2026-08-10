@@ -78,7 +78,11 @@ func Load() *Config {
 		SMTPPort:     getEnv("SMTP_PORT", "587"),
 		SMTPUser:     os.Getenv("SMTP_USER"),
 		SMTPPassword: os.Getenv("SMTP_PASSWORD"),
-		SMTPFrom:     getEnv("SMTP_FROM", "İtimat <noreply@caizmi.com>"),
+		// Varsayılan bilinçli olarak alan adı içermiyor: eski alan adı (caizmi.com)
+		// buradaydı ve yapılandırma unutulursa giden e-postalar yanlış/ölü bir
+		// adresten görünüyordu. Alan adı belirlenene kadar SMTP_FROM env'den
+		// verilmeli; boş kalırsa e-posta gönderimi zaten yapılandırılmamış demektir.
+		SMTPFrom:     os.Getenv("SMTP_FROM"),
 
 		VerificationPeriodDays:  getEnvInt("VERIFICATION_PERIOD_DAYS", 180),
 		VerificationWarningDays: getEnvInt("VERIFICATION_WARNING_DAYS", 14),

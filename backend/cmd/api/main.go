@@ -75,6 +75,12 @@ func main() {
 	// Service katmanı
 	var emailSvc services.EmailService
 	if cfg.SMTPUser != "" && cfg.SMTPPassword != "" {
+		// SMTP_FROM zorunlu: boş gönderen ile atılan mailler ya reddedilir ya da
+		// spam'e düşer. Eksikse sessizce devam etmek yerine erken hata veriyoruz.
+		if cfg.SMTPFrom == "" {
+			log.Fatal("SMTP yapılandırıldı ama SMTP_FROM tanımlı değil " +
+				"(ör. \"İtimat <noreply@alan-adiniz.com>\")")
+		}
 		emailSvc = services.NewSMTPEmailService(cfg.SMTPHost, cfg.SMTPPort, cfg.SMTPUser, cfg.SMTPPassword, cfg.SMTPFrom)
 	} else {
 		emailSvc = services.NewNoopEmailService()

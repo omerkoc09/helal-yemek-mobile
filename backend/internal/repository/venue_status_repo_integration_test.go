@@ -27,8 +27,8 @@ func TestMain(m *testing.M) {
 
 	pgC, err := tcpostgres.Run(ctx,
 		"postgis/postgis:16-3.4",
-		tcpostgres.WithDatabase("caizmi_test"),
-		tcpostgres.WithUsername("caizmi"),
+		tcpostgres.WithDatabase("itimat_test"),
+		tcpostgres.WithUsername("itimat"),
 		tcpostgres.WithPassword("secret"),
 		testcontainers.WithWaitStrategy(
 			wait.ForLog("database system is ready to accept connections").

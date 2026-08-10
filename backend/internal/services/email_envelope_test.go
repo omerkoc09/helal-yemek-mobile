@@ -14,33 +14,33 @@ func TestEnvelopeFrom(t *testing.T) {
 	}{
 		{
 			name: "görünen adlı biçim",
-			from: "İtimat <noreply@caizmi.com>",
-			want: "noreply@caizmi.com",
+			from: "İtimat <noreply@itimat.app>",
+			want: "noreply@itimat.app",
 		},
 		{
 			name: "çıplak adres",
-			from: "noreply@caizmi.com",
-			want: "noreply@caizmi.com",
+			from: "noreply@itimat.app",
+			want: "noreply@itimat.app",
 		},
 		{
 			name: "açılı parantez içinde boşluk",
-			from: "İtimat < noreply@caizmi.com >",
-			want: "noreply@caizmi.com",
+			from: "İtimat < noreply@itimat.app >",
+			want: "noreply@itimat.app",
 		},
 		{
 			name: "görünen adda soru işareti ve boşluk",
-			from: "Caiz mi? <noreply@caizmi.com>",
-			want: "noreply@caizmi.com",
+			from: "İtimat <noreply@itimat.app>",
+			want: "noreply@itimat.app",
 		},
 		{
 			name: "baştaki ve sondaki boşluklar kırpılır",
-			from: "  noreply@caizmi.com  ",
-			want: "noreply@caizmi.com",
+			from: "  noreply@itimat.app  ",
+			want: "noreply@itimat.app",
 		},
 		{
 			name: "kapanış parantezi yoksa olduğu gibi döner",
-			from: "bozuk <noreply@caizmi.com",
-			want: "bozuk <noreply@caizmi.com",
+			from: "bozuk <noreply@itimat.app",
+			want: "bozuk <noreply@itimat.app",
 		},
 	}
 
