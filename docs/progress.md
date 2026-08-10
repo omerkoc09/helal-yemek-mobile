@@ -1876,3 +1876,53 @@ test (4 servis + 4 handler), mobil 223 test, analyzer temiz.
 Hesap silme tamamlandı. **Gizlilik politikası, KVKK aydınlatma metni ve kullanım
 şartları hâlâ yok** — metinler hazırlanıp bir adreste yayınlandığında profile
 linklenmesi gerekiyor (mağaza listesinde gizlilik politikası URL'si zorunlu alan).
+
+## Cihaz Hedefi: iPhone-only (2026-08-11)
+
+iPad Pro 13" simülatöründe alınan ekran görüntüleri tablet düzeninin hiç ele
+alınmadığını gösterdi: izin ekranında içerik tek kolon halinde boşlukta yüzüyor,
+ana sayfadaki yatay kart listeleri telefon genişliğine göre hesaplandığından tek
+kart satırı kaplayıp ikincisi kenardan kesiliyor, iki restoran satırından sonra
+ekranın yarısı boş kalıyor. Bu bir "responsive bug" değil — tablet düzeni hiç
+yazılmamış.
+
+### Karar ve gerekçe
+
+Uygulama **iPhone-only** yayınlanacak. Çekirdek kullanım anı sokakta, mekan
+önünde: konum izni isteyen, mesafe ("3.3 km") gösteren, yakındakileri haritada
+listeleyen bir akış. Kimse iPad'i çantasından çıkarıp döner ararken kullanmıyor.
+iPad'in anlamlı olduğu senaryolar (uzun planlama oturumları, masaüstü tarzı
+yönetim panelleri) mevcut ürün kapsamında yok.
+
+Yayın tarafındaki gerekçeler:
+
+- **Red riski sıfırlanıyor.** iPhone-only'de Apple uygulamayı iPad'de test etmez.
+  Universal bırakıp mevcut haliyle göndermek yukarıdaki boş alanlar ve kesik
+  kartlar yüzünden Guideline 4.0 (Design) reddine açıktı.
+- **Takvim.** Universal destek layout işine ek olarak iPad için ayrı ekran
+  görüntüsü seti gerektiriyor (App Store Connect'te zorunlu alan).
+- **Geri dönüşü kolay yön.** iPhone-only başlayıp sonra universal'a geçmek
+  sorunsuz; tersi (universal yayınlayıp iPad desteğini çekmek) mevcut iPad
+  kullanıcılarını mağdur eder.
+
+iPad kullanıcıları uygulamayı App Store'da yine bulup iPhone uyumluluk modunda
+kurabiliyor — kapı tamamen kapanmıyor, yalnızca "iPad için optimize" iddiasında
+bulunulmuyor.
+
+### Uygulama
+
+- **`Runner.xcodeproj/project.pbxproj`:** `TARGETED_DEVICE_FAMILY` üç build
+  config'inde de (Debug/Release/Profile) `"1,2"` → `1`. Flutter varsayılanı
+  universal olduğu için bu ayar açıkça değiştirilmeliydi.
+- **`Runner/Info.plist`:** `UISupportedInterfaceOrientations~ipad` bloğu
+  kaldırıldı. iPhone-only hedefte bu anahtar okunmaz; bırakılsaydı kodda hâlâ
+  iPad desteği varmış izlenimi verirdi. `plutil -lint` ile doğrulandı.
+
+Android tarafında karşılığı olan bir kısıt getirilmedi — Play Store tablet
+uyumluluğu zorunlu tutmuyor, yalnızca listede uyarı olarak gösteriyor.
+
+### Ertelenen iş
+
+Tablet düzeni (max-width container, kart listelerinin grid'e dönmesi) yayın
+sonrasına bırakıldı. Yeniden ele alma tetikleyicisi: analytics'te iPhone
+uyumluluk modu kullanımının anlamlı seviyeye çıkması veya kullanıcı talebi.
